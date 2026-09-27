@@ -24,7 +24,6 @@
       <ProjectReference Include="..\..\agents\Mail.Mcp\Mail.Mcp.csproj" />
       <ProjectReference Include="..\..\agents\NotificationAgent\NotificationAgent.csproj" />
       <ProjectReference Include="..\..\agents\Reviews.Moderation\Reviews.Moderation.csproj" />
-      <ProjectReference Include="..\..\agents\Mcp.Gateway\Mcp.Gateway.csproj" />
       <ProjectReference Include="..\..\services\reviews\Reviews.Api\Reviews.Api.csproj" />
       <ProjectReference Include="..\..\services\library\Library.Api\Library.Api.csproj" />
       <ProjectReference Include="..\..\services\discount\Discount.Api\Discount.Api.csproj" />

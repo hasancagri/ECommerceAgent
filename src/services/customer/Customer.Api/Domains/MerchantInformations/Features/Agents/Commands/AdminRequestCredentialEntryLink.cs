@@ -2,7 +2,7 @@ namespace Customer.Api.Domains.MerchantInformations.Features.Agents.Commands;
 
 // 078 US3/FR-005: credential-giriş ekranına süreli + TEK KULLANIMLIK link üretir. Link tabanı
 // config'ten (CredentialEntryOptions.PublicBaseUrl) — HttpContext base KULLANILMAZ: MCP çağrısı
-// mcp-gateway proxy'sinden gelir, istek base'i Aspire iç adresidir, tarayıcıda çözülmez (D1).
+// platform MCP fasad proxy'sinden gelir, istek base'i Aspire iç adresidir, tarayıcıda çözülmez (D1).
 // İz: credential_entry_link_created — token DEĞİL oturum Id loglanır.
 public static class AdminRequestCredentialEntryLink
 {

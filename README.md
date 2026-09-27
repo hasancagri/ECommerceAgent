@@ -36,7 +36,7 @@ DDD, CQRS ve olay-güdümlü tasarımın gerçek .NET kodunda ne kadar ileri ta�
 - **Vertical Slice + CQRS** — kod teknik katmana değil feature'a göre örgütlenir. Yazma/okuma ayrı slice'lar; repository yok — handler doğrudan Marten `IDocumentSession` kullanır.
 - **Exception yerine Result pattern** — beklenen hatalar (bulunamadı, doğrulama, kural ihlali) tipli `Result` nesneleriyle akar; exception yalnız gerçekten beklenmeyene ayrılır.
 - **Scope-tabanlı yetkilendirme** — kimlik OpenIddict + ASP.NET Identity ile verilir; servisler OAuth **scope**'larına göre yetkilendirir (rol downstream'e sızmaz), hem HTTP uçlarında hem Wolverine mesaj handler'larında.
-- **Agent-only müşteri yüzeyi (tek MCP fasadı, 073)** — tüm müşteri ekranları ve mağazanın kendi ChatAgent'ı **bilinçli söküldü**. Müşteri kendi AI istemcisiyle **mcp-gateway** fasadına bağlanır: tek `/mcp` (müşteri) + tek `/mcp-admin` (yönetim), tek login. Tool'lar alt BC `/mcp`'lerinden LAZY toplanır, çağrı sahibine kullanıcı token'ıyla proxy'lenir.
+- **Agent-only müşteri yüzeyi (tek MCP fasadı, 073)** — tüm müşteri ekranları ve mağazanın kendi ChatAgent'ı **bilinçli söküldü**. Müşteri kendi AI istemcisiyle **platform MCP fasadına** (AgentPlatform'a taşındı, 001) bağlanır: tek `/mcp`, tek login. Tool'lar alt BC `/mcp`'lerinden LAZY toplanır, çağrı sahibine kullanıcı token'ıyla proxy'lenir.
 - **Dış agent MCP OAuth (061)** — kullanıcının kendi AI agent'ı MCP uçlarına **OAuth 2.1** ile bağlanır: RFC 7591 **DCR** (istemci kendini kaydeder), RFC 9728 **PRM** keşfi, tek **consent** sayfası (Explicit), refresh token ile ekransız süreklilik, revocation. `basket/order/customer/payment` MCP korumalı; `storefront/catalog/stock` anonim gezinme için açık kalır.
 - **MCP'de admin yüzeyi (070)** — `catalog/stock/customer` ikinci korumalı `/mcp-admin` ucu açar (anonim keşif seti değişmez; tool seti oturum açılışında açık allowlist ile budanır). Her admin yazma BC'sinde salt-append `AdminActionLog` izi.
 - **Push-only read model + asistan sorgu yüzeyi** — `storefront` servisi katalog + stok + yorum özetini birleştiren ürün-merkezli görünümü **tek sıralı kuyruk**ta tüketilen integration event'lerle kurar (dışa çağrı/backfill yok). Müşteri okuma yüzeyi tek tool: `query_storefront` (069) — salt-okur `storefront_sellable` view + `AgentSqlGuard` bekçisi + kısıtlı DB rolü + `{{EMBED}}` semantik yerleştirme + `AgentQueryLog` izi.
@@ -58,7 +58,7 @@ flowchart TB
     end
 
     AIClient -->|"OAuth 2.1 login + consent"| IdP["Identity.Server<br/>(OpenIddict OIDC/OAuth + ASP.NET Identity)"]
-    AIClient -->|"MCP (/mcp müşteri, /mcp-admin yönetim)"| Facade["mcp-gateway<br/>(tek müşteri MCP fasadı, DB'siz proxy)"]
+    AIClient -->|"MCP (/mcp)"| Facade["platform MCP fasadı<br/>(AgentPlatform, DB'siz proxy)"]
 
     Facade -->|"ad→BC token-forward, kullanıcı token'ı"| GW["Gateway (YARP)"]
 
@@ -113,7 +113,7 @@ flowchart TB
 
 Her servis kendi kendine yeten bir bounded context'tir. Senkron okuma/yazma trafiği **YARP gateway → servis** üzerinden gider; Identity.Server'ın verdiği OAuth scope'lu JWT bearer token'larla korunur. Durum değişiklikleri RabbitMQ fanout exchange'lerinde **integration event** olarak yayınlanır; `storefront` read modeli tamamen bu event'leri **tek sıralı kuyruk**ta tüketerek kurulur (aynı birleşik satıra eşzamanlı yazımı yapısal olarak eler).
 
-Müşteri hiçbir mağaza ekranı açmaz: **kendi AI istemcisiyle** `mcp-gateway` fasadına bağlanır. Fasad, alt BC `/mcp` uçlarındaki tool'ları LAZY toplar (SDK `WithListToolsHandler`/`WithCallToolHandler`), tool adına göre sahip BC'ye çağrıyı **kullanıcı token'ıyla** proxy'ler (`PerUserMcpTool` server ikizi) — agent *o kullanıcı olarak* davranır.
+Müşteri hiçbir mağaza ekranı açmaz: **kendi AI istemcisiyle** platform MCP fasadına (AgentPlatform) bağlanır. Fasad, alt BC `/mcp` uçlarındaki tool'ları LAZY toplar (SDK `WithListToolsHandler`/`WithCallToolHandler`), tool adına göre sahip BC'ye çağrıyı **kullanıcı token'ıyla** proxy'ler (`PerUserMcpTool` server ikizi) — agent *o kullanıcı olarak* davranır.
 
 Olaylar dışında iki senkron kanal sanksiyonludur. **Stok rezervi** tipli **gRPC** kontratı (`Shared/Protos`) üzerindedir: Basket sepete-eklemede Stock'u senkron çağırır (fail-closed). **Order → Payment hosted ödeme linki** ise **servisten-servise** çağrıdır (kart alanı LLM'e/mesaja sızmaz). **Checkout** kendi `Checkout.Orchestrator` servisinde **broker command/reply** sağası olarak çalışır.
 
@@ -121,7 +121,7 @@ Olaylar dışında iki senkron kanal sanksiyonludur. **Stok rezervi** tipli **gR
 
 Müşteri hiçbir ekrana dokunmadan, sohbetten uçtan uca ödeyip sipariş verir — ama kart verisi asla LLM'e teslim edilmez:
 
-1. **Ödeme başlat** — müşteri (AI istemcisi → mcp-gateway) `start_payment`'ı tetikler (Order.Api agent slice'ı). Order sepeti (Basket gRPC, sunucu-yetkili) + adresi okur, **Pending** bir sipariş yaratır ve Payment'tan **S2S** ile hosted ödeme linki ister.
+1. **Ödeme başlat** — müşteri (AI istemcisi → platform MCP fasadı) `start_payment`'ı tetikler (Order.Api agent slice'ı). Order sepeti (Basket gRPC, sunucu-yetkili) + adresi okur, **Pending** bir sipariş yaratır ve Payment'tan **S2S** ile hosted ödeme linki ister.
 2. **Hosted ödeme** — Payment bir `PaymentIntent` yaratır (kart alanı yok), PG hosted linkini (`PgHostedPaymentClient`, `MerchantKey` S2S) üretir; müşteri PG'nin hosted sayfasında öder.
 3. **Callback** — PG, ayrı `CallbackSecret` ile **HMAC-imzalı** callback döner; Payment doğrular → `PaymentSucceeded` veya `PaymentFailed` yayınlar. `TxRef` unique olduğu için idempotent; callback gelmezse terk-timer (`ScheduleAsync`) Expire eder.
 4. **Saga tetiği** — Order `PaymentSucceeded`'ı tüketir → `StartCheckout` yayınlar (`CheckoutId = OrderId`) / `PaymentFailed` → siparişi Cancel eder.
@@ -142,7 +142,7 @@ Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bi
 | Caching | HybridCache (L1 bellek + opsiyonel Redis L2), AOP decorator |
 | Kimlik & yetki | OpenIddict + ASP.NET Identity (OIDC/OAuth, scope-tabanlı) + RFC 7591 DCR |
 | API Gateway | YARP (Aspire service discovery ile) |
-| Müşteri yüzeyi | Tek MCP fasadı (`mcp-gateway`) — dış AI istemcisi tüketir |
+| Müşteri yüzeyi | Tek MCP fasadı (AgentPlatform'a taşındı, 001) — dış AI istemcisi tüketir |
 | Senkron RPC | gRPC (stok rezervi, sepet kalemleri — paylaşılan proto kontratları) |
 | AI agent'lar | Microsoft Agent Framework + Microsoft.Extensions.AI (OpenAI), MCP |
 | Semantik arama | pgvector (`text-embedding-3-small`) |
@@ -165,7 +165,7 @@ Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bi
 | `checkout-orchestrator` | Standalone broker-only checkout sağası (`checkoutDb`): `CommitStock → Confirm → ClearBasket`; LIFO telafi + watchdog (ödeme öncedendir) |
 | `gateway` | YARP reverse proxy / tek giriş (MCP + PRM rotaları) |
 | `identity-server` | OpenIddict + ASP.NET Identity — OIDC/OAuth authority + RBAC (rol = scope demeti) + RFC 7591 DCR + consent + revocation |
-| `mcp-gateway` | Tek müşteri MCP fasadı (DB'siz proxy); alt BC `/mcp`'lerini LAZY toplar, ad→BC token-forward proxy; tek `/mcp` (müşteri) + `/mcp-admin` (yönetim), tek login |
+| _(MCP fasadı)_ | **TAŞINDI → AgentPlatform** (001): tek MCP fasadı artık bu repoda değil; AgentPlatform'ın Aspire host'unda koşar, EC `/mcp` uçlarını sabit URL'lerle downstream toplar. EC ürün `/mcp` uçları KORUNUR |
 | `reviews-moderation-agent` | Durumsuz broker worker — `ReviewModerationRequested → LLM (structured JSON) → ReviewModerated`; DB yok, MCP yok |
 | `notification-agent` | Durumsuz worker — `PriceAlarmTriggered → LLM compose → Mail.Mcp send_mail → NotificationSent`; DB yok |
 | `mail-mcp` | İlk standalone MCP server; tek tool `send_mail` (MailKit → Mailpit); yalnız Notification Agent tüketir |
@@ -177,7 +177,7 @@ Paylaşılan temeller `src/others` altında: `Common` (domain yapı taşları, r
 - **Bir mikroservis = bir bounded context.** Sınır fiziksel ve sert: ayrı veritabanı, ayrı şema, ayrı domain modeli. Servisler DB paylaşmaz, bir context'in modelini diğerine sızdırmaz.
 - **Aggregate'ler invariant'larının sahibidir.** Yeni kural handler'a değil aggregate metoduna gider. Koleksiyonlar private, salt-okunur açılır; mutasyon yalnız davranış metotlarından akar.
 - **Exception yerine Result.** Tüm handler, aggregate metodu ve endpoint bir `Result` döner; endpoint `IsSuccess`'i `Ok`/`BadRequest`'e çevirir.
-- **Agent-only müşteri yüzeyi, tek fasad.** Her müşteri işlemi MCP paritesine ulaşınca ekranlar ve mağazanın kendi agent'ı söküldü; mağaza artık BYO-agent. Müşteri kendi AI istemcisiyle tek `mcp-gateway` fasadına bağlanır, tek login yeterlidir.
+- **Agent-only müşteri yüzeyi, tek fasad.** Her müşteri işlemi MCP paritesine ulaşınca ekranlar ve mağazanın kendi agent'ı söküldü; mağaza artık BYO-agent. Müşteri kendi AI istemcisiyle tek platform MCP fasadına (AgentPlatform) bağlanır, tek login yeterlidir.
 - **MCP yalnız agent tüketir.** Agent olmayan kod imperatif `CallToolAsync` süremez → REST/gRPC/S2S. MCP tool'ları ince sarmalayıcıdır: aynı Wolverine command/query'yi çağırır, yalnız LLM-dostu ad + açıklama ekler; sıfır iş-mantığı tekrarı.
 - **Saga bir servistir, bir god-object değil.** Checkout orkestrasyonu dört context'e yayılan bir süreç sahibidir, o yüzden **kendi BC'sinde** yaşar ve yalnız broker command/reply konuşur — asla başka servisin veritabanı.
 - **İki-fazlı ödeme yerine hosted-CF.** Ödeme dış PG'nin hosted sayfasında, checkout'tan **önce** olur; başarı HMAC callback ile doğrulanır. Saga içinde authorize/capture/void makinesi yoktur — ödeme saga dışıdır, saga yalnız stok+onay sürer.
@@ -203,7 +203,7 @@ Dağıtık sistemi her zaman **Aspire AppHost** üzerinden başlat — servisler
 dotnet run --project src/aspire/AppHost/AppHost.csproj
 ```
 
-Bu; her servisi, YARP gateway'i, Identity.Server'ı, mcp-gateway fasadını ve agent worker'larını, artı PostgreSQL, RabbitMQ (management eklentisiyle), Redis ve Mailpit'i ayağa kaldırır. **Aspire dashboard** her kaynağın canlı görünümü, logları ve uçlarıyla açılır.
+Bu; her servisi, YARP gateway'i, Identity.Server'ı ve agent worker'larını, artı PostgreSQL, RabbitMQ (management eklentisiyle), Redis ve Mailpit'i ayağa kaldırır. **Aspire dashboard** her kaynağın canlı görünümü, logları ve uçlarıyla açılır.
 
 > Identity.Server **HTTPS** üzerinde çalışmalıdır (`SameSite=None; Secure` çerezleri düz HTTP'de sonsuz döner).
 
@@ -241,8 +241,8 @@ src/
   services/      basket, catalog, checkout, customer, gateway, library,
                  order, payment, reviews, stock, storefront
   others/        Common, Shared (kontratlar + protolar), Identity.Server
-  agents/        Mcp.Gateway (müşteri MCP fasadı), Mail.Mcp (send_mail),
-                 NotificationAgent (fiyat alarmı), Reviews.Moderation (moderasyon)
+  agents/        Mail.Mcp (send_mail), NotificationAgent (fiyat alarmı),
+                 Reviews.Moderation (moderasyon)   # MCP fasadı → AgentPlatform'a taşındı (001)
 tests/           Servis başına domain birim testleri (xUnit + Shouldly)
 .specify/        Spec-driven development kurulumu (spec-kit)
 specs/           Feature spec / plan / task'ları

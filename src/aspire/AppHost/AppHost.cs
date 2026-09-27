@@ -200,23 +200,9 @@ var notificationAgent = builder.AddProject<Projects.NotificationAgent>("notifica
     .WaitFor(rabbit)
     .WaitFor(mailMcp);
 
-// 073/085: tek müşteri+admin MCP fasadı (DB'siz) — alt BC /mcp'lerini toplayıp TEK /mcp sunar (/mcp-admin
-// öldü, 085). Downstream'lere service discovery için referans; lazy keşif olduğundan WaitFor kozmetik
-// (correctness garanti). Identity token (discovery) + gateway route (aşağıda) ile tek dış giriş.
-var mcpGateway = builder.AddProject<Projects.Mcp_Gateway>("mcp-gateway")
-    .WithHttpHealthCheck("/health")
-    .WithReference(storefrontApi)
-    .WithReference(catalogApi)
-    .WithReference(basketApi)
-    .WithReference(orderApi)
-    .WithReference(customerApi)
-    .WithReference(paymentApi)
-    .WithReference(stockApi)
-    // Unutulan kablolama (2026-09-19): reviews+library tool'ları fasada ancak referansla çözülür.
-    .WithReference(reviewsApi)
-    .WithReference(libraryApi)
-    // 079/085: discount kampanya tool'ları fasadın TEK /mcp ucunda toplanır (service discovery).
-    .WithReference(discountApi);
+// 001: MCP fasadı AgentPlatform'a TAŞINDI — platform tek MCP girişini de barındırır (Anayasa İlke III).
+// EC ürün servislerinin /mcp uçları KORUNUR; fasad platform Aspire host'unda koşar ve buraya sabit
+// mutlak URL'lerle downstream olarak bağlanır. Bu repoda fasad projesi/route'u kalmadı.
 
 // 081: File.Api — DB'siz kapak deposu (Mail.Mcp emsali). Kalıcı host diskine yazar (reset'e dayanıklı).
 // RootPath = kalıcı host dizini; migration kaynağı = repo-dışı catalog-import.xlsx. Env Options ile enjekte.
@@ -254,12 +240,10 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(reviewsApi)
     // 065: Library MCP gateway üzerinden (dış agent fiyat alarmı); service discovery için referans.
     .WithReference(libraryApi)
-    // 073/085: tek müşteri+admin MCP fasadı (TEK /mcp) gateway üzerinden.
-    .WithReference(mcpGateway)
     // 081: kapak görseli servis (anonim /files/**) gateway üzerinden.
     .WithReference(fileApi);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
-// MCP fasadına (mcp-gateway) bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).
+// platform MCP fasadına bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).
 
 await builder.Build().RunAsync();

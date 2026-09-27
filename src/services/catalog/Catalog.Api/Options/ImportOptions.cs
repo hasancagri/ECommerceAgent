@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Catalog.Api.Options;
 
 // 083 D6: Excel yükleme ekranı config'i — section "ImportOptions". Link tabanı HttpContext'ten ALINMAZ
-// (import_catalog çağrısı mcp-gateway proxy'sinden gelir; istek base'i Aspire iç adresidir, tarayıcıda
+// (import_catalog çağrısı platform MCP fasad proxy'sinden gelir; istek base'i Aspire iç adresidir, tarayıcıda
 // çözülmez) → dışarıdan erişilir adres config'te (078 CredentialEntryOptions emsali).
 public class ImportOptions
 {
