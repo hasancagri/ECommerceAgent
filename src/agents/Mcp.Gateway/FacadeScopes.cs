@@ -22,5 +22,10 @@ public static class FacadeScopes
         AuthorizationScopes.AdminCatalogRead, AuthorizationScopes.AdminCatalogWrite,
         AuthorizationScopes.StockWrite, AuthorizationScopes.MerchantCredentialsWrite,
         AuthorizationScopes.AdminDiscountWrite,
+
+        // 047: PaymentGateway demeti — PG Merchant/Commission MCP tool'ları store fasadına downstream.
+        // 079 tuzağı: PRM'de ilan edilmeyen scope talep edilmez → token audience taşımaz → PG /mcp 401.
+        AuthorizationScopes.MerchantRead, AuthorizationScopes.MerchantWrite, AuthorizationScopes.MerchantAdmin,
+        AuthorizationScopes.CommissionRead, AuthorizationScopes.CommissionWrite,
     ];
 }
