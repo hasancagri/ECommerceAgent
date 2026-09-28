@@ -47,7 +47,7 @@ public static class GetAllPaymentsByUserId
 public static class GetAllPaymentsByUserIdMcpTool
 {
     [McpServerTool(Name = Shared.PaymentTools.GetMyPayments)]
-    [Description("Giris yapmis kullanicinin odemelerini (tutar, tarih, durum) listeler.")]
+    [Description(Shared.McpToolDescriptions.PaymentTools.GetMyPayments)]
     public static Task<FeatureListResultModel<GetAllPaymentsByUserId.GetAllPaymentsByUserIdResponse>> GetAllPaymentsByUserIdAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

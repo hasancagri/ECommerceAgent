@@ -71,8 +71,7 @@ public static class SearchProducts
 public static class GetProductByNameMcpTool
 {
     [McpServerTool(Name = Shared.CatalogTools.SearchProducts)]
-    [Description("Katalogda isme gore en iyi eslesen urunun productId ve adini doner (link YOK — magaza " +
-                 "ekransiz). Kategori ve/veya yazar adiyla daraltilabilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogTools.SearchProducts)]
     public static Task<FeatureObjectResultModel<SearchProducts.SearchProductResponse>> SearchProductsAsync(
         [Description("Aranacak urun adi (kismi eslesme yeterli)")] string name,
         IMessageBus bus,

@@ -42,7 +42,7 @@ public static class GetProduct
 public static class GetProductMcpTool
 {
     [McpServerTool(Name = Shared.CatalogTools.GetProduct)]
-    [Description("Sepete ekleme icin: urunu isme gore arar ve add_to_cart'a yetecek bilgiyi (id, ad, fiyat, gorsel) doner.")]
+    [Description(Shared.McpToolDescriptions.CatalogTools.GetProduct)]
     public static Task<FeatureObjectResultModel<GetProduct.GetProductResponse>> GetProductAsync(
         [Description("Aranacak urun adi (kismi eslesme yeterli)")] string name,
         IMessageBus bus,

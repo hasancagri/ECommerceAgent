@@ -61,7 +61,7 @@ public static class GetBasket
 public static class GetBasketMcpTool
 {
     [McpServerTool(Name = Shared.BasketTools.GetBasket)]
-    [Description("Giris yapmis kullanicinin sepetini (urunler, toplam fiyat) doner.")]
+    [Description(Shared.McpToolDescriptions.BasketTools.GetBasket)]
     public static Task<FeatureObjectResultModel<GetBasket.GetBasketResponse>> GetBasketAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

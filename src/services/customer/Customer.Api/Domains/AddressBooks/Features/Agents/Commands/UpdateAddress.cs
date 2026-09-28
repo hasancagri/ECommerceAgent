@@ -70,12 +70,7 @@ public static class UpdateAddress
 public static class UpdateAddressMcpTool
 {
     [McpServerTool(Name = Shared.CustomerTools.UpdateAddress)]
-    [Description(
-        "Giris yapmis kullanicinin mevcut bir adresini KISMI gunceller: YALNIZ degistirmek istedigin " +
-        "alanlari gonder, digerlerini hic gonderme — verilmeyen alanlar mevcut degerinde AYNEN kalir " +
-        "(degismeyen alani yeniden yazma/uydurma). addressId = list_addresses'ten donen adres kimligi. " +
-        "Ornek: ilceyi degistirmek icin yalniz addressId + district gonder. Yanit adresin GUNCEL " +
-        "halidir; 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.CustomerTools.UpdateAddress)]
     public static Task<FeatureObjectResultModel<UpdateAddress.UpdateAddressResponse>> UpdateAddressAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

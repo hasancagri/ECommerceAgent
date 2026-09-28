@@ -210,6 +210,7 @@ public static class QueryStorefrontMcpTool
     // Rehber ayri const'ta: Description attribute'u derleme sabiti ister; bloklar okunur kalsin.
     private const string SchemaBlock =
         "Kitap magazasi vitrininde SERBEST salt-okur SQL sorgusu calistirir (Postgres). " +
+        "\"Kitap ara\", \"su temada kitap oner\", \"fiyati sundan az kitaplar\" gibi serbest vitrin sorgulari icin. " +
         "TEK ilişki: storefront_sellable (yalniz satistaki kitaplar). Kolonlar: " +
         "product_id uuid, name text (kitap adi), description text (aciklama), authors text[] " +
         "(yazar adlari), publisher text (yayinevi), category text (kategori), price numeric (TL), " +

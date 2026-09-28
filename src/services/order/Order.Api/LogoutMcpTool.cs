@@ -12,10 +12,7 @@ public static class LogoutMcpTool
     }
 
     [McpServerTool(Name = Shared.AuthTools.Logout)]
-    [Description(
-        "Kullanici cikis yapmak/baglantiyi kesmek istediginde bu agent'in magaza erisim yetkisini iptal " +
-        "eder. Sonrasinda islem yapmak icin yeniden baglanti ve onay gerekir. Yanittaki 'message' alanini " +
-        "kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.AuthTools.Logout)]
     public static async Task<FeatureObjectResultModel<LogoutResponse>> LogoutAsync(
         IHttpContextAccessor http,
         IHttpClientFactory factory,

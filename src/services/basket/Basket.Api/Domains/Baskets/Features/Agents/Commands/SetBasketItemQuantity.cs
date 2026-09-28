@@ -56,10 +56,7 @@ public static class SetBasketItemQuantity
 public static class SetBasketItemQuantityMcpTool
 {
     [McpServerTool(Name = Shared.BasketTools.UpdateBasketQuantity)]
-    [Description(
-        "Giris yapmis kullanicinin sepetindeki bir urunun adedini belirtilen mutlak degere gunceller. " +
-        "productId = get_basket'ten donen urun kimligi; quantity 0 veya altiysa urun sepetten cikarilir " +
-        "(ust sinir 5). Yanittaki 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.BasketTools.UpdateBasketQuantity)]
     public static Task<FeatureObjectResultModel<SetBasketItemQuantity.SetBasketItemQuantityResponse>> SetBasketItemQuantityAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

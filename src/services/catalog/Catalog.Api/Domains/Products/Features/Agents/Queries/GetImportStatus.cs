@@ -50,10 +50,7 @@ public static class GetImportStatus
 public static class GetImportStatusMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.GetImportStatus)]
-    [Description(
-        "YONETIM/OKUMA: Excel katalog import durumunu doner: {pending, processed, failed, failures}. " +
-        "failures = basarisiz satirlarin {isbn, error} listesi (en fazla 200). Import ilerlemesini ve " +
-        "hatali satirlari gormek icin kullanin.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.GetImportStatus)]
     public static Task<FeatureObjectResultModel<GetImportStatus.GetImportStatusResponse>> GetImportStatusAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

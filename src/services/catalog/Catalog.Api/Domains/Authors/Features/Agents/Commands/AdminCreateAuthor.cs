@@ -64,10 +64,7 @@ public static class AdminCreateAuthor
 public static class AdminCreateAuthorMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.CreateAuthor)]
-    [Description(
-        "YONETIM/YAZMA: bir yazar kaydi olusturur. Ayni ad zaten varsa YENISI olusturulmaz — mevcut " +
-        "yazar dondurulur (idempotent get-or-create), boylece urun bagi kurmadan once yazar kimligini " +
-        "guvenle alabilirsin. Yanit {id, name}. Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.CreateAuthor)]
     public static Task<FeatureObjectResultModel<AdminCreateAuthor.AdminCreateAuthorResponse>> AdminCreateAuthorAsync(
         [Description("Yazar adi")] string name,
         IMessageBus bus,

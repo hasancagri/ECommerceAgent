@@ -35,9 +35,7 @@ public static class RemovePriceAlarm
 public static class RemovePriceAlarmMcpTool
 {
     [McpServerTool(Name = Shared.LibraryTools.RemovePriceAlarm)]
-    [Description(
-        "Giris yapmis kullanicinin bir urundeki fiyat alarmini kaldirir. productId = urun kimligi. " +
-        "Yanittaki 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.LibraryTools.RemovePriceAlarm)]
     public static Task<FeatureObjectResultModel<RemovePriceAlarm.RemovePriceAlarmResponse>> RemovePriceAlarmAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

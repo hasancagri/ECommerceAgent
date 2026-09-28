@@ -46,8 +46,7 @@ public static class AdminAssignProductTag
 public static class AdminAssignProductTagMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.AssignProductTag)]
-    [Description("YONETIM/YAZMA: TEK urune bir etiket atar. tagId = admin_list_product_tags'ten. " +
-                 "Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.AssignProductTag)]
     public static Task<FeatureObjectResultModel<AdminAssignProductTag.AdminAssignProductTagResponse>> AdminAssignProductTagAsync(
         [Description("Urun kimligi")] Guid productId,
         [Description("Etiket kimligi (admin_list_product_tags'ten)")] Guid tagId,

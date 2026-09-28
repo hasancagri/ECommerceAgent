@@ -43,11 +43,7 @@ public static class AdminGetMerchantStatus
 public static class AdminGetMerchantStatusMcpTool
 {
     [McpServerTool(Name = Shared.CustomerAdminTools.GetMerchantStatus)]
-    [Description(
-        "YONETIM: odeme gateway'i merchant kimliginin durumunu doner: {configured, merchantId?, " +
-        "updatedAt?}. configured=false ise kimlik tanimsizdir — once admin_submit_onboarding ile " +
-        "basvur veya elindeki Id/Key'i admin_set_merchant_credentials ile kaydet. MerchantKey (sir) " +
-        "HICBIR zaman donmez.")]
+    [Description(Shared.McpToolDescriptions.CustomerAdminTools.GetMerchantStatus)]
     public static Task<FeatureObjectResultModel<AdminGetMerchantStatus.MerchantStatusView>> AdminGetMerchantStatusAsync(
         IMessageBus bus,
         CancellationToken ct)

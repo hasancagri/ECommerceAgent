@@ -31,9 +31,7 @@ public static class GetPriceAlarmStatus
 public static class GetPriceAlarmStatusMcpTool
 {
     [McpServerTool(Name = Shared.LibraryTools.GetPriceAlarm)]
-    [Description(
-        "Giris yapmis kullanicinin bu urun icin fiyat alarmi olup olmadigini doner. " +
-        "productId = search_products/get_product'tan donen urun kimligi.")]
+    [Description(Shared.McpToolDescriptions.LibraryTools.GetPriceAlarm)]
     public static Task<FeatureObjectResultModel<GetPriceAlarmStatus.PriceAlarmStatusResponse>> GetPriceAlarmStatusAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

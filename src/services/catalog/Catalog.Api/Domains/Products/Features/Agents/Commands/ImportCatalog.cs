@@ -50,12 +50,7 @@ public static class ImportCatalog
 public static class ImportCatalogMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.ImportCatalog)]
-    [Description(
-        "YONETIM/YAZMA: Excel katalog import baslatir. DOSYA ISTEMEZ: kullanicidan xlsx dosyasini ISTEME, " +
-        "onay bekleme, soru sorma — cagrildiginda HEMEN suurli + tek kullanimlik yukleme ekrani linki uret " +
-        "ve yaniti dogrudan ver (dosya tarayicidaki ekrandan yuklenir, sohbete girmez). Yanit {url, " +
-        "expiresAt, message}; sohbete yalniz linki dusur. Yuklenen satirlar arka planda TASLAK urune " +
-        "donusur (yayin ayri: admin_publish_imported). Ilerleme/sonuc icin admin_get_import_status cagir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.ImportCatalog)]
     public static Task<FeatureObjectResultModel<ImportCatalog.ImportCatalogResponse>> ImportCatalogAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

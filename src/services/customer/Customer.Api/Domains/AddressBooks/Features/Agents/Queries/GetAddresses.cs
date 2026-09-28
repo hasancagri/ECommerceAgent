@@ -48,7 +48,7 @@ public static class GetAddresses
 public static class ListAddressesMcpTool
 {
     [McpServerTool(Name = Shared.CustomerTools.ListAddresses)]
-    [Description("Giris yapmis kullanicinin kayitli adreslerini (adres alanlari + varsayilan + adres kimligi) listeler.")]
+    [Description(Shared.McpToolDescriptions.CustomerTools.ListAddresses)]
     public static Task<FeatureListResultModel<GetAddresses.AddressView>> ListAddressesAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

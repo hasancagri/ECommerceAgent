@@ -54,10 +54,7 @@ public static class AdminListSpecificationAttributes
 public static class AdminListSpecificationAttributesMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.ListSpecificationAttributes)]
-    [Description(
-        "YONETIM: tum ozellik tanimlarini kapalı-liste secenekleriyle birlikte listeler. Donen her " +
-        "satir: id (diger tool'larin anahtari), name, filterable, displayOrder ve options ([{id, name, " +
-        "displayOrder}]). Yeni secenek eklemeden once tanim id'sini buradan al.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.ListSpecificationAttributes)]
     public static Task<FeatureListResultModel<AdminListSpecificationAttributes.SpecificationAttributeItem>> AdminListSpecificationAttributesAsync(
         IMessageBus bus,
         CancellationToken ct)

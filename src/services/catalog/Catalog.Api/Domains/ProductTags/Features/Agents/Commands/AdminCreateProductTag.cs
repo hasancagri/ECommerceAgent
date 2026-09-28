@@ -46,9 +46,7 @@ public static class AdminCreateProductTag
 public static class AdminCreateProductTagMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.CreateProductTag)]
-    [Description(
-        "YONETIM/YAZMA: yeni bir urun etiketi olusturur (or. 'yeni-sezon', 'outlet'). Ad zorunludur. " +
-        "Yanit {id, name} — olusturulan etiketin kimligi ve adi. Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.CreateProductTag)]
     public static Task<FeatureObjectResultModel<AdminCreateProductTag.AdminCreateProductTagResponse>> AdminCreateProductTagAsync(
         [Description("Yeni etiket adi")] string name,
         IMessageBus bus,

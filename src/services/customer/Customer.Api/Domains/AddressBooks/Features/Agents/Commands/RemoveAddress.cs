@@ -38,9 +38,7 @@ public static class RemoveAddress
 public static class RemoveAddressMcpTool
 {
     [McpServerTool(Name = Shared.CustomerTools.RemoveAddress)]
-    [Description(
-        "Giris yapmis kullanicinin bir kayitli adresini siler. addressId = list_addresses'ten donen adres " +
-        "kimligi. Yanittaki 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.CustomerTools.RemoveAddress)]
     public static Task<FeatureObjectResultModel<RemoveAddress.RemoveAddressResponse>> RemoveAddressAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

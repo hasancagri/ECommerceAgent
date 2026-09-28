@@ -62,9 +62,7 @@ public static class ListCategories
 public static class ListCategoriesMcpTool
 {
     [McpServerTool(Name = Shared.CatalogTools.ListCategories)]
-    [Description("Magazadaki kategorileri listeler (yalniz yayinda urunu olan kategoriler). Her kategori " +
-                 "ad, ust kategori (parentCategory, varsa) ve urun sayisi (productCount) tasir. 'Hangi " +
-                 "kategoriler var' tarzi kesif sorulari icin.")]
+    [Description(Shared.McpToolDescriptions.CatalogTools.ListCategories)]
     public static Task<FeatureListResultModel<ListCategories.CategoryItem>> ListCategoriesAsync(
         IMessageBus bus, CancellationToken ct)
         => bus.InvokeAsync<FeatureListResultModel<ListCategories.CategoryItem>>(

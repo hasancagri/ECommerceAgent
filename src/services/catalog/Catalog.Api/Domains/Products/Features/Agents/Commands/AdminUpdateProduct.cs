@@ -230,14 +230,7 @@ public static class AdminUpdateProduct
 public static class AdminUpdateProductMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.UpdateProduct)]
-    [Description(
-        "YONETIM/YAZMA: TEK urunun kunyesini KISMI gunceller — yalniz verdigin alanlar degisir, " +
-        "digerleri aynen kalir. Ornek: fiyati 95 yapmak icin yalniz productId + price=95 gonder. " +
-        "authorIds verilirse yazar SETI onunla DEGISIR; newAuthorNames listede olmayan yazar adlarini " +
-        "olusturup ekler. publisherId YA DA newPublisherName ile yayinevi degisir; categoryId ile " +
-        "kategori tasinir. Fiyat degisimi fiyat gecmisine kaydolur ve vitrine yansir. Yanit urunun " +
-        "GUNCEL halidir — sonucu gostermek icin ek cagri GEREKMEZ. Toplu guncelleme YOKTUR; her urun " +
-        "icin ayri cagri yap. Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.UpdateProduct)]
     public static Task<FeatureObjectResultModel<AdminUpdateProduct.AdminUpdateProductResponse>> AdminUpdateProductAsync(
         [Description("Guncellenecek urunun kimligi")] Guid productId,
         IMessageBus bus,

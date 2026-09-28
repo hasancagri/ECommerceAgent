@@ -47,9 +47,7 @@ public static class GetProductReviews
 public static class GetProductReviewsMcpTool
 {
     [McpServerTool(Name = Shared.ReviewsTools.GetReviews)]
-    [Description(
-        "Bir urunun gorunur yorumlarini (maskeli ad, puan, metin, tarih) en yeni ustte listeler. " +
-        "productId = search_products/get_product'tan donen urun kimligi. page opsiyonel (varsayilan 1).")]
+    [Description(Shared.McpToolDescriptions.ReviewsTools.GetReviews)]
     public static Task<FeatureListResultModel<GetProductReviews.ReviewItem>> GetProductReviewsAsync(
         [Description("Urun kimligi")] Guid productId,
         IMessageBus bus,

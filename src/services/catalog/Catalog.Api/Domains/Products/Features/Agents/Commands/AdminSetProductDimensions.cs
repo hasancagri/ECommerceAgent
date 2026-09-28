@@ -44,8 +44,7 @@ public static class AdminSetProductDimensions
 public static class AdminSetProductDimensionsMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.SetProductDimensions)]
-    [Description("YONETIM/YAZMA: TEK urunun fiziksel olculerini ayarlar (agirlik + boy x en x yukseklik). " +
-                 "Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.SetProductDimensions)]
     public static Task<FeatureObjectResultModel<AdminSetProductDimensions.AdminSetProductDimensionsResponse>> AdminSetProductDimensionsAsync(
         [Description("Urun kimligi")] Guid productId,
         [Description("Agirlik")] decimal weight,

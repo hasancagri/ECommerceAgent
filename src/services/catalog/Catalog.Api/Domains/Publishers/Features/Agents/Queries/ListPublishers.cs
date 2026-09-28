@@ -73,8 +73,7 @@ public static class ListPublishers
 public static class ListPublishersMcpTool
 {
     [McpServerTool(Name = Shared.CatalogTools.ListPublishers)]
-    [Description("Magazadaki yayinevlerini listeler (yalniz yayinda kitabi olanlar), kitap sayisi cok " +
-                 "olan once. totalCount toplam yayinevi sayisidir; daraltmak icin search kullan.")]
+    [Description(Shared.McpToolDescriptions.CatalogTools.ListPublishers)]
     public static Task<FeatureObjectResultModel<ListPublishers.ListPublishersResponse>> ListPublishersAsync(
         IMessageBus bus,
         CancellationToken ct,

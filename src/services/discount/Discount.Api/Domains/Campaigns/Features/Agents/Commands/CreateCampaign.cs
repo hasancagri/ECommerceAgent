@@ -68,9 +68,7 @@ public static class CreateCampaign
 public static class CreateCampaignMcpTool
 {
     [McpServerTool(Name = Shared.DiscountAdminTools.CreateCampaign)]
-    [Description("Admin: süzgeçle (kategori/yazar/yayınevi/tek-kitap) yüzde indirim kampanyası açar. " +
-        "Süzgeç uygulama anında kitap setine çözülür; kitabın önceki indirimi varsa ÜZERİNE yazılır " +
-        "(son-gelen-kazanır). startsAt boş = şimdi. Yanıt kısa özet döner (kaç kitap indirimli).")]
+    [Description(Shared.McpToolDescriptions.DiscountAdminTools.CreateCampaign)]
     public static async Task<FeatureObjectResultModel<CreateCampaign.CreateCampaignResponse>> CreateCampaignAsync(
         [Description("Kampanya adı (admin etiketi)")] string name,
         [Description("Süzgeç tipi: category | author | publisher | product")] string scopeType,

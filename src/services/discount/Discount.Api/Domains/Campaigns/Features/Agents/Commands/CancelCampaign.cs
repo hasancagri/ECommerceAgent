@@ -45,7 +45,7 @@ public static class CancelCampaign
 public static class CancelCampaignMcpTool
 {
     [McpServerTool(Name = Shared.DiscountAdminTools.CancelCampaign)]
-    [Description("Admin: kampanyayı iptal eder; o kampanyanın kitaplarının indirimi anında temizlenir.")]
+    [Description(Shared.McpToolDescriptions.DiscountAdminTools.CancelCampaign)]
     public static Task<FeatureObjectResultModel<CancelCampaign.CancelCampaignResponse>> CancelCampaignAsync(
         [Description("İptal edilecek kampanya id'si")] Guid campaignId,
         IMessageBus bus,

@@ -91,11 +91,7 @@ public static class AdminCreateCategory
 public static class AdminCreateCategoryMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.CreateCategory)]
-    [Description(
-        "YONETIM/YAZMA: yeni bir kategori olusturur (vitrinde yayinda dogar). Ayni ad zaten varsa " +
-        "HATA doner (get-or-create DEGIL) — once list_categories ile kontrol et. parentId ile ust " +
-        "kategoriye baglanir (bulunamazsa hata). SEO alanlari opsiyoneldir. Yanit {id, name}. " +
-        "Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.CreateCategory)]
     public static Task<FeatureObjectResultModel<AdminCreateCategory.AdminCreateCategoryResponse>> AdminCreateCategoryAsync(
         [Description("Kategori adi")] string name,
         IMessageBus bus,

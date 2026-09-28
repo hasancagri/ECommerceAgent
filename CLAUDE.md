@@ -135,6 +135,7 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
   IngestionAgent) 050'de SÖKÜLDÜ — model first-party, mallar mağazanın. Ürün girişi = ürün-CRUD.
 - **`IConfiguration`'dan doğrudan okuma** (Options pattern istisnaları hariç).
 - **MCP'yi agent-dışı koddan** imperatif çağırma.
+- **Tool description'ı standart-dışı yazma:** expose edilen her MCP tool description'ı [MCP Tool Description Standardı](../AgentPlatform/docs/mcp-tool-description-standard.md)'na uyar (eylem-önce, Türkçe tetikleyici ifade "'...' gibi istekler için", kısıt/PII sonda, prose prefix yok) ve `src/others/Shared/McpToolDescriptions.cs` const'ından referanslanır — inline `[Description("...")]` string bırakma (003).
 - **Yeni saga için ayrı orchestration servisi** açma (god-service) — saga sürecin sahibi BC'de host edilir.
 - **Kimlik makamını ECommerce'e geri gömme (084):** `identity-server` `AgentPlatform` repo'sunda platform IdP; ECommerce relying party. ECommerce AppHost'a IdP proje-ref'i EKLEME, scope/client/rol'ü koda gömme (yenisi `AgentPlatform` `AppRegistry` config'ine). Nötr auth kablosu `Platform.Auth` paketinde — Common'a geri taşıma.
 - **Çözüme (`.slnx`) dahil olmayan klasörlere dokunma** (staging/deneme kodu) — kapsam dışı.

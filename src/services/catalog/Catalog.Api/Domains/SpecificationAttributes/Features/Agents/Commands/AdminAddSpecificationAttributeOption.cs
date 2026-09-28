@@ -44,11 +44,7 @@ public static class AdminAddSpecificationAttributeOption
 public static class AdminAddSpecificationAttributeOptionMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.AddSpecificationAttributeOption)]
-    [Description(
-        "YONETIM/YAZMA: var olan bir ozellik tanimina kapalı-liste degeri (secenek) ekler " +
-        "(ornek: Renk tanimina 'Siyah'). attributeId = admin_list_specification_attributes'tan donen " +
-        "tanim kimligi. Ayni isimli secenek varsa hata doner. Yanit yeni secenegin optionId'sidir. " +
-        "Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.AddSpecificationAttributeOption)]
     public static Task<FeatureObjectResultModel<AdminAddSpecificationAttributeOption.AdminAddSpecificationAttributeOptionResponse>> AdminAddSpecificationAttributeOptionAsync(
         [Description("Ozellik tanimi kimligi (admin_list_specification_attributes'tan)")] Guid attributeId,
         [Description("Yeni secenek adi (ornek: Siyah)")] string name,

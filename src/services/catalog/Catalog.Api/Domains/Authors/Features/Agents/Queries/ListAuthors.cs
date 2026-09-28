@@ -76,9 +76,7 @@ public static class ListAuthors
 public static class ListAuthorsMcpTool
 {
     [McpServerTool(Name = Shared.CatalogTools.ListAuthors)]
-    [Description("Magazadaki yazarlari listeler (yalniz yayinda kitabi olanlar), kitap sayisi cok olan " +
-                 "once. totalCount toplam yazar sayisidir; liste kirpilmis olabilir — daraltmak icin " +
-                 "search ile ada gore filtrele.")]
+    [Description(Shared.McpToolDescriptions.CatalogTools.ListAuthors)]
     public static Task<FeatureObjectResultModel<ListAuthors.ListAuthorsResponse>> ListAuthorsAsync(
         IMessageBus bus,
         CancellationToken ct,

@@ -59,12 +59,7 @@ public static class AdminStartOnboarding
 public static class AdminStartOnboardingMcpTool
 {
     [McpServerTool(Name = Shared.CustomerAdminTools.StartOnboarding)]
-    [Description(
-        "YONETIM/YAZMA: odeme gateway'inde (DropShop) merchant kayit BASVURUSU icin hosted form " +
-        "oturumu acar; yanit YALNIZ form linkidir. Kimlik/finans bilgisi (TCKN, IBAN vb.) ISTEME — " +
-        "mustakbel merchant formu PG ekraninda kendisi doldurur, PII sohbete girmez. email basvurunun " +
-        "KIMLIGIDIR — durum sorgusu ayni adresle yapilir. Ayni e-postada bekleyen basvuru varsa yeni " +
-        "form acilmaz, formUrl null + aciklama doner. Onay takibi: admin_onboarding_status.")]
+    [Description(Shared.McpToolDescriptions.CustomerAdminTools.StartOnboarding)]
     public static Task<FeatureObjectResultModel<AdminStartOnboarding.AdminStartOnboardingResponse>> AdminStartOnboardingAsync(
         [Description("Basvuru sahibinin e-postasi (basvuru kimligi)")] string email,
         IMessageBus bus,

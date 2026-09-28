@@ -43,7 +43,7 @@ public static class AddBasketItem
 public static class AddBasketItemMcpTool
 {
     [McpServerTool(Name = Shared.BasketTools.AddToCart)]
-    [Description("Giris yapmis kullanicinin sepetine bir urun ekler.")]
+    [Description(Shared.McpToolDescriptions.BasketTools.AddToCart)]
     public static Task<FeatureObjectResultModel<AddBasketItem.AddBasketItemResponse>> AddBasketItemAsync(
         [Description("Sepete eklenecek urunun Id'si")] Guid productId,
         [Description("Urun adi")] string productName,
