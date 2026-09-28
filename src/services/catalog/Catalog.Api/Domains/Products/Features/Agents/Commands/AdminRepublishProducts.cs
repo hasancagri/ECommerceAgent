@@ -63,9 +63,7 @@ public static class AdminRepublishProducts
 public static class AdminRepublishProductsMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.RepublishProducts)]
-    [Description("Admin: tüm yayındaki ürünler için katalog değişiklik event'ini yeniden yayınlar. " +
-        "Yeni bir downstream read-model'i (ör. indirim kategori izdüşümü) doldurmak/onarmak için kullanılır. " +
-        "Tüm tüketiciler için idempotent; fiyat alarmı tetiklemez.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.RepublishProducts)]
     public static Task<FeatureObjectResultModel<AdminRepublishProducts.AdminRepublishProductsResponse>> RepublishProductsAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

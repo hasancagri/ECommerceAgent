@@ -46,11 +46,7 @@ public static class AdminOnboardingStatus
 public static class AdminOnboardingStatusMcpTool
 {
     [McpServerTool(Name = Shared.CustomerAdminTools.OnboardingStatus)]
-    [Description(
-        "YONETIM: odeme gateway'indeki merchant basvurusunun durumunu sorgular (email = basvuruda " +
-        "kullanilan adres). Yanit {status: None|Pending|Approved|Rejected, message, rejectReason?}. " +
-        "MerchantKey DONDURMEZ: Approved'da erisim bilgileri basvuru e-postasindaki tek gosterimlik " +
-        "baglantidadir; kaydetmek icin admin_request_credential_entry_link ile ekran linki uret.")]
+    [Description(Shared.McpToolDescriptions.CustomerAdminTools.OnboardingStatus)]
     public static Task<FeatureObjectResultModel<AdminOnboardingStatus.AdminOnboardingStatusResponse>> AdminOnboardingStatusAsync(
         [Description("Basvuruda kullanilan e-posta")] string email,
         IMessageBus bus,

@@ -55,11 +55,7 @@ public static class AdminAdjustStock
 public static class AdminAdjustStockMcpTool
 {
     [McpServerTool(Name = Shared.StockAdminTools.AdjustStock)]
-    [Description(
-        "YONETIM/YAZMA: TEK urunun stogunu delta kadar oynatir — pozitif delta artirir (ornek: " +
-        "'3 ekle' → delta=3), negatif delta azaltir (ornek: '3 azalt' → delta=-3). Stogu sifirin " +
-        "altina dusurecek delta is kurali hatasiyla reddedilir; delta=0 gecersizdir. Mutlak deger " +
-        "icin admin_set_stock kullan. Yanit guncel {productId, onHand}. Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.StockAdminTools.AdjustStock)]
     public static Task<FeatureObjectResultModel<AdminAdjustStock.AdminAdjustStockResponse>> AdminAdjustStockAsync(
         [Description("Urun kimligi (katalogdaki productId)")] Guid productId,
         [Description("Stok degisimi: pozitif = artir, negatif = azalt (sifir olamaz)")] int delta,

@@ -53,11 +53,7 @@ public static class AdminCreateSpecificationAttribute
 public static class AdminCreateSpecificationAttributeMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.CreateSpecificationAttribute)]
-    [Description(
-        "YONETIM/YAZMA: yeni bir kanonik ozellik tanimi olusturur (ornek: 'Renk', 'Materyal'). " +
-        "filterable=true ise vitrin facet filtresine girer. Ayni isimli tanim varsa hata doner. " +
-        "Deger listesini SONRA admin_add_specification_attribute_option ile eklersin. Yanit yeni " +
-        "tanimin id'sidir. Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.CreateSpecificationAttribute)]
     public static Task<FeatureObjectResultModel<AdminCreateSpecificationAttribute.AdminCreateSpecificationAttributeResponse>> AdminCreateSpecificationAttributeAsync(
         [Description("Ozellik tanimi adi (ornek: Renk)")] string name,
         IMessageBus bus,

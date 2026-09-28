@@ -64,7 +64,7 @@ public static class GetOrders
 public static class GetOrdersMcpTool
 {
     [McpServerTool(Name = Shared.OrderTools.GetOrders)]
-    [Description("Giris yapmis kullanicinin siparislerini (kod, tarih, tutar, durum, urunler) listeler.")]
+    [Description(Shared.McpToolDescriptions.OrderTools.GetOrders)]
     public static Task<FeatureObjectResultModel<List<GetOrders.GetOrdersResponse>>> GetOrdersAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

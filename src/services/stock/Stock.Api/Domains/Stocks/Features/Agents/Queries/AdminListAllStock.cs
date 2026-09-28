@@ -42,10 +42,7 @@ public static class AdminListAllStock
 public static class AdminListAllStockMcpTool
 {
     [McpServerTool(Name = Shared.StockAdminTools.ListAllStock)]
-    [Description(
-        "YONETIM/OKUMA: tum urunlerin stok (OnHand) genel gorunumu — {productId, onHand} listesi. " +
-        "Opsiyonel sayfalama: page (1'den baslar) + pageSize; ikisi de verilmezse tum kayitlar doner. " +
-        "Salt-okuma, denetim izi birakmaz. Tek urun icin get_stock kullan.")]
+    [Description(Shared.McpToolDescriptions.StockAdminTools.ListAllStock)]
     public static Task<FeatureListResultModel<AdminListAllStock.StockItemResponse>> AdminListAllStockAsync(
         IMessageBus bus,
         CancellationToken ct,

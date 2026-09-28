@@ -131,10 +131,7 @@ public static class StartPayment
 public static class StartPaymentMcpTool
 {
     [McpServerTool(Name = Shared.OrderTools.StartPayment)]
-    [Description(
-        "Kullanici odeme yapmak/sepeti satin almak istediginde sepetteki urunler icin bir hosted odeme " +
-        "baglantisi olusturur. Parametre VERME (tutar/adres/urun sunucu belirler). Kullanici baglantida " +
-        "odemeyi tamamlayinca siparis onaylanir. Yanittaki 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.OrderTools.StartPayment)]
     public static Task<FeatureObjectResultModel<StartPayment.StartPaymentResponse>> StartPaymentAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

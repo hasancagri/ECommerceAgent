@@ -38,7 +38,7 @@ public static class DeleteBasketItem
 public static class DeleteBasketItemMcpTool
 {
     [McpServerTool(Name = Shared.BasketTools.RemoveBasketItem)]
-    [Description("Sepetten verilen Id'ye sahip urunu cikarir.")]
+    [Description(Shared.McpToolDescriptions.BasketTools.RemoveBasketItem)]
     public static Task<FeatureObjectResultModel<DeleteBasketItem.DeleteBasketItemResponse>> DeleteBasketItemAsync(
         [Description("Sepetten cikarilacak urunun (sepet item) Id'si")] Guid itemId,
         IMessageBus bus,

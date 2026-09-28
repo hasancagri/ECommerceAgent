@@ -49,11 +49,7 @@ public static class AdminRequestCredentialEntryLink
 public static class AdminRequestCredentialEntryLinkMcpTool
 {
     [McpServerTool(Name = Shared.CustomerAdminTools.RequestCredentialEntryLink)]
-    [Description(
-        "YONETIM/YAZMA: merchant credential (MerchantId + MerchantKey) girisi icin store'un hosted " +
-        "ekranina SURELI + TEK KULLANIMLIK link uretir. MerchantId/MerchantKey'i sohbetten ISTEME ve " +
-        "ASLA sohbete yazma — admin ikiliyi PG teslim sayfasindan alip BU ekrana elle girer; store " +
-        "kayit aninda PG'ye dogrular. Yanit {url, expiresAt, message}; sohbete yalniz linki dusur.")]
+    [Description(Shared.McpToolDescriptions.CustomerAdminTools.RequestCredentialEntryLink)]
     public static Task<FeatureObjectResultModel<AdminRequestCredentialEntryLink.AdminRequestCredentialEntryLinkResponse>> AdminRequestCredentialEntryLinkAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

@@ -162,12 +162,7 @@ public static class AdminCreateProduct
 public static class AdminCreateProductMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.CreateProduct)]
-    [Description(
-        "YONETIM/YAZMA: yeni kitap kunyesi olusturur (TASLAK — yayina almaz; ayrica admin_set_published " +
-        "cagir). isbn kimliktir; ayni isbn zaten varsa hata doner (guncelleme icin admin_update_product). " +
-        "En az bir yazar (authorIds YA DA newAuthorNames) + yayinevi (publisherId YA DA newPublisherName) + " +
-        "categoryId zorunlu; katalogda olmayan yazar/yayinevi adlari olusturulur. Fiyat TL (>=0). Islem " +
-        "denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.CreateProduct)]
     public static Task<FeatureObjectResultModel<AdminCreateProduct.AdminCreateProductResponse>> AdminCreateProductAsync(
         [Description("Kitap adi")] string name,
         [Description("ISBN (kimlik; benzersiz)")] string isbn,

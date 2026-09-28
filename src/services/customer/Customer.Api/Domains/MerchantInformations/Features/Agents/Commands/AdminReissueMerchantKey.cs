@@ -56,12 +56,7 @@ public static class AdminReissueMerchantKey
 public static class AdminReissueMerchantKeyMcpTool
 {
     [McpServerTool(Name = Shared.CustomerAdminTools.ReissueMerchantKey)]
-    [Description(
-        "YONETIM/YAZMA: merchant MerchantKey'ini kaybettiginde/sizdiginda odeme gateway'inde (DropShop) " +
-        "YENI key uretir; eski key her temsilde ANINDA gecersiz olur. Store'un kayitli MerchantId'si " +
-        "kullanilir (Id istenmez). Yanit YALNIZ tek gosterimlik reveal linkidir — key'i sohbetten ISTEME " +
-        "ve ASLA sohbete yazma. reason opsiyonel (unuttum/sizinti-suphesi). Merchant reveal linkinden " +
-        "yeni key'i bir kez okur, sonra admin_request_credential_entry_link ile store'a girer.")]
+    [Description(Shared.McpToolDescriptions.CustomerAdminTools.ReissueMerchantKey)]
     public static Task<FeatureObjectResultModel<AdminReissueMerchantKey.AdminReissueMerchantKeyResponse>> AdminReissueMerchantKeyAsync(
         [Description("Yenileme nedeni (opsiyonel): ornegin 'unuttum' veya 'sizinti-suphesi'")] string? reason,
         IMessageBus bus,

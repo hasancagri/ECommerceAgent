@@ -41,10 +41,7 @@ public static class AdminRenameProductTag
 public static class AdminRenameProductTagMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.RenameProductTag)]
-    [Description(
-        "YONETIM/YAZMA: mevcut bir urun etiketinin adini degistirir. tagId = admin_list_product_tags'ten " +
-        "donen kimlik. Ad zorunludur. Yanit {id, name} — guncel hali. Etiket bulunamazsa hata doner. " +
-        "Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.RenameProductTag)]
     public static Task<FeatureObjectResultModel<AdminRenameProductTag.AdminRenameProductTagResponse>> AdminRenameProductTagAsync(
         [Description("Etiket kimligi (admin_list_product_tags'ten)")] Guid tagId,
         [Description("Yeni etiket adi")] string name,

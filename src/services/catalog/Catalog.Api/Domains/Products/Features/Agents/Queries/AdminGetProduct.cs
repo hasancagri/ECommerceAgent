@@ -99,12 +99,7 @@ public static class AdminGetProduct
 public static class AdminGetProductMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.GetProduct)]
-    [Description(
-        "YONETIM: tek urunun tam yonetim detayini doner (draft dahil): kunye (name, shortDescription, " +
-        "fullDescription, sku, isbn, price, imageUrl), baglar (authors ad+id, publisherId+publisherName, " +
-        "categoryId+categoryName), isPublished ve fiyat degisiklik gecmisi (oldPrice→newPrice, " +
-        "changedAtUtc) — TEK cagrida. productId = admin_list_products'tan donen kimlik. imageUrl'i " +
-        "kullaniciya TIKLANABILIR link olarak sun (markdown: [Kapak](url)).")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.GetProduct)]
     public static Task<FeatureObjectResultModel<AdminGetProduct.AdminProductDetailResponse>> AdminGetProductAsync(
         [Description("Urun kimligi (admin_list_products'tan)")] Guid productId,
         IMessageBus bus,

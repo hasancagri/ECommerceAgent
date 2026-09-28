@@ -39,8 +39,7 @@ public static class AdminRemoveProductTag
 public static class AdminRemoveProductTagMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.RemoveProductTag)]
-    [Description("YONETIM/YAZMA: TEK urunden bir etiketi kaldirir. tagId = admin_get_product/admin_list_product_tags'ten. " +
-                 "Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.RemoveProductTag)]
     public static Task<FeatureObjectResultModel<AdminRemoveProductTag.AdminRemoveProductTagResponse>> AdminRemoveProductTagAsync(
         [Description("Urun kimligi")] Guid productId,
         [Description("Etiket kimligi")] Guid tagId,

@@ -97,10 +97,7 @@ public static class SubmitReview
 public static class SubmitReviewMcpTool
 {
     [McpServerTool(Name = Shared.ReviewsTools.SubmitReview)]
-    [Description(
-        "Giris yapmis kullanicinin satin aldigi bir urune yorum + puan birakir (urun basina tek yorum). " +
-        "productId = urun kimligi; rating 1-5; text opsiyonel yorum metni. Gorunen ad kullanicinin " +
-        "kimliginden gelir (maskeli saklanir). Yanittaki 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.ReviewsTools.SubmitReview)]
     public static Task<FeatureObjectResultModel<SubmitReview.SubmitReviewResponse>> SubmitReviewAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

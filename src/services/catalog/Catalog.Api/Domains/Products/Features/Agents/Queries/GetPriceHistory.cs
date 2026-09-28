@@ -45,9 +45,7 @@ public static class GetPriceHistory
 public static class GetPriceHistoryMcpTool
 {
     [McpServerTool(Name = Shared.CatalogTools.GetPriceHistory)]
-    [Description(
-        "Bir urunun gecmis fiyat degisikliklerini (eski fiyat, yeni fiyat, tarih) kronolojik listeler. " +
-        "productId = search_products/get_product'tan donen urun kimligi.")]
+    [Description(Shared.McpToolDescriptions.CatalogTools.GetPriceHistory)]
     public static Task<FeatureListResultModel<GetPriceHistory.PriceHistoryEntry>> GetPriceHistoryAsync(
         [Description("Urun kimligi (search_products/get_product'tan)")] Guid productId,
         IMessageBus bus,

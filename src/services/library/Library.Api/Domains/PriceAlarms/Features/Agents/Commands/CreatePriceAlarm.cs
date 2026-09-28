@@ -42,10 +42,7 @@ public static class CreatePriceAlarm
 public static class CreatePriceAlarmMcpTool
 {
     [McpServerTool(Name = Shared.LibraryTools.CreatePriceAlarm)]
-    [Description(
-        "Giris yapmis kullanici icin bir urune fiyat alarmi kurar: fiyat dusunce kullaniciya mail gider. " +
-        "productId/productName = search_products/get_product'tan; currentPrice = urunun su anki fiyati " +
-        "(referans). Kullanici basina urune tek alarm. Yanittaki 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.LibraryTools.CreatePriceAlarm)]
     public static Task<FeatureObjectResultModel<CreatePriceAlarm.CreatePriceAlarmResponse>> CreatePriceAlarmAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

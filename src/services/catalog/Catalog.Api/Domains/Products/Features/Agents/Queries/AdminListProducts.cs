@@ -88,11 +88,7 @@ public static class AdminListProducts
 public static class AdminListProductsMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.ListProducts)]
-    [Description(
-        "YONETIM: urunleri sayfali listeler — yayinda OLMAYANLAR (draft) dahil. Donen her satir: " +
-        "productId (diger admin tool'larinin anahtari), name, isbn, price (TL), isPublished, " +
-        "authorNames. Yanitta totalCount + page + pageSize de doner; devami icin ayni aramayla " +
-        "page'i artir. Ornek: q='dune' ile ada gore ara; q bir ISBN ise tam eslesme aranir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.ListProducts)]
     public static Task<FeatureObjectResultModel<AdminListProducts.AdminListProductsResponse>> AdminListProductsAsync(
         IMessageBus bus,
         CancellationToken ct,

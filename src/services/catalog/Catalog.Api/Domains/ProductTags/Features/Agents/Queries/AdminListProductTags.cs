@@ -40,9 +40,7 @@ public static class AdminListProductTags
 public static class AdminListProductTagsMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.ListProductTags)]
-    [Description(
-        "YONETIM: urun etiketlerini ada gore sirali listeler. Donen her satir {id, name}; id, " +
-        "admin_rename_product_tag'in anahtaridir. search ile etiket adinda gecen metne gore daraltilabilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.ListProductTags)]
     public static Task<FeatureListResultModel<AdminListProductTags.ProductTagItem>> AdminListProductTagsAsync(
         IMessageBus bus,
         CancellationToken ct,

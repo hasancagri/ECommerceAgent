@@ -44,9 +44,7 @@ public static class AdminGetPriceHistory
 public static class AdminGetPriceHistoryMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.GetPriceHistory)]
-    [Description(
-        "YONETIM: urunun fiyat degisiklik gecmisini kronolojik listeler (draft dahil): " +
-        "[{oldPrice, newPrice, changedAtUtc}]. productId = admin_list_products/admin_get_product'tan.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.GetPriceHistory)]
     public static Task<FeatureListResultModel<AdminGetPriceHistory.PriceChangeItem>> AdminGetPriceHistoryAsync(
         [Description("Urun kimligi")] Guid productId,
         IMessageBus bus,

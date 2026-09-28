@@ -56,11 +56,7 @@ public static class AdminSetStock
 public static class AdminSetStockMcpTool
 {
     [McpServerTool(Name = Shared.StockAdminTools.SetStock)]
-    [Description(
-        "YONETIM/YAZMA: TEK urunun stogunu MUTLAK degere ayarlar (ornek: 'stok 25 olsun' → quantity=25). " +
-        "quantity >= 0 olmali; negatif deger is kurali hatasiyla reddedilir. Artir/azalt icin " +
-        "admin_adjust_stock kullan. Yanit guncel {productId, onHand}. Urunun stok kaydi yoksa " +
-        "bulunamadi doner (stok kaydi urun yayinlanirken acilir). Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.StockAdminTools.SetStock)]
     public static Task<FeatureObjectResultModel<AdminSetStock.AdminSetStockResponse>> AdminSetStockAsync(
         [Description("Urun kimligi (katalogdaki productId)")] Guid productId,
         [Description("Yeni mutlak stok adedi (>= 0)")] int quantity,

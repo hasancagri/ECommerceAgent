@@ -39,8 +39,7 @@ public static class AdminSetProductSeo
 public static class AdminSetProductSeoMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.SetProductSeo)]
-    [Description("YONETIM/YAZMA: TEK urunun SEO ust-verisini ayarlar (metaTitle/metaKeywords/metaDescription; " +
-                 "verilmeyen alan bos gecer). Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.SetProductSeo)]
     public static Task<FeatureObjectResultModel<AdminSetProductSeo.AdminSetProductSeoResponse>> AdminSetProductSeoAsync(
         [Description("Urun kimligi")] Guid productId,
         IMessageBus bus,

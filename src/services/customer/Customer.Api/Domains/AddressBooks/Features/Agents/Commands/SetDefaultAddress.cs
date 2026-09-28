@@ -38,9 +38,7 @@ public static class SetDefaultAddress
 public static class SetDefaultAddressMcpTool
 {
     [McpServerTool(Name = Shared.CustomerTools.SetDefaultAddress)]
-    [Description(
-        "Giris yapmis kullanicinin varsayilan teslimat adresini belirler. addressId = list_addresses'ten " +
-        "donen adres kimligi. Yanittaki 'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.CustomerTools.SetDefaultAddress)]
     public static Task<FeatureObjectResultModel<SetDefaultAddress.SetDefaultAddressResponse>> SetDefaultAddressAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

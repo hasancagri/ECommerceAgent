@@ -73,11 +73,7 @@ public static class AdminUpdateCategory
 public static class AdminUpdateCategoryMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.UpdateCategory)]
-    [Description(
-        "YONETIM/YAZMA: TEK kategoriyi KISMI gunceller — yalniz verdigin alanlar degisir, digerleri " +
-        "aynen kalir. Ornek: yalniz categoryId + name gonder. Guncellenebilir alanlar: ad ve SEO meta " +
-        "(baslik/anahtar/aciklama; verilen SEO alani ustune yazilir, verilmeyen mevcut kalir). Yanit " +
-        "kategorinin GUNCEL halidir. Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.UpdateCategory)]
     public static Task<FeatureObjectResultModel<AdminUpdateCategory.AdminUpdateCategoryResponse>> AdminUpdateCategoryAsync(
         [Description("Guncellenecek kategori kimligi (list_categories'ten)")] Guid categoryId,
         IMessageBus bus,

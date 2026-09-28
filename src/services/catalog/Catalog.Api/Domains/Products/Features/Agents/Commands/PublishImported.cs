@@ -96,10 +96,7 @@ public static class PublishImported
 public static class PublishImportedMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.PublishImported)]
-    [Description(
-        "YONETIM/YAZMA: Excel import ile gelen, fiyati > 0 olan TASLAK urunleri TOPLU yayinlar (vitrine " +
-        "cikarir). Fiyatsiz import taslaklari + elle olusturulmus (import-disi) taslaklar ETKILENMEZ. " +
-        "Yanit {publishedCount, skippedNoPriceCount}. Once admin_import_catalog ile yukle, sonra bunu cagir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.PublishImported)]
     public static Task<FeatureObjectResultModel<PublishImported.PublishImportedResponse>> PublishImportedAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

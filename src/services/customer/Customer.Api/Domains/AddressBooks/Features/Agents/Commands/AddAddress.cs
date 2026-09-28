@@ -45,10 +45,7 @@ public static class AddAddress
 public static class AddAddressMcpTool
 {
     [McpServerTool(Name = Shared.CustomerTools.AddAddress)]
-    [Description(
-        "Giris yapmis kullaniciya yeni bir teslimat adresi ekler. Tum alanlar zorunlu: province (il), " +
-        "district (ilce), street (cadde/sokak), zipCode (posta kodu), line (acik adres). Yanittaki " +
-        "'message' alanini kullaniciya oldugu gibi ilet.")]
+    [Description(Shared.McpToolDescriptions.CustomerTools.AddAddress)]
     public static Task<FeatureObjectResultModel<AddAddress.AddAddressResponse>> AddAddressAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

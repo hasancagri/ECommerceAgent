@@ -38,7 +38,7 @@ public static class GetStockByProductId
 public static class GetStockByProductIdMcpTool
 {
     [McpServerTool(Name = Shared.StockTools.GetStock)]
-    [Description("Bir urunun stok durumunu (adet) doner; urun Id'si ile sorgular.")]
+    [Description(Shared.McpToolDescriptions.StockTools.GetStock)]
     public static Task<FeatureObjectResultModel<GetStockByProductId.GetStockResponse>> GetStockAsync(
         [Description("Stok durumu sorgulanacak urunun Id'si")] Guid productId,
         IMessageBus bus,

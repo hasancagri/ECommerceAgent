@@ -45,9 +45,7 @@ public static class GetReviewEligibility
 public static class GetReviewEligibilityMcpTool
 {
     [McpServerTool(Name = Shared.ReviewsTools.CheckReviewEligibility)]
-    [Description(
-        "Giris yapmis kullanicinin bu urune yorum yapip yapamayacagini (satin-alma sarti + tek-yorum) " +
-        "kontrol eder. productId = urun kimligi. canReview=false ise reasonCode nedeni verir.")]
+    [Description(Shared.McpToolDescriptions.ReviewsTools.CheckReviewEligibility)]
     public static Task<FeatureObjectResultModel<GetReviewEligibility.EligibilityResponse>> GetReviewEligibilityAsync(
         IMessageBus bus,
         IHttpContextAccessor http,

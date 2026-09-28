@@ -57,7 +57,7 @@ public static class ListCampaigns
 public static class ListCampaignsMcpTool
 {
     [McpServerTool(Name = Shared.DiscountAdminTools.ListCampaigns)]
-    [Description("Admin: kampanyaları listeler. Opsiyonel status süzgeci: Scheduled | Active | Ended | Cancelled.")]
+    [Description(Shared.McpToolDescriptions.DiscountAdminTools.ListCampaigns)]
     public static Task<FeatureObjectResultModel<ListCampaigns.ListCampaignsResponse>> ListCampaignsAsync(
         IMessageBus bus,
         CancellationToken ct,

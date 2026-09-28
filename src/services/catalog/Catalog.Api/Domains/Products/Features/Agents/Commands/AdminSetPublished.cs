@@ -58,11 +58,7 @@ public static class AdminSetPublished
 public static class AdminSetPublishedMcpTool
 {
     [McpServerTool(Name = Shared.CatalogAdminTools.SetPublished)]
-    [Description(
-        "YONETIM/YAZMA: TEK urunu yayina alir (published=true) veya yayindan kaldirir (published=false). " +
-        "Yayindan kalkan urun vitrinden/kesiften duser ama SILINMEZ — tekrar yayina alinabilir. " +
-        "Fiyatsiz urun yayina ALINAMAZ (is kurali hatasi doner). Yanit guncel {productId, isPublished}. " +
-        "Islem denetim izine kaydedilir.")]
+    [Description(Shared.McpToolDescriptions.CatalogAdminTools.SetPublished)]
     public static Task<FeatureObjectResultModel<AdminSetPublished.AdminSetPublishedResponse>> AdminSetPublishedAsync(
         [Description("Urun kimligi")] Guid productId,
         [Description("true = yayina al, false = yayindan kaldir")] bool published,
