@@ -13,8 +13,8 @@ Mail.Mcp'nin `send_mail` tool'u üzerinden gönderir ve sonucu iz için geri yay
 2. **E-postasız tetik gönderimsiz kapanır.** Adres boşsa mail atlanır,  `(PriceAlarmEventHandlers)`
    iz "no-email" ile yine düşer.
 3. **Mail TEK agent'la yazılır VE gönderilir.** Türkçe (hitap + ürün    `(MailAgent — send_mail)`
-   adı + eski/yeni fiyat + link); aynı LLM çağrısı Mail.Mcp'nin
-   `send_mail` tool'unu tool-seçimiyle çağırır; imperatif MCP YOK.
+   adı + eski/yeni fiyat; ürün linki YOK — UI söküldü); aynı LLM
+   çağrısı Mail.Mcp'nin `send_mail` tool'unu tool-seçimiyle çağırır; imperatif MCP YOK.
 4. **Sonuç geri yayınlanır.** Başarı/başarısızlık + kısa detay;         `(→ NotificationSent)`
    izi Library BC yazar.
 5. **Hata dayanıklı yönetilir.** Her LLM/MCP/SMTP hatası aynı yol:      `(NotificationException → DLQ)`
@@ -32,4 +32,4 @@ Mail.Mcp'nin `send_mail` tool'u üzerinden gönderir ve sonucu iz için geri yay
 ## Sınır (bu BC'nin dokunmadığı)
 
 Alarm kaydı/tetiği ve iz kalıcılığı Library'de; SMTP detayı Mail.Mcp'de (worker yalnız tool çağırtır).
-Müşteri chat yüzeyi (ChatAgent) mail gönderemez — Mail.Mcp oraya kayıtlı değil.
+Mail.Mcp yalnız bu worker'a kayıtlıdır — başka agent/servis gönderim yapamaz.

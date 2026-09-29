@@ -12,9 +12,10 @@ yapısal S2S REST (merchant-key). **Kart-saklama (Wallet/cüzdan) 076'da SÖKÜL
 1. **Adres eklenir/güncellenir/silinir + varsayılan seçilir.**       `(AddressBook.AddAddress`
    ≤1 varsayılan invariant'ı defterde tek yazmada korunur;           ` / SetDefaultAddress)`
    yüzey chat/MCP (add_address/update/remove/set_default/list).
-2. **Onboarding başvurusu PII'siz başlatılır (078).** Admin agent    `(PgOnboardingClient)`
-   yalnız PG hosted form linki üretir; PII (TCKN/IBAN) PG formunda
-   toplanır, store'a ve sohbete hiç girmez. Kanal S2S REST (makine kimliği).
+2. **Onboarding başvurusu PII'siz başlatılır (078).** Admin agent    `(AdminStartOnboarding`
+   yalnız PG hosted form linki üretir; PII (TCKN/IBAN) PG formunda     ` → PgOnboardingClient)`
+   toplanır, store'a ve sohbete hiç girmez. Aynı e-postada Pending
+   başvuru varsa PG yeni oturum açmaz (FormUrl boş; durumu adım 8'den izle).
 3. **PG approve → mail + tek kullanımlık teslim linki (PG tarafı).** Admin ikiliyi PG teslim
    sayfasından BİR KEZ görür; store'a taşıma insan-aracılıdır (kontrat 078).
 4. **Credential girişi store'un hosted ekranından.** Agent süreli +  `(CredentialEntrySession.Create)`
@@ -29,6 +30,8 @@ yapısal S2S REST (merchant-key). **Kart-saklama (Wallet/cüzdan) 076'da SÖKÜL
    MerchantId ile PG'de reissue tetikler; yanıt YALNIZ reveal URL.
    Merchant yeni key'i reveal'dan bir kez okur, adım 4-5 yoluyla
    store'a girer (UpdateKey, PG doğrulamalı). Eski key PG'de anında ölü.
+8. **Admin kimlik/başvuru durumunu sorgular.** Merchant kimliği       `(AdminGetMerchantStatus /`
+   kayıtlı mı + onboarding hangi aşamada; boş sonuç meşru durum.       ` AdminOnboardingStatus)`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
@@ -38,6 +41,8 @@ yapısal S2S REST (merchant-key). **Kart-saklama (Wallet/cüzdan) 076'da SÖKÜL
   süresi geçmişi reddeder; GET tüketmez (vazgeçmek linki öldürmez, süre öldürür).
 - **PII/MerchantKey sohbete girmez (078).** Key yalnız ekran POST'unda taşınır, hiçbir log/yanıta
   yazılmaz. (078'in denetim izi kullanıcı kararıyla söküldü, 2026-09-19.)
+- **PG erişilemezse ilgili işlem hata döner.** Onboarding başlat / key reissue / durum sorgu PG'ye S2S gider;
+  PG down ise `MERCHANT_ONBOARDING_UNAVAILABLE` döner (yeniden denenebilir, kısmi/bozuk kayıt bırakmaz).
 - **İzole BC, event yok.** Ne yayınlar ne tüketir; kanal REST/MCP (+ PG'ye S2S REST).
 - **Kart-saklama YOK (076).** Cüzdan/tokenize/vault söküldü; ödeme yöntemi hosted-CF (077).
 
