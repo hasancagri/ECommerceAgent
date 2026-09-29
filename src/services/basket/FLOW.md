@@ -9,8 +9,8 @@ TUTMAZ ve süre İŞLETMEZ (056); stok gerçeği checkout anındadır.
 
 ## Süreç
 
-1. **Kullanıcı ürünü sepete atar.** Sepet yoksa oluşur; adet 1 artar,    `(AddBasketItem`
-   satır upsert edilir. Stok'a hiçbir çağrı gitmez.                       ` → Basket.SetItem)`
+1. **Kullanıcı ürünü sepete atar.** Sepet yoksa oluşur; aynı Id'li satır  `(AddBasketItem`
+   yenisiyle değişir (upsert, adet 1). Stok'a hiçbir çağrı gitmez.        ` → Basket.AddItem)`
 2. **Adet mutlak değere getirilir.** `≤0` ise satır çıkar; 5 tavanı      `(SetBasketItemQuantity)`
    aşılamaz.
 3. **Satır elle silinir.** Yalnız sepet belgesi değişir.                  `(DeleteBasketItem`

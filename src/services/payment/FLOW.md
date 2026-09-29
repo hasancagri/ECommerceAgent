@@ -9,7 +9,7 @@ Kart alanı HİÇ taşımaz; PAN store'a girmez.
 
 ## Süreç
 
-1. **Order hosted link ister (S2S).** Girişim tutar+txRef ile          `(CreatePaymentIntent`
+1. **Order hosted link ister (S2S gRPC).** Girişim tutar+txRef ile      `(PaymentIntentGrpcService.CreateIntent`
    gelir; re-use: aynı kullanıcı+sepet için canlı Pending varsa         ` → PaymentIntent.Create)`
    mevcut link döner (yeni PG çağrısı yok).
 2. **MerchantKey çözülür, PG'ye hosted-payment yollanır.** Anahtar     `(MerchantKeyClient`
@@ -28,6 +28,8 @@ Kart alanı HİÇ taşımaz; PAN store'a girmez.
 
 - **Kart alanı yoktur.** PAN/kart verisi bu BC'ye hiç girmez; yalnız Amount + hosted link referansları.
 - **TxRef tekil; çift callback tek sonuç.** Marten unique index + durum guard → idempotent.
+- **Callback at-least-once + sıra-bağımsız.** Intent'ten önce gelen callback TxRef'i bulamaz → 404, PG yeniden
+  dener; eşzamanlı çift `CreateIntent`'te TxRef unique index ikinciyi eler (canlı Pending re-use'a düşer).
 - **Succeeded terminal + geri-alınamaz.** Void/refund yok; Failed/Expired'den Succeeded'e geçilmez.
 - **Callback köken doğrulaması HMAC.** CallbackSecret MerchantKey'den AYRI (sızıntı yalıtımı).
 - **Zengin aggregate (İLKE II).** `PaymentIntent` `AggregateRoot`'tan türer; geçişler + guard'lar metotlarda.

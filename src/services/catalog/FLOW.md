@@ -49,8 +49,8 @@ ve değişimi Storefront'a bildirir. Ürünler **first-party**: mağaza sahibi e
    Düzenleme yayın durumunu DEĞİŞTİRMEZ (koruma). Import taslakları
    toplu yayın: `publish_imported` yalnız import-kökenli + fiyat>0 taslakları canlıya çıkarır (083).
 8. **Değişim Storefront'a KANONİK yayınlanır.** Fiyat decimal,          `(ProductChangedEvent)`
-   kategori = primary; yazarlar (Id+ad çifti) + yayınevi + özellikler
-   ADLA taşınır (fat event; tüketici lookup yapmaz). Yalnız YAYINDAKİ
+   kategori = primary; yazarlar (Id+ad çifti) + yayınevi ADLA taşınır
+   (fat event; tüketici lookup yapmaz — özellik/spec taşınmaz). Yalnız YAYINDAKİ
    ürün yayar; yayından kaldırma `IsDeleted:true` ile gizletir (058).
 9. **Stock'a bağ ürün DOĞARKEN kurulur.** Barkod→ürün eşlemesi + ilk      `(ProductAdded)`
    OnHand yazılır — taslak dahil ürün doğar doğmaz. Excel import'ta InitialStock=satırın

@@ -12,14 +12,16 @@ iter ve süre dolunca temizler. **Fiyat TUTMAZ** — yalnız yüzde otoritesi; e
 1. **Katalog ürün↔taksonomi bağını besler.** Catalog ürün değişimi          `(CatalogConsumers`
    ürün→kategori/yazar/yayınevi izdüşümünü upsert eder (süzgeç çözümü).      ` → ProductCatalogRef.Apply)`
 2. **Admin süzgeçle kampanya açar.** Ad + süzgeç + yüzde + pencere;          `(CreateCampaign`
-   invariant'lar (yüzde 1-99, bitiş>başlangıç) doğrulanır.                   ` → Campaign.Create)`
+   invariant'lar (yüzde 1-99, bitiş>başlangıç, ad/scopeRef dolu,             ` → Campaign.Create)`
+   scopeType tanımlı) doğrulanır.
 3. **Aktifleşmede süzgeç kitaba çözülür + uygulanır.** startsAt≤now ise      `(CampaignSelectionResolver.Resolve;`
    hemen, gelecekse start-fire'da; her kitaba indirim yazılır (önceki        ` CampaignApplication.ActivateAsync`
    varsa ÜZERİNE — son-gelen-kazanır) ve itilir.                            ` → ProductDiscount.Create → ProductDiscountChanged)`
 4. **Süre dayanıklı zamanlanır.** Başlangıç/bitiş per-kampanya              `(CampaignActivated / CampaignEnded`
    scheduled message; fire guard'lı idempotent (bayat mesaj no-op).         ` → CampaignScheduleHandler)`
 5. **Bitiş/İptal kitapları temizler.** Kampanyanın kitaplarının indirimi     `(CampaignApplication.ClearAsync;`
-   silinir, sıfır-yüzde itilir (vitrin liste fiyatına döner).               ` CancelCampaign → Campaign.Cancel)`
+   silinir, sıfır-yüzde itilir (vitrin liste fiyatına döner). Zaten iptal    ` CancelCampaign → Campaign.Cancel)`
+   edilmiş / bulunamayan kampanya iptali hata (idempotency guard).
 6. **Checkout canlı doğrular (S2S).** Order ödeme tutarını hesaplarken       `(DiscountQueryGrpcService.GetProductDiscounts`
    ürünlerin AKTİF yüzdesini gRPC ile sorar (pencere dışı = indirim yok).    ` → ProductDiscount.IsActiveAt)`
 
@@ -37,5 +39,6 @@ iter ve süre dolunca temizler. **Fiyat TUTMAZ** — yalnız yüzde otoritesi; e
 ## Sınır (bu BC'nin dokunmadığı)
 
 Liste fiyatı + ürün künyesi (Catalog); vitrin gösterimi + etkin fiyat hesabı (Storefront); ödeme + sipariş
-tutarı bağlama (Order/Payment); stok. Kupon/sabit-tutar/en-iyi-kazanır v1 dışı. Discount indirim yüzdesini
-ve penceresini yönetir; para hareketi ya da fiyat hesabı yapmaz.
+tutarı bağlama (Order/Payment); stok. `ProductCatalogRef` senkronu (Catalog→Discount) gecikirse süzgeç 0
+kitaba çözebilir — sync tutarlılığı Catalog'un sorumluluğu. Kupon/sabit-tutar/en-iyi-kazanır v1 dışı.
+Discount indirim yüzdesini ve penceresini yönetir; para hareketi ya da fiyat hesabı yapmaz.

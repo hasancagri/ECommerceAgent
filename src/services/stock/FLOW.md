@@ -19,12 +19,14 @@ olayından ilk OnHand'i yazar; checkout anında stoğu doğrudan düşer (056 �
    `OnHand >= adet` ise düş, değilse reddet — oversell imkânsız.       ` → ProductStock.Commit)`
 4. **Saga iptalinde commit edilmiş adet stoğa geri eklenir** (telafi). `(RevertCommitStockCommand`
    Yalnız daha önce commit edilmiş sipariş geri alınabilir.            ` → ProductStock.RevertCommit)`
-5. **Admin stoğu mutlak düzeltir (058)** — "stok N olsun"; artı/eksi   `(SetStockQuantity`
-   düzeltmelerden ayrı SET semantiği, negatif reddedilir.              ` → ProductStock.SetQuantity)`
+5. **Admin stoğu mutlak SET eder (058)** — "stok N olsun"; SET         `(AdminSetStock`
+   semantiği delta'dan ayrı, negatif reddedilir.                       ` → ProductStock.SetQuantity)`
+6. **Admin stoğu artı/eksi delta ile oynatır (058).** +/- düzeltme;    `(AdminAdjustStock`
+   sıfır delta ve negatife düşüş reddedilir.                           ` → ProductStock.Adjust)`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
-- **OnHand otoritesi = Stock (050).** İlk OnHand `ProductAdded`'ten mutlak yazılır; sonraki güncelleme admin düzeltmeleriyle (058: artır/azalt + mutlak set). Negatif reddedilir `(ProductStock.SetQuantity)`.
+- **OnHand otoritesi = Stock (050).** İlk OnHand `ProductAdded`'ten mutlak yazılır; sonraki güncelleme admin düzeltmeleriyle (058: mutlak set + artı/eksi delta). Negatife düşüş her iki yolda da reddedilir `(ProductStock.SetQuantity` / `ProductStock.Adjust)`.
 - **Rezervasyon yok (056).** Sepet stok tutmaz; stok gerçeğinin tek anı checkout düşümü. Available ≡ OnHand.
 - **Commit/Revert idempotent (028).** orderId anahtarıyla mükerrer teslimat no-op; commit'siz revert reddedilir `(_processedOps)`.
 - **Eksiye düşüş imkânsız.** `Commit` yeterlilik guard'ıyla korunur; son-ürün yarışında ilk tamamlanan checkout kazanır, ikincisi reddedilir.

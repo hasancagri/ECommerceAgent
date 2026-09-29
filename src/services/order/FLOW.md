@@ -10,9 +10,11 @@ başarılı callback'i (Payment fanout) siparişi checkout'a sokar. Stok/telafi/
 ## Süreç
 
 1. **Kullanıcı ödeme başlatır.** Sepet (gRPC, sunucu-otoritesi) +       `(StartPayment →`
-   varsayılan adres okunur; sipariş Pending doğar; Payment'tan           ` Order.Create; PaymentIntentClient)`
-   hosted link istenir + kullanıcıya döner. Re-use: canlı link varsa
-   yeni sipariş yok. Boş sepet → dostça mesaj (sipariş yok).
+   varsayılan adres okunur; ödenecek tutar sepet kalemlerine O AN         ` Order.Create;`
+   aktif indirim yüzdeleri uygulanarak bulunur (canlı, vitrin             ` DiscountClient; PaymentIntentClient)`
+   snapshot'ına güvenmez; erişilemez→liste fiyatı); sipariş Pending
+   doğar; Payment'tan hosted link istenir + kullanıcıya döner. Re-use:
+   canlı link varsa yeni sipariş yok. Boş sepet → dostça mesaj (sipariş yok).
 2. **Ödeme başarılı → checkout tetiklenir.** Payment `PaymentSucceeded` `(PaymentConsumers →`
    fanout'unu tüketir; Pending siparişten `StartCheckout` yayınlar        ` StartCheckout)`
    (CommitStock→Confirm→ClearBasket; charge YOK, ödeme öncedendir).
@@ -33,4 +35,5 @@ başarılı callback'i (Payment fanout) siparişi checkout'a sokar. Stok/telafi/
 ## Sınır (bu BC'nin dokunmadığı)
 
 Gerçek çekim (hosted-CF → Payment/PG), stok commit döngüsü + telafi + sepet temizliği + watchdog **Checkout.
-Orchestrator** sağasının. Order stok yazmaz, fiyat/indirim hesaplamaz, ürün bilmez.
+Orchestrator** sağasının. Order stok yazmaz, indirim kuralına sahip değil (yüzdeyi Discount'tan sorar,
+yalnız tutara uygular), ürün fiyat otoritesi değil.
