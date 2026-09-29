@@ -44,4 +44,9 @@
       <None Include="..\FLOW.md" Link="FLOW.md" />
     </ItemGroup>
 
+    <!-- 078: hosted credential-giriş HTML sayfaları gömülü resource olarak (C# yalnız okur + placeholder doldurur). -->
+    <ItemGroup>
+      <EmbeddedResource Include="Pages\CredentialEntry\*.html" />
+    </ItemGroup>
+
 </Project>

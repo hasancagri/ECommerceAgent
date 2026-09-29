@@ -1,5 +1,3 @@
-using Common.Utils.Constants;
-
 namespace Catalog.Api.Mcp;
 
 // 070/074/083/085: catalog admin yönetim yüzeyi politikası (Program.cs orkestrasyon dışı tutulur).
@@ -8,7 +6,7 @@ public static class CatalogAdminSurface
 {
     // Admin tool'ları (anonim çağrıda budanır — ToolScopeMap). ConfigureSessionOptions okur.
     // TUZAK: yeni admin tool eklerken buraya + ToolScopeMap'e EKLE — ad-prefix DEĞİL açık liste (074 dersi).
-    public static readonly string[] ToolNames =
+    public static readonly string[] TOOL_NAMES =
     [
         Shared.CatalogAdminTools.ListProducts, Shared.CatalogAdminTools.GetProduct,
         Shared.CatalogAdminTools.UpdateProduct, Shared.CatalogAdminTools.SetPublished,
@@ -28,7 +26,7 @@ public static class CatalogAdminSurface
     ];
 
     // Admin scope demeti (okuma + yazma) — RFC 9728 PRM keşfi/discovery-scope için.
-    public static readonly string[] Scopes =
+    public static readonly string[] SCOPES =
     [
         AuthorizationScopes.AdminCatalogRead,
         AuthorizationScopes.AdminCatalogWrite,
@@ -36,7 +34,7 @@ public static class CatalogAdminSurface
 
     // 085 R1: tool→scope eşlemesi — kaynak [RequiredScope] attribute'larıyla BİREBİR (tek gerçek-kaynak
     // burası; fasada kopyalanmaz). ConfigureSessionOptions oturum tool setini bununla budar.
-    public static readonly IReadOnlyDictionary<string, string> ToolScopeMap = new Dictionary<string, string>
+    public static readonly IReadOnlyDictionary<string, string> TOOL_SCOPE_MAP = new Dictionary<string, string>
     {
         [Shared.CatalogAdminTools.ListProducts] = AuthorizationScopes.AdminCatalogRead,
         [Shared.CatalogAdminTools.GetProduct] = AuthorizationScopes.AdminCatalogRead,

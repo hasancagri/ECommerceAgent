@@ -35,7 +35,7 @@ scripts/check-flow-links.sh                               # FLOW.md domain-süre
 .NET 10 (`Nullable`+`ImplicitUsings` açık) · **Marten** (Postgres = document/event store, Newtonsoft,
 non-public setter+ctor) · **Wolverine** (in-proc bus `IMessageBus` + RabbitMQ fanout; handler assembly
 taramasıyla) · **OpenIddict + ASP.NET Identity** (IdP) · **YARP** gateway · **MCP** (her API `/mcp`;
-müşteri yüzeyi `mcp-gateway` fasadı — dış AI istemcisi tüketir) · **Microsoft Agent Framework** +
+müşteri yüzeyi platform MCP fasadı, AgentPlatform'a taşındı — dış AI istemcisi tüketir) · **Microsoft Agent Framework** +
 `Microsoft.Extensions.AI` (ModerationAgent, NotificationAgent) · **Scrutor** (DI) · **xUnit + Shouldly**.
 
 ## BC haritası
@@ -62,7 +62,7 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
 | `notification-agent` | — | Fiyat alarmı maili (DB'siz worker); `PriceAlarmTriggered`→LLM compose→Mail.Mcp `send_mail`→`NotificationSent` | `specs/060-price-alarm-mail` |
 | `mail-mcp` | — | İlk standalone MCP server; tek tool `send_mail` (MailKit→Mailpit); yalnız NotificationAgent tüketir, ChatAgent'a KAYITLI DEĞİL | `specs/060-price-alarm-mail` |
 | `file` | fileDb | Kapak **kayıt defteri** (082: DB'siz proxy → Marten BC); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2, byte DB'de değil); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base, full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **083: kapak akışı kablosu** — RabbitMQ transport (bugüne dek in-proc only); `ProductAdded` tüketir (`CatalogConsumers`, R2'de yoksa yerel staging'den yükle+kayıt) → `CoverIngested(isbn,url)` yayar → Catalog `Product.ImageUrl` doldurur | `specs/081-cover-image-store` |
-| `mcp-gateway` | — | **Tek müşteri+admin MCP fasadı** (DB'siz proxy); alt BC `/mcp`'lerini LAZY toplar (SDK `WithListToolsHandler`/`WithCallToolHandler`), ad→BC token-forward proxy; **085: TEK `/mcp` ucu** (`/mcp-admin` + ikinci PRM söküldü) — görünürlük yol-prefix değil TOKEN SCOPE'una göre (BC `ConfigureSessionOptions`); TEK PRM `scopes_supported` = müşteri+admin UNION (iki OAuth istemci — `external-customer-agent` + `external-admin-agent` — aynı uca bağlanır); `tools/list` cache anahtarı scope-parmakizi, yönlendirme registry'si ayrı m2m tam-katalog cache'inde; auth HER ZAMAN upfront login (anonim/step-up modu + `McpStepUpMiddleware` kalıcı olarak SÖKÜLDÜ, kullanıcı kararı); **mağazanın TEK müşteri yüzeyi** (ChatAgent+UI söküldü); **047: PaymentGateway downstream'leri** (`pg-merchant` :5202, `pg-commission` :5203 sabit URL) fasada eklendi — `FacadeScopes.All` + `DiscoveryScope` PG demetini (`merchant.read/write/admin`, `commission.read/write`) ilan eder, tek token EC+PG scope'larını taşır | `specs/073-customer-mcp-facade` · `specs/085-single-mcp-surface` |
+| _(MCP fasadı)_ | — | **TAŞINDI → AgentPlatform** (001): tek müşteri+admin MCP fasadı (DB'siz proxy) artık bu repoda değil, AgentPlatform'ın kendi Aspire host'unda koşar; EC ürün servislerinin `/mcp` uçları KORUNUR ve platform fasadına sabit mutlak URL'lerle downstream olur. Dış AI istemcisi platform MCP girişine bağlanır (Anayasa İlke III: tek MCP girişi). Tarihsel tasarım: `specs/073-customer-mcp-facade`, `specs/085-single-mcp-surface`; taşıma: AgentPlatform repo 001 spec'i | `specs/073` · `specs/085` |
 
 - **Ürün yazım yolu (050 pivot — first-party):** Çok-tedarikçi feed (Procurement + Supplier) SÖKÜLDÜ;
   mallar mağazanın. Giriş = **083 Excel import** (admin xlsx→`ImportRow`→TASLAK ürün; 051 books.json
@@ -73,7 +73,7 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
   `ProductChangedEvent` → Storefront. Silme yok (016); yayından kaldırma `IsDeleted:true` (058).
 - **UI (WebApp) + ChatAgent SÖKÜLDÜ (2026-09-11):** Mağaza artık ne görsel ekran ne kendi sohbet
   agent'ı host eder — tam **agent-only / BYO-agent**. Müşteri **kendi AI istemcisiyle** (Claude Desktop
-  vb.) `mcp-gateway` fasadının **TEK `/mcp` ucuna** (085 — `/mcp-admin` söküldü, tek login, upfront) bağlanır;
+  vb.) platform MCP fasadının **TEK `/mcp` ucuna** (085 — `/mcp-admin` söküldü, tek login, upfront) bağlanır;
   tool'lar alt BC `/mcp`'lerinden toplanır, çağrı sahibi BC'ye kullanıcı token'ıyla proxy'lenir. Admin de
   AYNI `/mcp`'de, token scope'una göre budanmış görünür (085). Login/OIDC doğrudan Identity (agent OAuth);
   web cookie-login yok. Kalkan referanslar: AppHost web/chat-agent kayıtları, Identity
