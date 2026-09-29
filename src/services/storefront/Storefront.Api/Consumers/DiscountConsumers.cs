@@ -1,4 +1,4 @@
-namespace Storefront.Api;
+namespace Storefront.Api.Consumers;
 
 // Discount `ProductDiscountChanged` → StorefrontView.ApplyDiscount (push read-model). Kaynak = Discount
 // (dosya adı kuralı: kaynak + Consumers). pct=0 → indirim temizlenir. Wolverine keşfi "Consumers" son-ekini

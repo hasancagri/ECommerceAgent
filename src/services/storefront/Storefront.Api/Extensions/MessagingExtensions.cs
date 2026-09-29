@@ -1,3 +1,5 @@
+using Storefront.Api.Consumers;
+
 namespace Storefront.Api.Extensions;
 
 // Storefront mesajlaşma kurulumu: Wolverine + RabbitMQ broker topolojisi (exchange/binding/listen)
@@ -55,11 +57,11 @@ public static class MessagingExtensions
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // Konvansiyonel keşif bu sınıfları atlıyor (nedeni araştırılacak); açık kayıt garantili yol.
-            opts.Discovery.IncludeType(typeof(Storefront.Api.CatalogConsumers));
-            opts.Discovery.IncludeType(typeof(Storefront.Api.ReviewsConsumers));
-            opts.Discovery.IncludeType(typeof(Storefront.Api.StockConsumers));
-            opts.Discovery.IncludeType(typeof(Storefront.Api.OrderConsumers));
-            opts.Discovery.IncludeType(typeof(Storefront.Api.DiscountConsumers));
+            opts.Discovery.IncludeType(typeof(CatalogConsumers));
+            opts.Discovery.IncludeType(typeof(ReviewsConsumers));
+            opts.Discovery.IncludeType(typeof(StockConsumers));
+            opts.Discovery.IncludeType(typeof(OrderConsumers));
+            opts.Discovery.IncludeType(typeof(DiscountConsumers));
         });
 
         return builder;
