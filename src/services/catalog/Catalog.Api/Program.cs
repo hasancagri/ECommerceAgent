@@ -19,7 +19,7 @@ builder.Services.AddApiVersioning(options =>
 // Admin yüzeyi (TEK /mcp'de, scope-budamalı) scope demeti = Catalog.Api.Mcp.CatalogAdminSurface.Scopes (okuma + yazma).
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
-    Catalog.Api.Mcp.CatalogAdminSurface.Scopes);
+    Catalog.Api.Mcp.CatalogAdminSurface.SCOPES);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -55,7 +55,7 @@ builder.Services
             return Task.CompletedTask;
         foreach (var tool in tools
                      .Where(t => !McpScopePruningExtension.IsToolVisible(
-                         t.ProtocolTool.Name, Catalog.Api.Mcp.CatalogAdminSurface.ToolScopeMap, ctx.User)).ToArray())
+                         t.ProtocolTool.Name, Catalog.Api.Mcp.CatalogAdminSurface.TOOL_SCOPE_MAP, ctx.User)).ToArray())
             tools.Remove(tool);
         return Task.CompletedTask;
     })
