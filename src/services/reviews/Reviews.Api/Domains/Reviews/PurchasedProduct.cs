@@ -1,6 +1,6 @@
 namespace Reviews.Api.Domains.Reviews;
 
-// 049: satın-alma kanıtı read-model (gRPC OrderPurchase yerine). Order 'OrderCompleted' fanout'undan
+// satın-alma kanıtı read-model (gRPC OrderPurchase yerine). Order 'OrderCompleted' fanout'undan
 // beslenir; review eligibility eventual-consistency toleranslı (yorum sonra yapılır, anlık-tutarlılık
 // gerekmez → gRPC yerine event-fed projeksiyon). AggregateRoot DEĞİL (read-model). Id = "{userId:N}:{productId:N}"
 // → idempotent upsert (aynı ürünü tekrar alım aynı satır). Confirmed terminal (void/refund yok) → append-only,

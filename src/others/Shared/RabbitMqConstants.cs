@@ -2,7 +2,7 @@ namespace Shared;
 
 public static class RabbitMqConstants
 {
-    // 028: OrderCreated exchange kaldirildi — sepet temizligi artik CheckoutSaga'nin gRPC adimidir.
+    // OrderCreated exchange kaldirildi — sepet temizligi artik CheckoutSaga'nin gRPC adimidir.
 
     // Storefront TEK kuyruk dinler: üç exchange de aynı kuyruğa bağlanır ve Sequential işlenir.
     // Aynı StorefrontView satırına eşzamanlı yazım yapısal olarak imkânsızlaşır (ConcurrencyException
@@ -20,10 +20,10 @@ public static class RabbitMqConstants
         {
             public const string Storefront = StorefrontEvents.Queue;
 
-            // 060: Library fiyat değişimini dinler (alarm tetiği); binding'i tüketici kurar (007).
+            // Library fiyat değişimini dinler (alarm tetiği); binding'i tüketici kurar (007).
             public const string Library = "library.events";
 
-            // 079: Discount ürün↔kategori/yazar/yayınevi izdüşümünü (ProductCatalogRef) besler; binding tüketici kurar.
+            // Discount ürün↔kategori/yazar/yayınevi izdüşümünü (ProductCatalogRef) besler; binding tüketici kurar.
             public const string Discount = "discount.events";
         }
     }
@@ -49,12 +49,12 @@ public static class RabbitMqConstants
         {
             public const string Stock = "stock.product-added";
 
-            // 083: File.Api aynı fanout exchange'e kendi kuyruğunu bağlar (kapak çözümü); binding tüketici kurar.
+            // File.Api aynı fanout exchange'e kendi kuyruğunu bağlar (kapak çözümü); binding tüketici kurar.
             public const string File = "file.product-added";
         }
     }
 
-    // 083: File.Api yayınlar (kapak R2'de hazır + registry upsert sonrası), Catalog tüketir (kendi kuyruğunu
+    // File.Api yayınlar (kapak R2'de hazır + registry upsert sonrası), Catalog tüketir (kendi kuyruğunu
     // bağlar — 007 soğuk-açılış dersi) → Product.SetImage → ProductChangedEvent → Storefront.
     public static class CoverIngested
     {
@@ -66,7 +66,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 044: Reviews yayınlar, Storefront satırına RatingAverage/RatingCount yazar.
+    // Reviews yayınlar, Storefront satırına RatingAverage/RatingCount yazar.
     // Storefront TEK kuyruk deseni: mevcut storefront.events kuyruğuna bağlanır (Sequential).
     public static class ReviewSummaryChanged
     {
@@ -78,7 +78,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 046: Reviews yayınlar, Reviews.Moderation worker tüketir (worker kendi kuyruğunu bağlar).
+    // Reviews yayınlar, Reviews.Moderation worker tüketir (worker kendi kuyruğunu bağlar).
     public static class ReviewModerationRequested
     {
         public const string Exchange = "reviews.moderation-requested";
@@ -89,7 +89,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 046: Reviews.Moderation worker yayınlar, Reviews tüketir (Reviews kendi kuyruğunu bağlar).
+    // Reviews.Moderation worker yayınlar, Reviews tüketir (Reviews kendi kuyruğunu bağlar).
     public static class ReviewModerated
     {
         public const string Exchange = "reviews.moderated";
@@ -101,7 +101,7 @@ public static class RabbitMqConstants
     }
 
     // Order yayınlar (checkout başarı = Confirm pivotu). Reviews tüketir (satın-alma kanıtı projeksiyonu).
-    // 054: Storefront da tüketir (kişisel feed UserPurchase birikimi) — mevcut tek kuyruğuna bağlanır.
+    // Storefront da tüketir (kişisel feed UserPurchase birikimi) — mevcut tek kuyruğuna bağlanır.
     public static class OrderCompleted
     {
         public const string Exchange = "order.completed";
@@ -113,7 +113,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 060: Library yayınlar (üründeki her alarm için bir event), NotificationAgent tüketir
+    // Library yayınlar (üründeki her alarm için bir event), NotificationAgent tüketir
     // (worker kendi kuyruğunu bağlar).
     public static class PriceAlarmTriggered
     {
@@ -125,7 +125,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 060: NotificationAgent yayınlar (gönderim sonucu), Library tüketir → NotificationRecord izi.
+    // NotificationAgent yayınlar (gönderim sonucu), Library tüketir → NotificationRecord izi.
     public static class NotificationSent
     {
         public const string Exchange = "notifications.sent";
@@ -136,7 +136,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 077: Payment yayınlar (hosted-CF callback/expiry sonucu), Order tüketir (kendi kuyruğunu bağlar).
+    // Payment yayınlar (hosted-CF callback/expiry sonucu), Order tüketir (kendi kuyruğunu bağlar).
     public static class PaymentSucceeded
     {
         public const string Exchange = "payment.succeeded";
@@ -157,7 +157,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 079: Discount yayınlar (kitap başına indirim penceresi / temizlik), Storefront tüketir.
+    // Discount yayınlar (kitap başına indirim penceresi / temizlik), Storefront tüketir.
     // Storefront TEK kuyruk deseni: mevcut storefront.events kuyruğuna bağlanır (Sequential).
     public static class ProductDiscountChanged
     {
@@ -169,7 +169,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // 049: Checkout orchestrator hedefli komut/yanıt (broker; İlke I v1.11.0). Her BC kendi komut
+    // Checkout orchestrator hedefli komut/yanıt (broker; İlke I v1.11.0). Her BC kendi komut
     // kuyruğunu bağlar; yanıtlar orchestrator'ın tek yanıt kuyruğuna döner (korelasyon = CheckoutId).
     public static class Checkout
     {

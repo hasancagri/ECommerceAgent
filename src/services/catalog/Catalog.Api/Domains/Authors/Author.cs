@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Authors;
 
-// 052: Brand→Author rename. Kitapyurdu künyesi dilinde marka değil "Yazar"dır; Brand zaten yazarı
+// Brand→Author rename. Kitapyurdu künyesi dilinde marka değil "Yazar"dır; Brand zaten yazarı
 // tutuyordu, isim yanlıştı. 016 düzeni sürer: yalnız import get-or-create ile doğar; ad immutable,
 // rename yok. NormalizedName teklik anahtarıdır (computed unique index, Program.cs).
 public class Author : AggregateRoot

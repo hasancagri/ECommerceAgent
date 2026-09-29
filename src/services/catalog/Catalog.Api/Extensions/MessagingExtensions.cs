@@ -35,7 +35,7 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ProductAdded>()
                 .ToRabbitExchange(RabbitMqConstants.ProductAdded.Exchange);
 
-            // 083 T022: File.Api'nin CoverIngested'ini tüket (Catalog'un İLK consumer'ı). Binding'i tüketici
+            // T022: File.Api'nin CoverIngested'ini tüket (Catalog'un İLK consumer'ı). Binding'i tüketici
             // kurar (007 dersi); FileConsumers.Handle → Product.SetImage → ProductChangedEvent.
             rabbit.DeclareExchange(RabbitMqConstants.CoverIngested.Exchange, e =>
             {

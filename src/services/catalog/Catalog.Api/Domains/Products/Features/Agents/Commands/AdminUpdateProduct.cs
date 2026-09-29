@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 070 US1: admin künye güncelleme (agent yüzeyi) — UpdateProduct İKİZİ (bilinçli tekrar) ama KISMİ
+// US1: admin künye güncelleme (agent yüzeyi) — UpdateProduct İKİZİ (bilinçli tekrar) ama KISMİ
 // güncelleme: yalnız verilen alanlar değişir (agent "fiyatı 95 yap" der, tüm formu göndermez).
 // Gerçek fiyat değişimi ProductPriceChange + ProductChangedEvent.OldPrice akışını AYNEN tetikler.
 // Yanıt ürünün GÜNCEL hâli (FR-003: agent ek çağrısız gösterir).
@@ -73,7 +73,7 @@ public static class AdminUpdateProduct
                 changed.Add("Description");
             }
 
-            // 058 FR-013: yalnız GERÇEK fiyat değişimi geçmişe satır düşürür.
+            // FR-013: yalnız GERÇEK fiyat değişimi geçmişe satır düşürür.
             var oldPrice = product.Price.Amount;
             var priceChanged = false;
             if (cmd.Price is { } newPrice && newPrice != oldPrice)
@@ -195,7 +195,7 @@ public static class AdminUpdateProduct
                 ? null
                 : await session.LoadAsync<Category>(finalCategoryId, ct);
 
-            // 003: writer-publishes; 058: yalnız yayındaki ürün event yayar (draft vitrine sızmaz).
+            // writer-publishes; 058: yalnız yayındaki ürün event yayar (draft vitrine sızmaz).
             if (product.Published)
             {
                 await bus.PublishAsync(new IntegrationEvents.ProductChangedEvent(
@@ -204,7 +204,7 @@ public static class AdminUpdateProduct
                     product.PublisherId, finalPublisher?.Name ?? string.Empty,
                     finalCategoryId, finalCategory?.Name ?? string.Empty,
                     product.ImageUrl, IsDeleted: false,
-                    // 060: yalnız GERÇEK fiyat değişiminde dolu — Library alarm tetiği.
+                    // yalnız GERÇEK fiyat değişiminde dolu — Library alarm tetiği.
                     OldPrice: priceChanged ? oldPrice : null));
             }
 

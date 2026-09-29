@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 
-// 063: MCP okuma slice'ı — agent bir ürünün fiyat geçmişini (append-only ProductPriceChange, 058)
+// MCP okuma slice'ı — agent bir ürünün fiyat geçmişini (append-only ProductPriceChange, 058)
 // getirir. Anonim (fiyat geçmişi herkese açık; catalog MCP korumasız). İzole handler (konvansiyon).
 public static class GetPriceHistory
 {
@@ -40,7 +40,7 @@ public static class GetPriceHistory
     }
 }
 
-// 063: ürünün fiyat geçmişi (append-only ProductPriceChange, 058). Anonim (catalog MCP korumasız).
+// ürünün fiyat geçmişi (append-only ProductPriceChange, 058). Anonim (catalog MCP korumasız).
 [McpServerToolType]
 public static class GetPriceHistoryMcpTool
 {

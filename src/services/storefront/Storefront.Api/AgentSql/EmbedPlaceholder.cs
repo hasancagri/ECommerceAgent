@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Storefront.Api.AgentSql;
 
-// 069 R3: {{EMBED:"metin"}} yer-tutucusu — LLM vektör mekaniği görmez; metni yazar, dönüşümü sistem
+// R3: {{EMBED:"metin"}} yer-tutucusu — LLM vektör mekaniği görmez; metni yazar, dönüşümü sistem
 // yapar. Akış: ikame → bekçi → (geçerse) embedding üretimi → parametre bind. Parametre bind'i
 // SQL-injection yüzeyini embedding metnine kapatır. Metin-literal + CAST şart: Weasel/Npgsql
 // Pgvector.Vector'ü bind edemiyor (067 canlı bulgu, ToVectorLiteral buradan sürer).

@@ -1,6 +1,6 @@
 namespace Storefront.Api.AgentSql;
 
-// 069 R1: izinli vitrin yüzeyi kurulumu — idempotent view DDL + kısıtlı rol + GRANT'lar.
+// R1: izinli vitrin yüzeyi kurulumu — idempotent view DDL + kısıtlı rol + GRANT'lar.
 // IHostedService (BackgroundService değil): StartAsync bitmeden app trafiğe çıkmaz; AddMarten
 // SONRASI kayıt sırası Marten'ın ApplyAllDatabaseChangesOnStartup'ının önce koşmasını garantiler
 // (mt_doc tabloları view'dan önce var olur). Weasel'a EMANET DEĞİL (spike: elle nesneyi siliyor);

@@ -28,7 +28,7 @@ global using Common.Dependencies;
 global using Payment.Api.Domains.Payments.Features.Agents;
 global using Shared.Utils.Constants;
 
-// 077: hosted-CF ödeme — options + S2S + auth.
+// hosted-CF ödeme — options + S2S + auth.
 global using Common.Options;
 global using Common.Utils.Authorization;
 global using Payment.Api.Options;
@@ -43,7 +43,7 @@ global using System.Net.Http;
 global using Payment.Api.Infrastructure;
 global using Shared;
 
-// 077 (gRPC'ye taşındı): PaymentIntent S2S sunucu + MerchantKey S2S istemci.
+// (gRPC'ye taşındı): PaymentIntent S2S sunucu + MerchantKey S2S istemci.
 global using Grpc.Core;
 global using Shared.Grpc.Payment;
 global using Shared.Grpc.Customer;

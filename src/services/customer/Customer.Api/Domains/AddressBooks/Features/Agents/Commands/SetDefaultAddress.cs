@@ -1,6 +1,6 @@
 namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 
-// 062: MCP yazma slice'ı — agent chat'ten varsayılan adresi belirler. İzole handler (bkz. AddAddress).
+// MCP yazma slice'ı — agent chat'ten varsayılan adresi belirler. İzole handler (bkz. AddAddress).
 public static class SetDefaultAddress
 {
     [RequiredScope(AuthorizationScopes.CustomerWrite)]

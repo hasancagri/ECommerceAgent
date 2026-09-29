@@ -1,6 +1,6 @@
 namespace Stock.Api.Domains.Stocks.Entities;
 
-// 041: barkod ↔ ProductId eşleme dokümanı (aggregate DEĞİL — read-model satırı gibi düz eşleme).
+// barkod ↔ ProductId eşleme dokümanı (aggregate DEĞİL — read-model satırı gibi düz eşleme).
 // ProductAdded handler'ı yazar (idempotent upsert); kanonik güncelleme tüketimi bu eşlemeden çözer.
 public class BarcodeLink
 {

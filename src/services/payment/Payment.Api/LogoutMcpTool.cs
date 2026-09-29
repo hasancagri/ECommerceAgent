@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 
 namespace Payment.Api;
 
-// 061 logout: kullanıcı chat'ten "çıkış yap" dediğinde bu agent'ın (client) mağaza erişim yetkisini
+// logout: kullanıcı chat'ten "çıkış yap" dediğinde bu agent'ın (client) mağaza erişim yetkisini
 // iptal eder. Kullanıcının Bearer'ını Identity.Server agent-logout ucuna forward eder (domain işi değil,
 // auth proxy — bu yüzden Features/Agents slice YOK). 4 korumalı serviste birebir (bilinçli tekrar).
 [McpServerToolType]

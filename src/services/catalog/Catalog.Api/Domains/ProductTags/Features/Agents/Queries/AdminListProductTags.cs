@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.ProductTags.Features.Agents.Queries;
 
-// 070 parite: etiket LİSTELEME (agent yüzeyi) — GetProductTags İKİZİ (bilinçli tekrar). Salt-okur,
+// parite: etiket LİSTELEME (agent yüzeyi) — GetProductTags İKİZİ (bilinçli tekrar). Salt-okur,
 // audit YOK. Opsiyonel q ile ada göre (case-insensitive alt-dizge) daraltılır; ada göre sıralı.
 public static class AdminListProductTags
 {

@@ -12,7 +12,7 @@ public static class CatalogConsumers
         var view = await session.LoadAsync<StorefrontView>(evt.ProductId, ct)
                    ?? StorefrontView.Create(evt.ProductId);
 
-        // 067: yeniden-embedding karari ApplyCatalog ONCE alinir (eski aciklama heniz ezilmemisken).
+        // yeniden-embedding karari ApplyCatalog ONCE alinir (eski aciklama heniz ezilmemisken).
         // hasEmbedding yalniz "aciklama degismedi" dalinda anlamli — yalniz o durumda PK lookup yapilir.
         var hasEmbedding = string.Equals(evt.Description, view.Description, StringComparison.Ordinal)
                            && !string.IsNullOrWhiteSpace(evt.Description)
@@ -20,15 +20,15 @@ public static class CatalogConsumers
         var embeddingDecision = StorefrontView.DecideEmbedding(evt.Description, view.Description, hasEmbedding);
 
         view.ApplyCatalog(evt.Name, evt.Description, evt.Price,
-            // 052: event yazar çiftlerini read-model'in kendi AuthorRef'ine çevir (Shared tipini saklamaz).
+            // event yazar çiftlerini read-model'in kendi AuthorRef'ine çevir (Shared tipini saklamaz).
             evt.Authors.Select(a => new Domains.StorefrontView.AuthorRef(a.Id, a.Name)).ToList(),
             evt.PublisherId, evt.Publisher, evt.CategoryId, evt.Category, evt.ImageUrl, evt.IsDeleted,
-            // 043: kanonik spec adlari satira denormalize edilir (facet + filtre + detay).
+            // kanonik spec adlari satira denormalize edilir (facet + filtre + detay).
             (evt.Specs ?? []).Select(s => SpecPair.Create(s.Attribute, s.Option)).ToList(),
-            // 045: varyant ailesi kodu (null = ailesiz).
+            // varyant ailesi kodu (null = ailesiz).
             evt.FamilyCode);
 
-        // 067: anlamsal temsil — yalniz aciklama degisince uretilir (fiyat/stok guncellemesi API'ye gitmez);
+        // anlamsal temsil — yalniz aciklama degisince uretilir (fiyat/stok guncellemesi API'ye gitmez);
         // ayri dokumana, AYNI transaction'da yazilir. IsDeleted uretimi ETKILEMEZ (gorunurluk sorgu
         // tarafinda, FR-007). Hata → exception → Wolverine retry/error queue (bilincli kabul, research R4).
         switch (embeddingDecision)

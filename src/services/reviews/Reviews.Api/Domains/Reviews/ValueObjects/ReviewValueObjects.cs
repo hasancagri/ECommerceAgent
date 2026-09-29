@@ -1,6 +1,6 @@
 namespace Reviews.Api.Domains.Reviews.ValueObjects;
 
-// 044 R7: yorum sahibinin gorunen adi. HAM deger saklanir; yuzeye YALNIZ Masked() cikar —
+// R7: yorum sahibinin gorunen adi. HAM deger saklanir; yuzeye YALNIZ Masked() cikar —
 // maske kurali degisirse gecmis yorumlar yeniden maskelenebilir (goruntuleme kurali, veri degil).
 public record ReviewerName
 {
@@ -24,7 +24,7 @@ public record ReviewerName
             .Select(word => word.Length == 1 ? word : $"{word[0]}**"));
 }
 
-// 044 R5: moderasyon karari — agent yalniz KARAR verir, uygulama Review.ApplyModeration'da.
+// R5: moderasyon karari — agent yalniz KARAR verir, uygulama Review.ApplyModeration'da.
 // Guard: violation=true iken gercek bir kategori zorunlu ("none"/bos kabul edilmez).
 public record ModerationVerdict
 {

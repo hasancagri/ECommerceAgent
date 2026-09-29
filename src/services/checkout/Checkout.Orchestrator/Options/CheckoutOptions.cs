@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Checkout.Orchestrator.Options;
 
-// 049: checkout süreç ayarları (watchdog + retry). House-style: config section → tip'li POCO.
+// checkout süreç ayarları (watchdog + retry). House-style: config section → tip'li POCO.
 public class CheckoutOptions
 {
     // Sürecin tamamı için watchdog süresi (saniye); yanıt gelmezse faz'a göre telafi/no-op.

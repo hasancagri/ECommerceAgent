@@ -7,7 +7,7 @@ using Catalog.Api.Domains.Categories;
 
 namespace Catalog.Api.Import;
 
-// 083 T013/FR-003+FR-004: staging'deki bekleyen satırları arka planda ürüne çeviren dayanıklı süreç
+// T013/FR-003+FR-004: staging'deki bekleyen satırları arka planda ürüne çeviren dayanıklı süreç
 // (Process/ deseni — BC'nin KENDİ süreci, kullanıcı tetiklemez). WHERE Status=Pending çek (Excel değil
 // tablo sorgusu — FR-002); her satırı [Transactional] ProcessImportRow ile işler. Çökme = rollback,
 // satır Pending kalır, tekrar işlenir (exactly-once; ISBN idempotency).
@@ -55,7 +55,7 @@ public class ImportProcessor(IServiceProvider services, ILogger<ImportProcessor>
     }
 }
 
-// 083 T013: tek satırı ürüne çevirir. [Transactional] — ürün Store + ProductAdded publish + ImportRow
+// T013: tek satırı ürüne çevirir. [Transactional] — ürün Store + ProductAdded publish + ImportRow
 // MarkProcessed AYNI Marten commit (Wolverine outbox atomik). ISBN üründe VARSA ürün oluşturulmaz ama
 // satır yine Processed (additive-only atla, FR-005). Draft doğar (FR-006): Publish YOK, ProductChangedEvent
 // YAYILMAZ; ProductAdded (stok) yayılır ki Stock BarcodeLink+OnHand satırı doğsun (AdminCreateProduct doktrini).
@@ -104,7 +104,7 @@ public static class ProcessImportRow
             product.AssignToCategory(leaf.Id, isFeatured: false, displayOrder: 0);
             session.Store(product);
 
-            // 058 FR-013: fiyat>0 ise geçmişin ilk satırı (OldPrice=null); fiyatsız taslak satır düşürmez.
+            // FR-013: fiyat>0 ise geçmişin ilk satırı (OldPrice=null); fiyatsız taslak satır düşürmez.
             if (price.Amount > 0)
                 session.Store(ProductPriceChange.Create(product.Id, oldPrice: null, price.Amount, DateTime.UtcNow));
 

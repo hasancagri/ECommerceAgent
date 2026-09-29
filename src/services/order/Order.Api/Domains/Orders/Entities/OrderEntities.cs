@@ -6,7 +6,7 @@ public class OrderItem
     public string ProductName { get; private set; } = null!;
     public decimal UnitPrice { get; private set; }
 
-    // 012: siparis kalemi adedi (varsayilan 1, geriye-uyumlu).
+    // siparis kalemi adedi (varsayilan 1, geriye-uyumlu).
     public int Quantity { get; private set; } = 1;
 
     private OrderItem()

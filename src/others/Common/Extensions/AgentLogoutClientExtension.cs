@@ -1,6 +1,6 @@
 namespace Common.Extensions;
 
-// 061 logout: korumalı servislerin `logout` MCP tool'u, kullanıcının Bearer'ını Identity.Server'ın
+// logout: korumalı servislerin `logout` MCP tool'u, kullanıcının Bearer'ını Identity.Server'ın
 // agent-logout ucuna forward eder. Named client tek yerde (BaseAddress = IdentityOption.Address,
 // dev self-signed cert bypass) — her servis tek satırla açar, tool relative path POST'lar.
 public static class AgentLogoutClientExtension

@@ -8,7 +8,7 @@ builder.AddStorefrontMarten();
 // SIRA: AddCachingAspect'ten ÖNCE (cache aspect IMessageBus'ı sarar).
 builder.AddStorefrontMessaging();
 
-// 069 R1/R2: kısıtlı rol conn-string'i aşağıda gerekir; conn-string burada da yerelde okunur.
+// R1/R2: kısıtlı rol conn-string'i aşağıda gerekir; conn-string burada da yerelde okunur.
 var storefrontDb = builder.Configuration.GetConnectionString("storefrontDb")!;
 
 builder.Services.AddApiVersioning(options =>
@@ -25,16 +25,16 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// 067: OpenAI embedding config — fail-fast (ApiKey yoksa açılmaz; ChatAgent emsali). Tüketici düz T enjekte eder.
+// OpenAI embedding config — fail-fast (ApiKey yoksa açılmaz; ChatAgent emsali). Tüketici düz T enjekte eder.
 builder.Services.AddOptions<OpenAiOption>().BindConfiguration("OpenAI")
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<OpenAiOption>>().Value);
-// 069: SemanticSearchOption söküldü (eşik prompt kalıbında); backfill batch ayarı dar option'da.
+// SemanticSearchOption söküldü (eşik prompt kalıbında); backfill batch ayarı dar option'da.
 builder.Services.AddOptions<EmbeddingBackfillOption>().BindConfiguration(nameof(EmbeddingBackfillOption))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<EmbeddingBackfillOption>>().Value);
 
-// 067: embedding üretici — düz deterministik API çağrısı ("agent" davranışı değil; ayrı worker yok).
+// embedding üretici — düz deterministik API çağrısı ("agent" davranışı değil; ayrı worker yok).
 builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
     var openAi = sp.GetRequiredService<OpenAiOption>();
@@ -43,21 +43,21 @@ builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp 
         .AsIEmbeddingGenerator();
 });
 
-// 067: geçmiş katalog backfill'i — her açılışta idempotent tarama (FR-008); iş yoksa no-op.
+// geçmiş katalog backfill'i — her açılışta idempotent tarama (FR-008); iş yoksa no-op.
 builder.Services.AddHostedService<EmbeddingBackfillService>();
 
-// 069: serbest-sorgu kapısı ayarları (RolePassword user-secrets'tan; fail-fast).
+// serbest-sorgu kapısı ayarları (RolePassword user-secrets'tan; fail-fast).
 builder.Services.AddOptions<AgentQueryOption>().BindConfiguration(nameof(AgentQueryOption))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<AgentQueryOption>>().Value);
 
-// 069 R1: view + kısıtlı rol bootstrap'ı — AddMarten SONRASI kayıt şart (mt_doc tabloları önce kurulur).
+// R1: view + kısıtlı rol bootstrap'ı — AddMarten SONRASI kayıt şart (mt_doc tabloları önce kurulur).
 builder.Services.AddHostedService(sp => new Storefront.Api.AgentSql.AgentQuerySurfaceBootstrap(
     storefrontDb,
     sp.GetRequiredService<AgentQueryOption>(),
     sp.GetRequiredService<ILogger<Storefront.Api.AgentSql.AgentQuerySurfaceBootstrap>>()));
 
-// 069 R2: kısıtlı bağlantı — storefrontDb conn-string'i rol kimliğiyle; TEK yetki view SELECT'i.
+// R2: kısıtlı bağlantı — storefrontDb conn-string'i rol kimliğiyle; TEK yetki view SELECT'i.
 builder.Services.AddSingleton(sp =>
 {
     var opt = sp.GetRequiredService<AgentQueryOption>();

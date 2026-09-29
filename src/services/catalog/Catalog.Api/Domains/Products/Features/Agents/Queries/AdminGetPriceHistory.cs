@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 
-// 070 US1: fiyat geçmişi (admin agent yüzeyi) — GetProductPriceHistory/AdminGetProduct geçmiş
+// US1: fiyat geçmişi (admin agent yüzeyi) — GetProductPriceHistory/AdminGetProduct geçmiş
 // bloğunun İKİZİ (bilinçli tekrar). Draft dahil; kronolojik TAM liste. Okuma — iz yazılmaz.
 public static class AdminGetPriceHistory
 {

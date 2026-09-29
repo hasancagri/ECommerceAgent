@@ -2,12 +2,12 @@ using static Shared.CheckoutMessages;
 
 namespace Stock.Api.Saga;
 
-// 049: checkout orchestrator stok broker handler'ları. Komutları StockCommandsQueue'dan tüketir,
+// checkout orchestrator stok broker handler'ları. Komutları StockCommandsQueue'dan tüketir,
 // ProductStock aggregate'ine doğrudan dokunur (Order.Api.Saga.CheckoutConsumers emsali — ara
 // Domains/Features/Commands katmanı yok, TEK çağıranı bu sınıf olduğu için 074'te birleştirildi),
 // sonucu reply kuyruğuna cascading message ile yayınlar. Domain idempotency (_processedOps, orderId)
 // korunur. İş hatası → Permanent (telafi); altyapı hatası fırlar → Wolverine retry (temporal decoupling, US4).
-// 074: bu BC checkout sağasının KATILIMCISI (kullanıcı isteği değil, süreç güdümlü) → Domains/ dışı Saga/.
+// bu BC checkout sağasının KATILIMCISI (kullanıcı isteği değil, süreç güdümlü) → Domains/ dışı Saga/.
 // Ad = kaynak BC + Consumers (kökteki CatalogConsumers ile aynı desen); kaynak burada Checkout orchestrator.
 public class CheckoutConsumers
 {

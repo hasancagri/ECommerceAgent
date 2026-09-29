@@ -8,7 +8,7 @@ public class Order : AggregateRoot
     public decimal TotalPrice { get; private set; }
     public Guid? PaymentId { get; private set; }
 
-    // 028: yalniz Cancelled'da dolu; resource kodu tasir (UI cevirir).
+    // yalniz Cancelled'da dolu; resource kodu tasir (UI cevirir).
     public string? CancelReason { get; private set; }
     public Address Address { get; private set; } = null!;
     public List<OrderItem> OrderItems { get; private set; } = [];
@@ -17,7 +17,7 @@ public class Order : AggregateRoot
     {
     }
 
-    // 028: siparis Pending dogar; PaymentId idempotency alani olarak dogumda atanir.
+    // siparis Pending dogar; PaymentId idempotency alani olarak dogumda atanir.
     /// <summary>Yeni siparisi Pending durumunda, sifir tutarla ve verilen adres/paymentId ile olusturur.</summary>
     public static Order Create(Guid buyerId, Address address, Guid paymentId)
     {
@@ -55,7 +55,7 @@ public class Order : AggregateRoot
         return FeatureResultModel.Ok();
     }
 
-    // 028: durum gecisleri aggregate'te korunur — yalniz Pending'den ileri gidilir.
+    // durum gecisleri aggregate'te korunur — yalniz Pending'den ileri gidilir.
     /// <summary>Siparisi Pending'den Confirmed'e gecirir; baska durumda gecis hatasi doner.</summary>
     public FeatureResultModel Confirm()
     {
@@ -91,7 +91,7 @@ public class Order : AggregateRoot
     }
 }
 
-// 028: int degerler eski adlarla birebir (1/2/3) — mevcut dev kayitlari migration'siz okunur.
+// int degerler eski adlarla birebir (1/2/3) — mevcut dev kayitlari migration'siz okunur.
 public enum OrderStatus
 {
     Pending = 1,

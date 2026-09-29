@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 
-// 070 US1: admin ürün listesi (agent yüzeyi) — AdminListProducts İKİZİ (bilinçli tekrar; agent
+// US1: admin ürün listesi (agent yüzeyi) — AdminListProducts İKİZİ (bilinçli tekrar; agent
 // slice Commands/Queries'e IMessageBus ile bile gitmez). Draft DAHİL; arama bellekte (~1.5k kitap).
 public static class AdminListProducts
 {

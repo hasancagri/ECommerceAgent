@@ -1,6 +1,6 @@
 namespace Storefront.Api;
 
-// 079: Discount `ProductDiscountChanged` → StorefrontView.ApplyDiscount (push read-model). Kaynak = Discount
+// Discount `ProductDiscountChanged` → StorefrontView.ApplyDiscount (push read-model). Kaynak = Discount
 // (dosya adı kuralı: kaynak + Consumers). pct=0 → indirim temizlenir. Wolverine keşfi "Consumers" son-ekini
 // taramaz → Program.cs IncludeType ZORUNLU; binding'i TÜKETİCİ kurar (007). Etkin fiyat burada TUTULMAZ
 // (sorgu-zamanı view-guard + liste fiyatından hesaplanır).

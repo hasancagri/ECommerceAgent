@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Storefront.Api.AgentSql;
 
-// 069 R2 katman-1: saf bekçi — çalıştırma ÖNCESİ ucuz ret + makine-okur ret kodu (asistanın düzeltme
+// R2 katman-1: saf bekçi — çalıştırma ÖNCESİ ucuz ret + makine-okur ret kodu (asistanın düzeltme
 // döngüsü, FR-007). Yapısal güvence bekçi DEĞİL kısıtlı roldür (katman-2); bekçi kötücül sorguların
 // çoğunu DB'ye hiç göndermez ve log'a NET sebep yazar. Kelime eşleşmesi KELİME-SINIRLI ve
 // yorum/literal-DIŞI (OFFSET'teki SET, '%drop%' literal'i tetiklemez — kontrat).

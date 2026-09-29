@@ -2,7 +2,7 @@ using Discount.Api.Domains.ProductDiscounts;
 
 namespace Discount.Api.Domains.Campaigns;
 
-// 079: kampanya aktifleştirme + temizleme çekirdeği — HEM kullanıcı slice'ı (CreateCampaign) HEM iç süreç
+// kampanya aktifleştirme + temizleme çekirdeği — HEM kullanıcı slice'ı (CreateCampaign) HEM iç süreç
 // (Process/CampaignScheduleHandler) çağırır. Aggregate değil, ikisinin paylaştığı süreç-glue helper'ı
 // (conventions: ortak saf-olmayan altyapı Domains'te kalabilir). ProductDiscount store/temizle + kitap
 // başına `ProductDiscountChanged` push burada tek yerde — SON-GELEN-KAZANIR (overwrite) + expiry aynı mantık.

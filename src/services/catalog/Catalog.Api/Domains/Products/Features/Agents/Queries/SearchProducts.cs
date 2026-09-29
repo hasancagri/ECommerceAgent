@@ -5,7 +5,7 @@ public static class SearchProducts
     // 016/052: opsiyonel kategori/yazar daraltması — ad normalize edilip Id'ye çözülür, filtre Id ile.
     public record SearchProductsQuery(string Name, string? Category = null, string? Author = null);
 
-    // 067: DetailUrl KALDIRILDI (066 sonrası ölü route — mağaza ekransız). Kimlik + ad döner;
+    // DetailUrl KALDIRILDI (066 sonrası ölü route — mağaza ekransız). Kimlik + ad döner;
     // agent productId'yi get_stock/add_to_cart zincirinde kullanır.
     public class SearchProductResponse
     {
@@ -20,7 +20,7 @@ public static class SearchProducts
             IDocumentSession session,
             CancellationToken ct)
         {
-            // 040 FR-007: vitrin kararı Published bayrağında.
+            // FR-007: vitrin kararı Published bayrağında.
             var products = session.Query<Product>()
                 .Where(x => !x.IsDeleted && x.Published &&
                             x.Name.Contains(query.Name, StringComparison.OrdinalIgnoreCase));
@@ -33,7 +33,7 @@ public static class SearchProducts
                 if (category is null)
                     return FeatureObjectResultModel<SearchProductResponse>.Ok(null); // bilinmeyen kategori → sonuç yok
 
-                // 040 K4: kategori artık çoklu atama koleksiyonudur. LINQ Categories.Any(...) KULLANMA:
+                // K4: kategori artık çoklu atama koleksiyonudur. LINQ Categories.Any(...) KULLANMA:
                 // Newtonsoft koleksiyonu $type/$values sarmalayıcısıyla yazar, Marten'ın containment
                 // çevirisi düz dizi bekler → 0 eşleşme (canlıda kanıtlandı). Ham JSONB predicate şart.
                 products = products.Where(x => x.MatchesSql(
@@ -49,7 +49,7 @@ public static class SearchProducts
                 if (author is null)
                     return FeatureObjectResultModel<SearchProductResponse>.Ok(null); // bilinmeyen yazar → sonuç yok
 
-                // 052: çok-yazar jsonb dizi üyeliği (List<Guid>.Contains → Marten containment).
+                // çok-yazar jsonb dizi üyeliği (List<Guid>.Contains → Marten containment).
                 products = products.Where(x => x.AuthorIds.Contains(author.Id));
             }
 

@@ -2,7 +2,7 @@ using Discount.Api.Domains.ProductCatalogRefs;
 
 namespace Discount.Api;
 
-// 079: Catalog `ProductChangedEvent` → `ProductCatalogRef` upsert (süzgeç çözümü izdüşümü). Kaynak = Catalog
+// Catalog `ProductChangedEvent` → `ProductCatalogRef` upsert (süzgeç çözümü izdüşümü). Kaynak = Catalog
 // (dosya adı kuralı: kaynak + Consumers). FİYAT/İSİM ALINMAZ — yalnız ürün↔taksonomi bağı + yayın durumu.
 // Wolverine keşfi "Consumers" son-ekini taramaz → Program.cs IncludeType ZORUNLU.
 public static class CatalogConsumers

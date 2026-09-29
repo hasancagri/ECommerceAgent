@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Categories.Features.Agents.Commands;
 
-// 074: UpdateCategory REST Command'ının agent İKİZİ (bilinçli tekrar) ama KISMİ güncelleme
+// UpdateCategory REST Command'ının agent İKİZİ (bilinçli tekrar) ama KISMİ güncelleme
 // (AdminUpdateProduct deseni): agent "adını X yap" der, tüm formu göndermez — yalnız verilen alan değişir.
 // Bulunamadı → NotFound döner.
 public static class AdminUpdateCategory

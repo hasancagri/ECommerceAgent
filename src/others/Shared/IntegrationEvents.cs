@@ -2,20 +2,20 @@ namespace Shared;
 
 public static class IntegrationEvents
 {
-    // 028: OrderCreatedEvent kaldirildi — sepet temizligi CheckoutSaga'nin gRPC adimina tasindi.
+    // OrderCreatedEvent kaldirildi — sepet temizligi CheckoutSaga'nin gRPC adimina tasindi.
 
     // 003-storefront-read-model: writer-publishes, fat event'ler (Storefront pull-back yapmaz).
     // 006-home-storefront-list: Description/Price/Brand eklendi.
     // 016-category-brand: kimlik + ad birlikte taşınır (R7); Id opak değerdir, tüketici lookup yapmaz.
     // Kategori zorunludur (kullanıcı kararı 2026-07-27): kategorisiz ürün domain'de yoktur.
-    // 043: Specs — kanonik özellik AD çiftleri (Id taşınmaz; sözleşme=AD, taksonomi deseni).
+    // Specs — kanonik özellik AD çiftleri (Id taşınmaz; sözleşme=AD, taksonomi deseni).
     // Additive + opsiyonel: eski yayıncı/tüketici kırılmaz; null = özellik bilgisi yok (boş sayılır).
     public record ProductSpec(string Attribute, string Option);
 
-    // 052: kitap künyesi — yazar (Id+ad çifti; paralel-liste kırılganlığı olmadan taşınır).
+    // kitap künyesi — yazar (Id+ad çifti; paralel-liste kırılganlığı olmadan taşınır).
     public record AuthorRef(Guid Id, string Name);
 
-    // 052: kırıcı evrim (tek tüketici Storefront, aynı PR, DB sıfırdan seed). BrandId/Brand çıktı;
+    // kırıcı evrim (tek tüketici Storefront, aynı PR, DB sıfırdan seed). BrandId/Brand çıktı;
     // çok-yazar (Authors) + tek yayınevi (PublisherId+Publisher, fat: tüketici lookup yapmaz) geldi.
     public record ProductChangedEvent(
         Guid ProductId,
@@ -30,9 +30,9 @@ public static class IntegrationEvents
         string? ImageUrl,
         bool IsDeleted,
         List<ProductSpec>? Specs = null,
-        // 045: varyant ailesi kodu (opsiyonel; null = ailesiz).
+        // varyant ailesi kodu (opsiyonel; null = ailesiz).
         string? FamilyCode = null,
-        // 060: YALNIZ fiyat değişiminde dolu (eski fiyat); null = fiyat-dışı değişiklik.
+        // YALNIZ fiyat değişiminde dolu (eski fiyat); null = fiyat-dışı değişiklik.
         // Additive default'lu — eski tüketici (Storefront) kırılmaz. Library tetik kararını bundan verir.
         decimal? OldPrice = null);
     public record StockChangedEvent(Guid ProductId, int Quantity);
@@ -45,19 +45,19 @@ public static class IntegrationEvents
         Guid ProductId,
         int InitialStock);
 
-    // 083: File.Api → Catalog. Kapak R2'de hazır + registry upsert sonrası yayılır. Url = r2.dev public
+    // File.Api → Catalog. Kapak R2'de hazır + registry upsert sonrası yayılır. Url = r2.dev public
     // (CoverUrlResolver çıktısı; r2.dev base Catalog'a sızmaz — İLKE I). Catalog FileConsumers tüketir →
     // Product.SetImage → ProductChangedEvent. Kapak yoksa event YOK (ürün placeholder ImageUrl'süz kalır).
     public record CoverIngested(string Isbn, string Url);
 
-    // 044: Reviews → Storefront. Visible yorumlardan MUTLAK özet (delta değil) — geç/yeniden teslim
+    // Reviews → Storefront. Visible yorumlardan MUTLAK özet (delta değil) — geç/yeniden teslim
     // son-yazan-kazanır ile güvenli. Count=0 ⇒ tüketici özeti temizler (rozet çizilmez).
     public record ReviewSummaryChanged(Guid ProductId, decimal Average, int Count);
 
-    // 046: Reviews → Reviews.Moderation worker. Moderasyon istegi; PII YOK (yalniz metin+yildiz+id).
+    // Reviews → Reviews.Moderation worker. Moderasyon istegi; PII YOK (yalniz metin+yildiz+id).
     public record ReviewModerationRequested(Guid ReviewId, string Text, int Rating);
 
-    // 046: Reviews.Moderation worker → Reviews. Moderasyon karari; kategori kapali kume
+    // Reviews.Moderation worker → Reviews. Moderasyon karari; kategori kapali kume
     // (profanity/insult/personal_attack/none). Reviews ApplyModeration ile uygular.
     public record ReviewModerated(Guid ReviewId, bool Violation, string Category, string Reason);
 
@@ -78,7 +78,7 @@ public static class IntegrationEvents
         string? Category = null,
         string? Brand = null);
 
-    // 060: Library → NotificationAgent. Üründeki HER alarm için bir event (alarm açık kalır — yaşayan
+    // Library → NotificationAgent. Üründeki HER alarm için bir event (alarm açık kalır — yaşayan
     // abonelik, FR-004). Mail'e yetecek her alan event'te; worker başka servise SORMAZ (email snapshot).
     public record PriceAlarmTriggered(
         Guid AlarmId,
@@ -89,7 +89,7 @@ public static class IntegrationEvents
         decimal OldPrice,
         decimal NewPrice);
 
-    // 060: NotificationAgent → Library. Gönderim denemesinin sonucu; Library NotificationRecord izi yazar.
+    // NotificationAgent → Library. Gönderim denemesinin sonucu; Library NotificationRecord izi yazar.
     // Detail: "sent" | "no-email" | kısa hata özeti.
     public record NotificationSent(
         Guid UserId,
@@ -98,12 +98,12 @@ public static class IntegrationEvents
         bool Success,
         string Detail);
 
-    // 077: Payment → Order (fanout). Hosted-CF ödeme başarılı callback'i / expiry sonucu. Yayıncı Payment
+    // Payment → Order (fanout). Hosted-CF ödeme başarılı callback'i / expiry sonucu. Yayıncı Payment
     // (durable outbox); tüketici Order (binding kurar — soğuk-açılış dersi). Additive: eski tüketici yok.
     public record PaymentSucceeded(Guid OrderId, Guid UserId, Guid PaymentIntentId, string TxRef, decimal Amount);
     public record PaymentFailed(Guid OrderId, Guid PaymentIntentId, string TxRef, string ReasonCode);
 
-    // 079: Discount → Storefront (fanout). Bir kitabın tek indiriminin penceresini iter; indirim
+    // Discount → Storefront (fanout). Bir kitabın tek indiriminin penceresini iter; indirim
     // kaldırılınca (bitiş/iptal) temizlik için DiscountPct=0 + null pencere gönderilir. Yayıncı Discount.Api
     // exchange deklare eder; binding'i TÜKETİCİ (Storefront) kurar (007 soğuk-açılış dersi). Discount.Api
     // FİYAT TUTMAZ — yalnız yüzde; etkin fiyatı Storefront kendi liste fiyatından hesaplar.

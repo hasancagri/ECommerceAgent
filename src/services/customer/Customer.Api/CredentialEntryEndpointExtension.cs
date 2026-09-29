@@ -4,7 +4,7 @@ using Customer.Api.Domains.MerchantInformations.Features.Commands;
 
 namespace Customer.Api;
 
-// 078 D1/US3: hosted credential-giriş ekranı — tek sayfalık gömülü HTML (Razor/SPA yok). ANONİM:
+// D1/US3: hosted credential-giriş ekranı — tek sayfalık gömülü HTML (Razor/SPA yok). ANONİM:
 // token = yetki (İlke V v1.11.1 capability-link istisnası; scope zorlaması link üretiminde).
 // Bilinmeyen/tüketilmiş/süresi geçmiş token her iki uçta da NÖTR 404 (token doğruluğu sızdırılmaz).
 // Ekran yazma-only: mevcut MerchantId/Key ASLA gösterilmez (FR-005).

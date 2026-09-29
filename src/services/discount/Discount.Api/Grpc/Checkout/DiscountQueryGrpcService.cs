@@ -2,7 +2,7 @@ using Discount.Api.Domains.ProductDiscounts;
 
 namespace Discount.Api.Grpc.Checkout;
 
-// 079 US3: checkout S2S — Order.Api sağası ödeme tutarını hesaplarken ürünlerin AKTİF indirim yüzdesini
+// US3: checkout S2S — Order.Api sağası ödeme tutarını hesaplarken ürünlerin AKTİF indirim yüzdesini
 // canlı doğrular. FİYAT DÖNMEZ (yalnız yüzde). Yalnız pencere-içi (IsActiveAt) ProductDiscount döner —
 // aktif değilse listede yer almaz = indirim yok (grace yok). Tek çağıranı Order olduğu için sorgu doğrudan
 // servis class'ında (İLKE I / Domains-Features kuralı — ince S2S sarmalayıcı). Yetki: MapGrpcService

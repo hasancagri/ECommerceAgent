@@ -1,6 +1,6 @@
 namespace NotificationAgent;
 
-// 060: TEK mail agent'i (kullanici karari: compose+send ayri agent'lar birlestirildi — mail basina
+// TEK mail agent'i (kullanici karari: compose+send ayri agent'lar birlestirildi — mail basina
 // tek LLM cagrisi). Maili Turkce yazar VE Mail.Mcp'nin send_mail tool'unu LLM tool-secimiyle
 // cagirir; imperatif CallToolAsync YOK (anayasa v1.8.1). Tool'lar her cagrida taze kesifle alinir.
 // Her LLM/MCP/SMTP hatasi ayni kapiya cikar: NotificationException → retry → error queue (FR-008;

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FileApi.Migration;
 
-// 082 US4: R2 bucket'taki mevcut kapakları (fiziki var) kayıt defterine idempotent alır. ListObjectsV2
+// US4: R2 bucket'taki mevcut kapakları (fiziki var) kayıt defterine idempotent alır. ListObjectsV2
 // ile bucket taranır (per-obje HEAD YOK; Size listeden, ContentType varsayılan). Her key(=ISBN) için
 // FileAsset upsert (yok: Create / var: R2 konumu AddOrReplaceLocation). Re-run yinelemez (ImageName merge).
 // Config-gated (RegistryBackfill:Enabled) + yalnız Backend=R2. R2SyncHostedService deseni.

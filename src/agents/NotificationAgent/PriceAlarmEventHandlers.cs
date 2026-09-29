@@ -1,6 +1,6 @@
 namespace NotificationAgent;
 
-// 060: akisin sahibi — PriceAlarmTriggered tuket: email bos → gonderimsiz iz; degilse MailAgent
+// akisin sahibi — PriceAlarmTriggered tuket: email bos → gonderimsiz iz; degilse MailAgent
 // maili yazip gonderir (her LLM/MCP/SMTP hatasi NotificationException → retry 10s/30s/60s → error queue).
 // Cascade return: donen NotificationSent, Wolverine PublishMessage kurali ile exchange'e routelanir;
 // exception yolunda cascade HIC yayinlanmaz (error-queue mesaji izsizdir — kabul, FR-008).

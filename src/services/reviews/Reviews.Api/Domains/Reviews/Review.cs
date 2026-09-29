@@ -1,6 +1,6 @@
 namespace Reviews.Api.Domains.Reviews;
 
-// 044: satin-alma sartli urun yorumu. Yayin HEMEN (Visible dogar, FR-010); moderasyon async
+// satin-alma sartli urun yorumu. Yayin HEMEN (Visible dogar, FR-010); moderasyon async
 // kosar ve ihlalde ApplyModeration gizler (FR-011). Teklik: Marten UniqueIndex(UserId, ProductId).
 public class Review : AggregateRoot
 {
@@ -81,7 +81,7 @@ public class Review : AggregateRoot
     }
 }
 
-// 044: yorum durumu — Hidden terminaldir (itiraz/geri alma v1 disi).
+// yorum durumu — Hidden terminaldir (itiraz/geri alma v1 disi).
 public enum ReviewStatus
 {
     Visible = 1,

@@ -1,6 +1,6 @@
 namespace Discount.Api.Domains.Campaigns.Features.Agents.Queries;
 
-// 079 US1: admin kampanya görünürlüğü (liste). Opsiyonel status süzgeci. Boş liste = Ok (NotFound değil —
+// US1: admin kampanya görünürlüğü (liste). Opsiyonel status süzgeci. Boş liste = Ok (NotFound değil —
 // legit "kampanya yok" durumu); Response sarmalayıcı kullanılır.
 public static class ListCampaigns
 {

@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.SpecificationAttributes.Features.Agents.Commands;
 
-// 074: REST admin yüzeyi söküldü — AddSpecificationAttributeOption İKİZİ (bilinçli tekrar) agent yüzeyi.
+// REST admin yüzeyi söküldü — AddSpecificationAttributeOption İKİZİ (bilinçli tekrar) agent yüzeyi.
 // Kapalı listeye yeni değer ekler (043); üretilen OptionId döner. Bulunamadı → NotFound.
 public static class AdminAddSpecificationAttributeOption
 {

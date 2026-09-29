@@ -1,9 +1,9 @@
 namespace Common.Extensions;
 
-// 061: RFC 9728 protected-resource keşfi — MCP ucu korumalı servisler için tek yerde (FR-002).
+// RFC 9728 protected-resource keşfi — MCP ucu korumalı servisler için tek yerde (FR-002).
 // İki parça: (1) /.well-known/oauth-protected-resource dokümanı, (2) 401 Bearer challenge'ına
 // resource_metadata + scope parametreleri. Dış görünür adres (gateway) forwarded header'lardan.
-// 085: BC başına TEK /mcp ucu — 070'in ikinci korumalı yüzeyi (/mcp-admin) + PathPrefix ayrımı öldü;
+// BC başına TEK /mcp ucu — 070'in ikinci korumalı yüzeyi (/mcp-admin) + PathPrefix ayrımı öldü;
 // bu yardımcı en fazla BİR option kaydeder (Catalog/Stock hiç çağırmaz — anonim uç, PRM yok).
 public sealed record McpResourceMetadataOption(string ServiceSlug, string[] Scopes, string AuthorizationServer);
 

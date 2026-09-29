@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 
-// 070 US1: admin tekil ürün (agent yüzeyi) — AdminGetProduct İKİZİ (bilinçli tekrar). Draft dahil;
+// US1: admin tekil ürün (agent yüzeyi) — AdminGetProduct İKİZİ (bilinçli tekrar). Draft dahil;
 // künye + bağlar (yazar/yayınevi/kategori ad+id) + yayın durumu + fiyat geçmişi TEK yanıtta (US1-AS2).
 public static class AdminGetProduct
 {

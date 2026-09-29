@@ -12,7 +12,7 @@ builder.Services.AddReverseProxy()
 
 builder.Services.AddAuthenticationAndAuthorizationExtension(builder.Configuration);
 
-// 074: ClientCredential policy söküldü (tek kullanan catalog-route REST proxy'si kalktı — MCP-only yüzey).
+// ClientCredential policy söküldü (tek kullanan catalog-route REST proxy'si kalktı — MCP-only yüzey).
 // Kalan "Password" policy = kullanıcı token'i şartı (gerekirse route'larda kullanılır; grant-tipi
 // ayrıştırması ertelenmiş auth işine ait).
 builder.Services.AddAuthorization(options =>

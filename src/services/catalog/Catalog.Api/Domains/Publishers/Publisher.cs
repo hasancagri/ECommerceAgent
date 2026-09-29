@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Publishers;
 
-// 052: yeni aggregate (Author/Brand kalıbı). Kitabın tek yayınevi olur (kitapyurdu künyesi birebir).
+// yeni aggregate (Author/Brand kalıbı). Kitabın tek yayınevi olur (kitapyurdu künyesi birebir).
 // Kendi kimliği + invariant'ı (tekil normalize ad) var → İlke II'ye göre meşru aggregate, VO değil.
 // 4 sabit ad uydurmadan gelir (shape_books.py, ISBN-kararlı); yalnız import get-or-create ile doğar.
 public class Publisher : AggregateRoot

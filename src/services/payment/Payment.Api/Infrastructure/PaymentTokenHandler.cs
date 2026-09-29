@@ -1,6 +1,6 @@
 namespace Payment.Api.Infrastructure;
 
-// 077: Payment.Api arka planda (callback/link isteği; kullanıcı bearer'ı taşınamaz) Customer.Api
+// Payment.Api arka planda (callback/link isteği; kullanıcı bearer'ı taşınamaz) Customer.Api
 // merchant-key S2S ucunu çağırır. payment-s2s client_credentials makine token'ı (customer.read) ekler.
 // Token static cache'lenir; süresine 30 sn kala yenilenir (restart sonrası da sorunsuz). order-saga
 // SagaTokenHandler emsali.
@@ -37,7 +37,7 @@ public sealed class PaymentTokenHandler(IdentityOption identity, SagaAuth sagaAu
                     ["grant_type"] = "client_credentials",
                     ["client_id"] = sagaAuth.ClientId,
                     ["client_secret"] = sagaAuth.ClientSecret,
-                    // 077: merchant-key okuma (PG X-Api-Key kaynağı) — customer.read yeter.
+                    // merchant-key okuma (PG X-Api-Key kaynağı) — customer.read yeter.
                     ["scope"] = AuthorizationScopes.CustomerRead
                 }), ct);
             response.EnsureSuccessStatusCode();

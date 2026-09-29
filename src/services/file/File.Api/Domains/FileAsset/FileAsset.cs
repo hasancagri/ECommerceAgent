@@ -40,7 +40,7 @@ public sealed class FileStorageLocation
     internal void UpdatePath(string storageFilePath) => StorageFilePath = storageFilePath;
 }
 
-// 082: Kayıt defteri girdisi. ImageName tekil/değişmez mantıksal anahtar (kapakta ISBN); metadata +
+// Kayıt defteri girdisi. ImageName tekil/değişmez mantıksal anahtar (kapakta ISBN); metadata +
 // çoklu fiziki konum. Byte tutmaz (fiziki bitler IFileStore backend'inde). Marten dokümanı.
 public class FileAsset : AggregateRoot
 {

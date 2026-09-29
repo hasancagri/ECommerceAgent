@@ -6,7 +6,7 @@ public static class PaymentResourceConstants
     public static readonly string PAYMENT_USER_ID_REQUIRED = "PAYMENT_USER_ID_REQUIRED";
     public static readonly string PAYMENT_AMOUNT_INVALID = "PAYMENT_AMOUNT_INVALID";
 
-    // 077: hosted-CF PaymentIntent aggregate + akış kodları (049 charge kodları söküldü).
+    // hosted-CF PaymentIntent aggregate + akış kodları (049 charge kodları söküldü).
     public static readonly string PAYMENT_ORDER_ID_REQUIRED = "PAYMENT_ORDER_ID_REQUIRED";
     public static readonly string PAYMENT_INTENT_TXREF_REQUIRED = "PAYMENT_INTENT_TXREF_REQUIRED";
     public static readonly string PAYMENT_INTENT_HOSTED_URL_REQUIRED = "PAYMENT_INTENT_HOSTED_URL_REQUIRED";

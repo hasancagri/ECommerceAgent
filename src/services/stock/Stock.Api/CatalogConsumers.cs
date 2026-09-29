@@ -2,7 +2,7 @@ namespace Stock.Api;
 
 // 050/051: Catalog ProductAdded tüketicisi. Yayınlanan üründe barkod↔ProductId eşlemesini kurar ve ilk
 // OnHand'i (InitialStock) MUTLAK yazar. İlk yayıncı = kitap import (051); feed söküldü (050).
-// 074: ad = kaynak BC + Consumers (Saga/CheckoutConsumers.cs ile aynı desen); checkout sağa katılım
+// ad = kaynak BC + Consumers (Saga/CheckoutConsumers.cs ile aynı desen); checkout sağa katılım
 // (commit/revert-commit) orada, kaynağı Checkout orchestrator.
 public class CatalogConsumers
 {

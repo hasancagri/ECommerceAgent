@@ -1,6 +1,6 @@
 namespace Stock.Api.Domains.Stocks.Features.Agents.Commands;
 
-// 070 US2: admin mutlak stok set (agent yüzeyi) — SetStockQuantity İKİZİ (bilinçli tekrar; agent
+// US2: admin mutlak stok set (agent yüzeyi) — SetStockQuantity İKİZİ (bilinçli tekrar; agent
 // slice Commands'a IMessageBus ile bile gitmez). Negatif guard aggregate'te (SetQuantity invariant'ı);
 // stok satırı ProductAdded'dan doğar, burada doğmaz.
 public static class AdminSetStock

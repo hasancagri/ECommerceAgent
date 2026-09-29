@@ -1,6 +1,6 @@
 namespace Order.Api.Grpc;
 
-// 077: hosted-CF start_payment — sepet kalemleri GetBasketItems gRPC ile SUNUCU tarafında okunur (kalem
+// hosted-CF start_payment — sepet kalemleri GetBasketItems gRPC ile SUNUCU tarafında okunur (kalem
 // otoritesi: fiyat/adet LLM'e girmez). Fail-closed: Basket erişilemezse Unavailable (link üretilmez).
 public sealed record BasketSnapshot(
     bool Reachable,

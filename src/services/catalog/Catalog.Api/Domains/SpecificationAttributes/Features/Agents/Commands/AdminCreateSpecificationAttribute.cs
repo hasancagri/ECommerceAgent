@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.SpecificationAttributes.Features.Agents.Commands;
 
-// 074: REST admin yüzeyi söküldü — CreateSpecificationAttribute İKİZİ (bilinçli tekrar) agent yüzeyi.
+// REST admin yüzeyi söküldü — CreateSpecificationAttribute İKİZİ (bilinçli tekrar) agent yüzeyi.
 // Kanonik özellik tanımı oluşturur (043); teklik NormalizedName.
 public static class AdminCreateSpecificationAttribute
 {

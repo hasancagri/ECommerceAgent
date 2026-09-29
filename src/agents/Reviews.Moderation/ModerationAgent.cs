@@ -5,7 +5,7 @@ using Reviews.Moderation.Options;
 
 namespace Reviews.Moderation;
 
-// 044 R5 / 046: in-process Singleton ChatClientAgent (041 EnrichmentAgent emsali) — MCP'siz,
+// in-process Singleton ChatClientAgent (EnrichmentAgent emsali) — MCP'siz,
 // Temperature=0, structured JSON. Yalniz KARAR verir; gizlemeyi Reviews'te Review.ApplyModeration uygular.
 // PII gonderilmez: prompt'a yalniz yorum metni + yildiz gider (kullanici adi/Id ASLA).
 public sealed class ModerationAgent

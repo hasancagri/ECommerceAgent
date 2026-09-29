@@ -1,6 +1,6 @@
 namespace Storefront.Api.Options;
 
-// 069: SemanticSearchOption söküldü (eşik 0.68 prompt kalıbına gömüldü — research R7); backfill'in
+// SemanticSearchOption söküldü (eşik 0.68 prompt kalıbına gömüldü — research R7); backfill'in
 // batch ayarı bu dar option'da yaşar (R7'nin ıskaladığı ikinci tüketici EmbeddingBackfillService'ti).
 public class EmbeddingBackfillOption
 {

@@ -3,7 +3,7 @@ using ClosedXML.Excel;
 
 namespace Catalog.Api.Import;
 
-// 083 US1/FR-001+FR-002: hosted xlsx yükleme ekranı — tek sayfalık gömülü HTML (Razor/SPA yok). ANONİM:
+// US1/FR-001+FR-002: hosted xlsx yükleme ekranı — tek sayfalık gömülü HTML (Razor/SPA yok). ANONİM:
 // token = yetki (İLKE V v1.11.1 capability-link istisnası; scope zorlaması link üretiminde, ImportCatalog).
 // Bilinmeyen/tüketilmiş/süresi geçmiş token her iki uçta da NÖTR 404. Excel YALNIZ bir kez okunur:
 // POST satırları staging'e (ImportRow) alır + token'ı tüketir; sonraki işleme tabloyu okur, Excel'i değil.
@@ -63,7 +63,7 @@ public static class ImportUploadEndpointExtension
         });
     }
 
-    // 083 T012/T013: xlsx parse + staging. [Transactional]: token doğrula → ClosedXML parse → her satır
+    // T012/T013: xlsx parse + staging. [Transactional]: token doğrula → ClosedXML parse → her satır
     // ImportRow (ISBN varsa Pending, yoksa Failed) Store → token Consume(RowCount). AYNI commit (atomik).
     public static class SubmitCatalogUpload
     {

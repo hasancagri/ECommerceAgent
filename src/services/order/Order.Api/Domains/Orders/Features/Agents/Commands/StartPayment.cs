@@ -2,7 +2,7 @@ using OrderAggregate = Order.Api.Domains.Orders.Order;
 
 namespace Order.Api.Domains.Orders.Features.Agents.Commands;
 
-// 077 US1: "ödeme yap" → hosted ödeme linki. LLM yalnız start_payment'i seçer (parametre yok); GERİSİ
+// US1: "ödeme yap" → hosted ödeme linki. LLM yalnız start_payment'i seçer (parametre yok); GERİSİ
 // SUNUCU (LLM'siz): sepet kalemi (gRPC, sunucu-otoritesi) + varsayılan adres (Customer S2S) + order Pending
 // + Payment S2S link isteği. Agent slice İZOLE: Features/Commands'i IMessageBus ile ÇAĞIRMAZ
 // ([[agent-features-folder-convention]]); order oluşturmayı Domains davranışıyla doğrudan yapar. Re-use
@@ -53,7 +53,7 @@ public static class StartPayment
 
             var basketRef = BasketItemsClientProxy.ComputeBasketRef(snapshot.Items);
 
-            // 079: aktif indirim yüzdeleri (canlı; grace yok). Fail-closed → indirim yok = liste fiyatı.
+            // aktif indirim yüzdeleri (canlı; grace yok). Fail-closed → indirim yok = liste fiyatı.
             // Ödenecek tutar vitrin snapshot'ına DEĞİL bu canlı cevaba dayanır (SC-004).
             var discountMap = await discounts.GetActiveAsync(snapshot.Items.Select(i => i.ProductId), ct);
             decimal DiscountedUnit(OrderDtos.OrderItemDto i) =>
@@ -125,7 +125,7 @@ public static class StartPayment
     }
 }
 
-// 077: kullanıcı ödemeyi başlatmak istediğinde sepet için hosted ödeme linki üretir. LLM yalnız bunu
+// kullanıcı ödemeyi başlatmak istediğinde sepet için hosted ödeme linki üretir. LLM yalnız bunu
 // seçer (parametre YOK); tutar/adres/kalem SUNUCU tarafında belirlenir. Yanıttaki 'message' aynen iletilir.
 [McpServerToolType]
 public static class StartPaymentMcpTool

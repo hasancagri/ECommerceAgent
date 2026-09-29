@@ -1,6 +1,6 @@
 namespace Storefront.Api.Options;
 
-// 067: embedding üretimi için OpenAI config — fail-fast (ApiKey eksikse ValidateOnStart açılışı durdurur;
+// embedding üretimi için OpenAI config — fail-fast (ApiKey eksikse ValidateOnStart açılışı durdurur;
 // ChatAgent emsali). Embedding "agent" davranışı değildir: reasoning yok, düz deterministik API çağrısı.
 public class OpenAiOption
 {

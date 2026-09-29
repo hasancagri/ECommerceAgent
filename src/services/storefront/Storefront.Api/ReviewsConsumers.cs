@@ -2,7 +2,7 @@ namespace Storefront.Api;
 
 public static class ReviewsConsumers
 {
-    // 044: puan ozeti — MUTLAK deger yazilir (Count=0 temizler). Satir yoksa da yaratilir
+    // puan ozeti — MUTLAK deger yazilir (Count=0 temizler). Satir yoksa da yaratilir
     // (kismi satir gecerli — Catalog verisi gelince dolu-satir filtresine girer).
     public static async Task Handle(IntegrationEvents.ReviewSummaryChanged evt, IDocumentSession session, CancellationToken ct)
     {

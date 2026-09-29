@@ -1,6 +1,6 @@
 namespace Library.Api.Domains.PriceAlarms.Features.Agents.Commands;
 
-// 065: MCP yazma slice'ı — agent chat'ten fiyat alarmını kaldırır (hard delete). İzole handler.
+// MCP yazma slice'ı — agent chat'ten fiyat alarmını kaldırır (hard delete). İzole handler.
 public static class RemovePriceAlarm
 {
     [RequiredScope(AuthorizationScopes.LibraryWrite)]

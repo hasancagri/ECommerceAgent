@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace Catalog.Api.Import;
 
-// 083 US1/FR-001: Excel yükleme ekranını yetkilendiren kısa-ömürlü TEK KULLANIMLIK capability token
+// US1/FR-001: Excel yükleme ekranını yetkilendiren kısa-ömürlü TEK KULLANIMLIK capability token
 // (078 CredentialEntrySession ikizi). Agent `import_catalog` tool'u üretir; link
 // {PublicBaseUrl}/catalog-import/{Token} ile taşınır. Başarılı POST (dosya alındı) Consume ile öldürür;
 // GET tüketmez (form açıp vazgeçmek linki öldürmez, süre öldürür). token = yetki (İLKE V v1.11.1

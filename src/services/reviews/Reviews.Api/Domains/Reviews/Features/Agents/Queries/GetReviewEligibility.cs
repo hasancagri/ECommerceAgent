@@ -1,6 +1,6 @@
 namespace Reviews.Api.Domains.Reviews.Features.Agents.Queries;
 
-// 064: MCP okuma slice'ı — agent kullanıcının bu ürüne yorum yapıp yapamayacağını (satın-alma
+// MCP okuma slice'ı — agent kullanıcının bu ürüne yorum yapıp yapamayacağını (satın-alma
 // kanıtı + tek-yorum) sorar. Nihai karar SubmitReview'da (yarışta 400). reviews.write scope.
 public static class GetReviewEligibility
 {

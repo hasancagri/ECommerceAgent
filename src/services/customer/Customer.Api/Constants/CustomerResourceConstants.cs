@@ -8,9 +8,9 @@ public static class CustomerResourceConstants
     public static readonly string VALUE_IS_REQUIRED = "COMMON_MESSAGE_VALUE_IS_REQUIRED";
     public static readonly string RECORD_NOT_FOUND = "COMMON_MESSAGE_RECORD_NOT_FOUND";
 
-    // 070: DropShop onboarding sarmalayıcısı — PG erişilemez/yanıt çözülemez ("şu an yapılamıyor").
+    // DropShop onboarding sarmalayıcısı — PG erişilemez/yanıt çözülemez ("şu an yapılamıyor").
     public static readonly string MERCHANT_ONBOARDING_UNAVAILABLE = "MERCHANT_ONBOARDING_UNAVAILABLE";
 
-    // 078 FR-013: ekrandan girilen MerchantId+Key ikilisi PG doğrulamasından geçemedi.
+    // FR-013: ekrandan girilen MerchantId+Key ikilisi PG doğrulamasından geçemedi.
     public static readonly string MERCHANT_CREDENTIALS_INVALID = "MERCHANT_CREDENTIALS_INVALID";
 }

@@ -1,6 +1,6 @@
 namespace FileApi.UrlResolution;
 
-// 082: Saf URL çözümleyici. (StorageType, StorageFilePath) + config-base → public URL. Full URL
+// Saf URL çözümleyici. (StorageType, StorageFilePath) + config-base → public URL. Full URL
 // veriye gömülmez → provider/base değişince tek yerden (config) repoint. Dış-depoya çağrı YOK (SC-001).
 // Bilinmeyen StorageType / eksik base → null (guard; çözümlenemez konum).
 // Concrete tiple inject edilir (handler'lar) → Program'da açık AddSingleton (Scrutor AsImplementedInterfaces

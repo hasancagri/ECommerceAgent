@@ -1,6 +1,6 @@
 namespace FileApi.Domains.FileAsset.Features.Commands;
 
-// 082 US1: dosya yaz + kayıt defterine düşür (senkron). Fiziki bitler IFileStore backend'ine (R2), sonra
+// US1: dosya yaz + kayıt defterine düşür (senkron). Fiziki bitler IFileStore backend'ine (R2), sonra
 // FileAsset upsert (yok: Create / var: AddOrReplaceLocation — aynı StorageType path'i günceller, ikinci
 // satır yok). Dönüşte çözümlenmiş URL. İdempotent: aynı imageName+storageType → path güncellenir.
 public static class RegisterFile

@@ -1,6 +1,6 @@
 namespace Library.Api;
 
-// 060: notification-agent worker'inin mail sonucu tüketicisi. Wolverine *Consumers (çoğul) adını
+// notification-agent worker'inin mail sonucu tüketicisi. Wolverine *Consumers (çoğul) adını
 // keşfetMEZ — Program.cs IncludeType ile dahil eder.
 public class NotificationAgentConsumers
 {

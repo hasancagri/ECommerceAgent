@@ -14,7 +14,7 @@ public static class MartenExtensions
                 opts.UseNewtonsoftForSerialization(
                     nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,
                     configure: s => s.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor);
-                // 012: son-urun yarisi optimistic concurrency ile cozulur (cift satis yok / SC-001).
+                // son-urun yarisi optimistic concurrency ile cozulur (cift satis yok / SC-001).
                 opts.Schema.For<ProductStock>().Index(x => x.ProductId).UseOptimisticConcurrency(true);
 
                 // barkod ↔ ProductId eşlemesi (Catalog ProductAdded yazar).

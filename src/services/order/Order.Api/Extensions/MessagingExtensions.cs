@@ -14,15 +14,15 @@ public static class MessagingExtensions
             if (builder.Environment.IsDevelopment())
                 opts.Durability.Mode = DurabilityMode.Solo;
 
-            // 012: gRPC tipli client (AddGrpcClient) opaque factory'dir; Wolverine handler codegen'i inline
+            // gRPC tipli client (AddGrpcClient) opaque factory'dir; Wolverine handler codegen'i inline
             // kuramaz ve service-location ister. StockCommitClientProxy CreateOrder handler'ina enjekte edilir.
             opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
 
-            // 028: OrderCreated exchange kaldirildi; sepet temizligi CheckoutSaga gRPC adimi.
+            // OrderCreated exchange kaldirildi; sepet temizligi CheckoutSaga gRPC adimi.
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // 048: siparis odeme onayli tamamlaninca (CheckoutSaga pivot) Personalization'a yayinlanir.
+            // siparis odeme onayli tamamlaninca (CheckoutSaga pivot) Personalization'a yayinlanir.
             // Yayinci yalniz exchange deklare eder; kuyruk + binding TUKETICIDE (007 dersi).
             rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
             {
@@ -31,7 +31,7 @@ public static class MessagingExtensions
             opts.PublishMessage<IntegrationEvents.OrderCompleted>()
                 .ToRabbitExchange(RabbitMqConstants.OrderCompleted.Exchange);
 
-            // 049: checkout sipariş komutlarını (Create/Confirm/Cancel) dinle; yanıtları reply kuyruğuna.
+            // checkout sipariş komutlarını (Create/Confirm/Cancel) dinle; yanıtları reply kuyruğuna.
             opts.ListenToRabbitQueue(RabbitMqConstants.Checkout.OrderCommandsQueue);
             // 049/077: hosted-CF ödeme başarılı → StartCheckout (AlreadyCaptured) orchestrator'a (cross-service).
             opts.PublishMessage<CheckoutMessages.StartCheckout>().ToRabbitQueue(RabbitMqConstants.Checkout.StartQueue);
@@ -39,7 +39,7 @@ public static class MessagingExtensions
             opts.PublishMessage<CheckoutMessages.OrderConfirmed>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
             opts.PublishMessage<CheckoutMessages.OrderCancelled>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
 
-            // 077: Payment.Api hosted-CF sonuç fanout'ları — tüketici kendi kuyruğunu bağlar + dinler (007 dersi).
+            // Payment.Api hosted-CF sonuç fanout'ları — tüketici kendi kuyruğunu bağlar + dinler (007 dersi).
             rabbit.DeclareExchange(RabbitMqConstants.PaymentSucceeded.Exchange, e =>
             {
                 e.ExchangeType = ExchangeType.Fanout;

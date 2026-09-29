@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 074: admin künye OLUŞTURMA (agent yüzeyi) — REST CreateProduct söküldü, doktrin kayması: import (051)
+// admin künye OLUŞTURMA (agent yüzeyi) — REST CreateProduct söküldü, doktrin kayması: import (051)
 // artık tek giriş değil. ISBN mağazada Product.Gtin'de yaşar (ProductId rastgele Guid; ImportBook emsali).
 // Çakışma: aynı Gtin varsa Error (çoğaltma yok — agent admin_update_product'a yönlendirir). Yeni ürün
 // DRAFT doğar (eski REST auto-publish'ten farklı): yayın ayrı adım (admin_set_published). Draft olduğu için
@@ -137,7 +137,7 @@ public static class AdminCreateProduct
 
             session.Store(product);
 
-            // 058 FR-013: fiyat>0 ise geçmişin ilk satırı (OldPrice=null); fiyatsız taslak satır düşürmez.
+            // FR-013: fiyat>0 ise geçmişin ilk satırı (OldPrice=null); fiyatsız taslak satır düşürmez.
             if (price.Amount > 0)
                 session.Store(ProductPriceChange.Create(product.Id, oldPrice: null, price.Amount, DateTime.UtcNow));
 
@@ -155,7 +155,7 @@ public static class AdminCreateProduct
     }
 }
 
-// 074: parite yazma tool'ları — REST admin (Create/SetDimensions/SetSeo/Tag) söküldü, MCP-only.
+// parite yazma tool'ları — REST admin (Create/SetDimensions/SetSeo/Tag) söküldü, MCP-only.
 // TEK /mcp'de, scope-budamalı (085). userId token'dan; scope handler'da.
 
 [McpServerToolType]

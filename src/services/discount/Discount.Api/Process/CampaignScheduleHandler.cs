@@ -1,6 +1,6 @@
 namespace Discount.Api.Process;
 
-// 079 US2: kampanya süre yönetimi — per-kampanya Wolverine scheduled message (BC'nin KENDİ dayanıklı
+// US2: kampanya süre yönetimi — per-kampanya Wolverine scheduled message (BC'nin KENDİ dayanıklı
 // süreci → Process/). start-fire aktifleştirir (resolve + apply-skip + push), end-fire kampanyanın
 // kitaplarını temizler. GUARD'LI İDEMPOTENT: aggregate güncel duruma bakar — bayat/iptal mesaj no-op;
 // restart'ta kaçan fire durable telafi edilir. Wolverine keşfi bu tipi tarasa da (Handler son-eki),

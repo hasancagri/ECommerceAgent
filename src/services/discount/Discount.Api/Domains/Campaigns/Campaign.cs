@@ -1,6 +1,6 @@
 namespace Discount.Api.Domains.Campaigns;
 
-// 079: kampanya süzgeç tipi — indirimin hangi boyutta açıldığı. Enum aggregate dosyasında (konvansiyon).
+// kampanya süzgeç tipi — indirimin hangi boyutta açıldığı. Enum aggregate dosyasında (konvansiyon).
 public enum ScopeType
 {
     Category,
@@ -9,7 +9,7 @@ public enum ScopeType
     Product
 }
 
-// 079: kampanya yaşam döngüsü. Cancelled TEK hard durum; Active/Scheduled/Ended büyük ölçüde
+// kampanya yaşam döngüsü. Cancelled TEK hard durum; Active/Scheduled/Ended büyük ölçüde
 // pencere (now vs StartsAt/EndsAt) türevidir — fire recompute Status'a değil pencereye bakar (idempotent).
 public enum CampaignStatus
 {
@@ -19,7 +19,7 @@ public enum CampaignStatus
     Cancelled
 }
 
-// 079: kampanya aggregate'i. Pencereyi + hangi süzgeçle açıldığını taşır (denetim + iptal + expiry).
+// kampanya aggregate'i. Pencereyi + hangi süzgeçle açıldığını taşır (denetim + iptal + expiry).
 // Discount.Api FİYAT TUTMAZ — Campaign yalnız yüzde + süzgeç + pencere otoritesidir. Edit YOK (v1):
 // süzgeç snapshot + kitap-başı-tek-indirim modelinde düzenleme belirsiz; iptal-edip-yeniden-aç yeter.
 public class Campaign : AggregateRoot

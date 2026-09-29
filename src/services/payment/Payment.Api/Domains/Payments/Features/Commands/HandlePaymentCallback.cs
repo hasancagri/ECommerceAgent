@@ -1,6 +1,6 @@
 namespace Payment.Api.Domains.Payments.Features.Commands;
 
-// 077 US1/US2: PG hosted-payment sonucu callback'i. İmza doğrulaması ucta yapılır (US3); bu handler
+// US1/US2: PG hosted-payment sonucu callback'i. İmza doğrulaması ucta yapılır (US3); bu handler
 // gövde doğrulanmış sayar. [Transactional] + durable outbox: intent durum yazımı + PaymentSucceeded/
 // PaymentFailed yayını AYNI commit'te (commit yoksa event de yok → PG retry; commit varsa restart'ta
 // yayınlanır, kayıp yok — FR-009). İdempotent: TxRef yok → NotFound (PG retry); Status != Pending → no-op.

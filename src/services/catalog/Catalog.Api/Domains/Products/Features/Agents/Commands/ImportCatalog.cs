@@ -3,10 +3,10 @@ using Catalog.Api.Options;
 
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 083 US1/FR-001: Excel katalog import başlatır — token-yetkili yükleme ekranına SURELI + TEK KULLANIMLIK
+// US1/FR-001: Excel katalog import başlatır — token-yetkili yükleme ekranına SURELI + TEK KULLANIMLIK
 // link üretir (3.7MB xlsx MCP arg'ına sığmaz; store'da web-login yüzeyi yok). Link tabanı config'ten
 // (ImportOptions.PublicBaseUrl) — HttpContext base KULLANILMAZ (platform MCP fasad proxy, Aspire iç adresi;
-// 078 emsali). Scope link ÜRETİMİNDE uygulanır (İLKE V v1.11.1 capability-link istisnası).
+// emsali). Scope link ÜRETİMİNDE uygulanır (İLKE V v1.11.1 capability-link istisnası).
 public static class ImportCatalog
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]

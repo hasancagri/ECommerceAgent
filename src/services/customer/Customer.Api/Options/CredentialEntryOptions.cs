@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Customer.Api.Options;
 
-// 078 D1: hosted credential-giriş ekranı config'i — section "CredentialEntryOptions". Link tabanı
+// D1: hosted credential-giriş ekranı config'i — section "CredentialEntryOptions". Link tabanı
 // HttpContext'ten ALINMAZ (MCP çağrısı platform MCP fasad proxy'sinden gelir; istek base'i Aspire iç
 // adresidir, tarayıcıda çözülmez) → dışarıdan erişilir adres config'te (077 PG hosted-link emsali).
 public class CredentialEntryOptions

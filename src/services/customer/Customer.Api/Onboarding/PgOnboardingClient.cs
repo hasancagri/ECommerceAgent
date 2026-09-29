@@ -1,6 +1,6 @@
 namespace Customer.Api.Onboarding;
 
-// 078 D3: Store → PG (DropShop Merchant.Api) onboarding S2S REST istemcisi — 070'in imperatif MCP
+// D3: Store → PG (DropShop Merchant.Api) onboarding S2S REST istemcisi — 070'in imperatif MCP
 // sapmasının (MerchantOnboardingClient) yerini alır; kontrat specs/078/contracts/pg-onboarding-rest.md.
 // Auth: makine kimliği (OnboardingGatewayTokenHandler, client_credentials); admin kullanıcı token'ı
 // dış realm'e gitmez. Ulaşım/protokol hatasında null döner — çağıran dostane "şu an yapılamıyor"

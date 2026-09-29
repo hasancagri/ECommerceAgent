@@ -1,6 +1,6 @@
 namespace Stock.Api.Domains.Stocks.Features.Agents.Commands;
 
-// 070 US2: admin artır/azalt (agent yüzeyi) — tek delta parametresi; negatife düşüş reddi
+// US2: admin artır/azalt (agent yüzeyi) — tek delta parametresi; negatife düşüş reddi
 // AGGREGATE'te (ProductStock.Adjust invariant'ı, T017 test-first).
 public static class AdminAdjustStock
 {

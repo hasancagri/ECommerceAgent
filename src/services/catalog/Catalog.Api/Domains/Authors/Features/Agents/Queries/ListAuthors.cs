@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Authors.Features.Agents.Queries;
 
-// 067 taşıma (kullanıcı kararı): yazar envanteri Author aggregate'inin evinde. Yalnız YAYINDAKİ en az
+// taşıma (kullanıcı kararı): yazar envanteri Author aggregate'inin evinde. Yalnız YAYINDAKİ en az
 // bir üründe geçen yazarlar (FR-006 ruhu). search + maxResults + TotalCount; kitap sayısı çok olan önce.
 public static class ListAuthors
 {

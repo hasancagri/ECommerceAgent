@@ -1,6 +1,6 @@
 namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 
-// 062: MCP yazma slice'ı — agent chat'ten adres ekler (ekransız). Agent slice İZOLE: Commands'i
+// MCP yazma slice'ı — agent chat'ten adres ekler (ekransız). Agent slice İZOLE: Commands'i
 // IMessageBus ile reuse ETMEZ (bilinçli tekrar, [[agent-features-folder-convention]]); kendi
 // handler'ını taşır, aggregate metodunu doğrudan çağırır. customer.write scope zorunlu (061 demeti).
 public static class AddAddress

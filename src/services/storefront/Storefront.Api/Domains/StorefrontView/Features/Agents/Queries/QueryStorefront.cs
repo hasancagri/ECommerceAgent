@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace Storefront.Api.Domains.StorefrontView.Features.Agents.Queries;
 
-// 069: tek serbest-sorgu kapısı. Akış (R2/R3): {{EMBED}} ikamesi → saf bekçi → (geçerse) embedding
+// tek serbest-sorgu kapısı. Akış (R2/R3): {{EMBED}} ikamesi → saf bekçi → (geçerse) embedding
 // üretimi → kısıtlı rol bağlantısında statement_timeout ile çalıştırma → ret DAHİL her yolda
 // AgentQueryLog (sahip oturum). Yapısal zırh kısıtlı roldedir (TEK yetki view SELECT'i, FR-005);
 // bekçi ucuz ön-kapı + makine-okur ret kodudur (FR-007 düzeltme döngüsü).
@@ -198,8 +198,8 @@ public static class QueryStorefront
 }
 
 // MCP tool'lari ince sarmalayicidir ve yalnizca Features/Agent slice'larini cagirir (005 karari).
-// 069: search_storefront_products + find_similar_books TAM IKAME ile silindi — tek kapi query_storefront.
-// 070 US5/FR-013: 069 sorgu rehberinin (playbook) KANONIK EVI artik bu Description — dis agent'lar
+// search_storefront_products + find_similar_books TAM IKAME ile silindi — tek kapi query_storefront.
+// US5/FR-013: 069 sorgu rehberinin (playbook) KANONIK EVI artik bu Description — dis agent'lar
 // (Claude Desktop vb.) rehberi tool'un kendisinden ogrenir; ChatAgent prompt kopyasi DONDURULDU
 // (071 sokumune dek paralel yasar, oraya dokunma). ChatAgent-ozgu persona satirlari (kural 8/9,
 // sepete ekleme) BURAYA GIRMEZ — yalniz SORGU rehberi (R7). Sema drift guard'i bu dosyayi hedefler
@@ -280,5 +280,5 @@ public static class QueryStorefrontMcpTool
             new QueryStorefront.QueryStorefrontQuery(sql), ct);
 }
 
-// 067 NOT: kesif envanteri tool'lari (list_categories/authors/publishers) Catalog'dadir
+// NOT: kesif envanteri tool'lari (list_categories/authors/publishers) Catalog'dadir
 // (envanter otoritesi = Catalog; Storefront = tek sorgu kapisi yuzeyi).

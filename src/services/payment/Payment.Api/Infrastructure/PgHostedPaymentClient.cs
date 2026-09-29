@@ -1,6 +1,6 @@
 namespace Payment.Api.Infrastructure;
 
-// 077: Payment.Api → dış PaymentGateway (DropShop) hosted-payment istemcisi. MerchantKey per-request
+// Payment.Api → dış PaymentGateway (DropShop) hosted-payment istemcisi. MerchantKey per-request
 // X-Api-Key (statik header YOK). PG iyzico hosted checkout-form init'i sarar (CF V2 HMAC PG içinde);
 // dönen hosted URL + PG referansı PaymentIntent'e yazılır. Kontrat: contracts/pg-external.md.
 public sealed class PgHostedPaymentClient(HttpClient http, PaymentOptions options)

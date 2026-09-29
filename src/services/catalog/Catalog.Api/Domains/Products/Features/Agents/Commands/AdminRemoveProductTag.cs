@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 074: admin üründen etiket çıkarma (agent yüzeyi) — REST RemoveTagFromProduct ikizi.
+// admin üründen etiket çıkarma (agent yüzeyi) — REST RemoveTagFromProduct ikizi.
 public static class AdminRemoveProductTag
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]

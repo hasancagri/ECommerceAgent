@@ -17,12 +17,12 @@ public static class MessagingExtensions
 
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!).AutoProvision();
 
-            // 079: kitap başına indirim penceresi (fanout) → Storefront tüketir. Yayıncı yalnız exchange deklare eder.
+            // kitap başına indirim penceresi (fanout) → Storefront tüketir. Yayıncı yalnız exchange deklare eder.
             rabbit.DeclareExchange(RabbitMqConstants.ProductDiscountChanged.Exchange, e => e.ExchangeType = ExchangeType.Fanout);
             opts.PublishMessage<IntegrationEvents.ProductDiscountChanged>()
                 .ToRabbitExchange(RabbitMqConstants.ProductDiscountChanged.Exchange);
 
-            // 079: Catalog ProductChangedEvent TÜKETİLİR (ProductCatalogRef besleme) — binding'i tüketici kurar (007).
+            // Catalog ProductChangedEvent TÜKETİLİR (ProductCatalogRef besleme) — binding'i tüketici kurar (007).
             rabbit.DeclareExchange(RabbitMqConstants.ProductChanged.Exchange, e =>
             {
                 e.ExchangeType = ExchangeType.Fanout;

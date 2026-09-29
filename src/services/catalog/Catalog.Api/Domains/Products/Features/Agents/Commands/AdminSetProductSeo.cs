@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 074: admin ürün SEO ayarı (agent yüzeyi) — REST SetProductSeo ikizi.
+// admin ürün SEO ayarı (agent yüzeyi) — REST SetProductSeo ikizi.
 public static class AdminSetProductSeo
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]

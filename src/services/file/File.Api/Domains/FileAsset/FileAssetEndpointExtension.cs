@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace FileApi.Domains.FileAsset;
 
-// 082: Kayıt defteri S2S yüzeyi (internal; makine kimliği — yeni scope yok). Serve (anonim kapak)
+// Kayıt defteri S2S yüzeyi (internal; makine kimliği — yeni scope yok). Serve (anonim kapak)
 // CoverEndpoints'te ayrı kalır. register = yaz+kayıt; resolve = batch URL çözümleme; locations = redundancy.
 public static class FileAssetEndpointExtension
 {

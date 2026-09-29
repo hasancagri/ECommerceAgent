@@ -1,6 +1,6 @@
 namespace Storefront.Api;
 
-// 067: geçmiş katalog için anlamsal temsil doldurma (FR-008/SC-004). Her açılışta idempotent tarama:
+// geçmiş katalog için anlamsal temsil doldurma (FR-008/SC-004). Her açılışta idempotent tarama:
 // açıklaması dolu ama temsil dokümanı OLMAYAN satırlar batch'ler halinde embed edilir; iş yoksa no-op.
 // Docker reset + reseed sonrası elle tetiksiz kendiliğinden iyileşir. Endpoint/scope yüzeyi bilinçli YOK.
 public class EmbeddingBackfillService(
