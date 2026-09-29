@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 
 namespace Customer.Api.Onboarding;
 
-// 070 (032'den taşındı): DropShop Merchant.Api /mcp yüzeyi merchant.write ister; Customer.Api oraya
+// (032'den taşındı): DropShop Merchant.Api /mcp yüzeyi merchant.write ister; Customer.Api oraya
 // MAKİNE kimliğiyle bağlanır (client_credentials, ecommerce-onboarding). Admin kullanıcı token'ı
 // gateway'e taşınmaz. Token DropShop Identity connect/token'dan alınır, süresi dolana dek (−30 sn
 // güvenlik payı) cache'lenir. Handler her isteğe Bearer takar. DropShop dev cert self-signed →

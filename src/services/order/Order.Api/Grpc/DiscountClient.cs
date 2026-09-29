@@ -1,6 +1,6 @@
 namespace Order.Api.Grpc;
 
-// 079: Order.Api → Discount.Api aktif indirim istemcisi (S2S; makine token discount.read, SagaTokenHandler).
+// Order.Api → Discount.Api aktif indirim istemcisi (S2S; makine token discount.read, SagaTokenHandler).
 // start_payment tutarı hesaplarken sepet ürünlerinin O AN aktif indirim yüzdesini canlı sorar (vitrin
 // snapshot'ına GÜVENMEZ — SC-004). FAIL-CLOSED: erişilemez → boş (indirim yok, liste fiyatı) — asla
 // aşırı-indirim. İndirim = ödeme anında aktif olan (grace yok). AddressClient emsali.

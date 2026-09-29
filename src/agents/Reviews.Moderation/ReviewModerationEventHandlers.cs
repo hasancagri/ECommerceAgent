@@ -1,6 +1,6 @@
 namespace Reviews.Moderation;
 
-// 046: worker'in tek isi — ReviewModerationRequested tuket, LLM ile denetle, ReviewModerated yayinla.
+// worker'in tek isi — ReviewModerationRequested tuket, LLM ile denetle, ReviewModerated yayinla.
 // Cascade return: donen mesaj Wolverine PublishMessage kurali ile exchange'e routelanir.
 // Fail-open: LLM hatasi → ModerationException → retry → error queue (yorum Reviews'te Visible kalir).
 public class ReviewModerationEventHandlers

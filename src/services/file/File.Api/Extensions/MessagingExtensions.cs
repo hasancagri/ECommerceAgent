@@ -12,7 +12,7 @@ public static class MessagingExtensions
             if (builder.Environment.IsDevelopment())
                 opts.Durability.Mode = DurabilityMode.Solo;
 
-            // 083 T018: BC-arası kapak akışı için RabbitMQ transport (bugüne dek in-proc only). ProductAdded'i
+            // T018: BC-arası kapak akışı için RabbitMQ transport (bugüne dek in-proc only). ProductAdded'i
             // (Catalog fanout exchange) kendi kuyruğundan dinle; kapak hazırsa CoverIngested yay.
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();

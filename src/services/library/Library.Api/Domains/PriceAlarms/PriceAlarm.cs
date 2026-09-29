@@ -1,6 +1,6 @@
 namespace Library.Api.Domains.PriceAlarms;
 
-// 060: kullanıcının bir ürünün fiyat değişimini izleme kaydı — YAŞAYAN abonelik (FR-004):
+// kullanıcının bir ürünün fiyat değişimini izleme kaydı — YAŞAYAN abonelik (FR-004):
 // tetik aggregate'i DEĞİŞTİRMEZ, kullanıcı kaldırana dek her fiyat değişimi mail üretir.
 // v1'de mutator'suz kayıt aggregate'i (bilinçli sınırda — favori/listeler gelince davranış büyür).
 public class PriceAlarm : AggregateRoot

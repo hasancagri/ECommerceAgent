@@ -6,7 +6,7 @@ using ModelContextProtocol.Server;
 
 namespace Mail.Mcp;
 
-// 060: repo'nun ilk standalone MCP server tool'u. Tek is: MailKit ile SMTP'ye (Mailpit) gonderim.
+// repo'nun ilk standalone MCP server tool'u. Tek is: MailKit ile SMTP'ye (Mailpit) gonderim.
 // TUM param'lar ZORUNLU (optional-param default tuzagina girilmez — memory: mcp-tool-optional-param-default).
 // SMTP hatasi exception olarak yukselir → MCP error → Send agent'i basarisizligi worker'a tasir.
 [McpServerToolType]

@@ -1,6 +1,6 @@
 namespace Basket.Api.Domains.Baskets.Features.Agents.Commands;
 
-// 063: MCP yazma slice'ı — agent chat'ten sepet kalemi adedini MUTLAK değere getirir.
+// MCP yazma slice'ı — agent chat'ten sepet kalemi adedini MUTLAK değere getirir.
 // İzole handler (bkz. AddBasketItem). quantity<=0 → kalem çıkar (056: stok tutulmaz,
 // gerçek checkout'ta). Üst sınır Basket.MaxItemQuantity (021). basket.write scope.
 public static class SetBasketItemQuantity

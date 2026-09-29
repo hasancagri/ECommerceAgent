@@ -12,7 +12,7 @@ public class Basket : AggregateRoot
         return new Basket { UserId = userId };
     }
 
-    // 021: bir sepet satirinin sabit ust siniri. 056: stok tarafi siniri yok — tek otorite bu sabit.
+    // bir sepet satirinin sabit ust siniri. 056: stok tarafi siniri yok — tek otorite bu sabit.
     public const int MaxItemQuantity = 5;
 
     public Guid UserId { get; private set; }
@@ -42,7 +42,7 @@ public class Basket : AggregateRoot
     public int GetItemQuantity(Guid productId) =>
         _items.FirstOrDefault(x => x.Id == productId)?.Quantity ?? 0;
 
-    // 056: sepet kalicidir — stok tutmaz, sure baslatmaz; stok gercegi checkout anindadir.
+    // sepet kalicidir — stok tutmaz, sure baslatmaz; stok gercegi checkout anindadir.
     /// <summary>Urunu verilen mutlak adede getirir (upsert).</summary>
     public ResultDomain SetItem(Guid id, string name, string? imageUrl, decimal price, int quantity)
     {
@@ -57,7 +57,7 @@ public class Basket : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    // 057: login aninda anonim sepet hesaba tasinir; adetler toplanir, tavan asilamaz.
+    // login aninda anonim sepet hesaba tasinir; adetler toplanir, tavan asilamaz.
     /// <summary>Diger sepetin kalemlerini bu sepete katar: ortak urunde adetler toplanir, MaxItemQuantity'ye sabitlenir.</summary>
     public ResultDomain MergeFrom(Basket other)
     {

@@ -1,6 +1,6 @@
 namespace Storefront.Api.AgentSql;
 
-// 069 R6: sorgu izi — aggregate DEĞİL (davranışsız iz dokümanı; read-model/iz istisnası).
+// R6: sorgu izi — aggregate DEĞİL (davranışsız iz dokümanı; read-model/iz istisnası).
 // Ret DAHİL her çağrıda bir satır; sahip bağlantıyla yazılır (kısıtlı rol buraya yazamaz — yapısal).
 public class AgentQueryLog
 {

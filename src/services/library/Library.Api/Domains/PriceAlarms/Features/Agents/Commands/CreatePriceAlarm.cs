@@ -1,6 +1,6 @@
 namespace Library.Api.Domains.PriceAlarms.Features.Agents.Commands;
 
-// 065: MCP yazma slice'ı — agent chat'ten fiyat alarmı kurar. İzole handler (CreatePriceAlarm
+// MCP yazma slice'ı — agent chat'ten fiyat alarmı kurar. İzole handler (CreatePriceAlarm
 // paritesi). Email token claim snapshot'ı (MCP tool doldurur; worker mail için kullanır, kimseye
 // sormaz — R3). Aynı kullanıcı+ürüne tek alarm (idempotent). library.write scope.
 public static class CreatePriceAlarm

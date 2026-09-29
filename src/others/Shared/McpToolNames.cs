@@ -12,7 +12,7 @@ public static class CatalogTools
     public const string GetProduct = "get_product";
     public const string SearchProducts = "search_products";
     public const string GetPriceHistory = "get_price_history";
-    // 067: keşif envanteri Catalog'da (envanter otoritesi; Storefront kitap-arama yüzeyi).
+    // keşif envanteri Catalog'da (envanter otoritesi; Storefront kitap-arama yüzeyi).
     public const string ListCategories = "list_categories";
     public const string ListAuthors = "list_authors";
     public const string ListPublishers = "list_publishers";
@@ -29,10 +29,10 @@ public static class BasketTools
 public static class OrderTools
 {
     public const string GetOrders = "get_orders";
-    // 039: chat'ten uctan uca siparis tamamlama (sunucu orkestrasyonu; cardId?, tek çekim).
+    // chat'ten uctan uca siparis tamamlama (sunucu orkestrasyonu; cardId?, tek çekim).
     public const string PlaceOrder = "place_order";
     // TAKSİT KALDIRILDI: quote_installments sabiti söküldü (tek çekim; 070 A2A borcu ödendi).
-    // 077: hosted-CF ödeme başlat — hosted ödeme linki döner (sepet gRPC, order Pending, Payment S2S).
+    // hosted-CF ödeme başlat — hosted ödeme linki döner (sepet gRPC, order Pending, Payment S2S).
     public const string StartPayment = "start_payment";
 }
 
@@ -48,7 +48,7 @@ public static class StockTools
 
 public static class StorefrontTools
 {
-    // 069: tek serbest-sorgu kapısı — search_storefront_products + find_similar_books TAM İKAME silindi.
+    // tek serbest-sorgu kapısı — search_storefront_products + find_similar_books TAM İKAME silindi.
     public const string QueryStorefront = "query_storefront";
 }
 
@@ -57,7 +57,7 @@ public static class CustomerTools
     // GÜVENLİK: get_default_card_bin + get_payment_context sabitleri KALDIRILDI (tool'lar söküldü —
     // vault token + buyer PII sohbet bağlamına sızıyordu). Ödeme bağlamı yalnız S2S internal REST.
     public const string ListCards = "list_cards";
-    // 062: adres defteri (dış agent yüzeyi; ChatAgent allowlist'inde değil).
+    // adres defteri (dış agent yüzeyi; ChatAgent allowlist'inde değil).
     public const string ListAddresses = "list_addresses";
     public const string AddAddress = "add_address";
     public const string UpdateAddress = "update_address";
@@ -89,7 +89,7 @@ public static class CatalogAdminTools
     public const string UpdateProduct = "admin_update_product";
     public const string SetPublished = "admin_set_published";
     public const string GetPriceHistory = "admin_get_price_history";
-    // 074: REST admin yüzeyi söküldü; parite tool'ları (MCP-only iş yüzeyi).
+    // REST admin yüzeyi söküldü; parite tool'ları (MCP-only iş yüzeyi).
     public const string CreateProduct = "admin_create_product";
     public const string SetProductDimensions = "admin_set_product_dimensions";
     public const string SetProductSeo = "admin_set_product_seo";
@@ -104,9 +104,9 @@ public static class CatalogAdminTools
     public const string CreateSpecificationAttribute = "admin_create_specification_attribute";
     public const string AddSpecificationAttributeOption = "admin_add_specification_attribute_option";
     public const string ListSpecificationAttributes = "admin_list_specification_attributes";
-    // 079 backfill: yayındaki tüm ürünler için ProductChangedEvent'i yeniden yayınla (yeni downstream doldur).
+    // backfill: yayındaki tüm ürünler için ProductChangedEvent'i yeniden yayınla (yeni downstream doldur).
     public const string RepublishProducts = "admin_republish_products";
-    // 083: Excel katalog import — token-linkli yükleme başlat, import taslaklarını toplu yayınla, durum raporu.
+    // Excel katalog import — token-linkli yükleme başlat, import taslaklarını toplu yayınla, durum raporu.
     public const string ImportCatalog = "admin_import_catalog";
     public const string PublishImported = "admin_publish_imported";
     public const string GetImportStatus = "admin_get_import_status";
@@ -126,25 +126,25 @@ public static class StockAdminTools
 {
     public const string SetStock = "admin_set_stock";
     public const string AdjustStock = "admin_adjust_stock";
-    // 074: admin stok genel görünüm (parite; GetAllStock REST'i söküldü).
+    // admin stok genel görünüm (parite; GetAllStock REST'i söküldü).
     public const string ListAllStock = "admin_list_all_stock";
 }
 
 public static class CustomerAdminTools
 {
     public const string GetMerchantStatus = "admin_get_merchant_status";
-    // 078 US4: SetMerchantCredentials + SubmitOnboarding SÖKÜLDÜ — PII/key sohbete girmez;
+    // US4: SetMerchantCredentials + SubmitOnboarding SÖKÜLDÜ — PII/key sohbete girmez;
     // giriş = hosted form (StartOnboarding), teslim = mail + store ekranı (RequestCredentialEntryLink).
     public const string OnboardingStatus = "admin_onboarding_status";
-    // 078: PII'siz hosted onboarding — form oturumu açar, yalnız link döner.
+    // PII'siz hosted onboarding — form oturumu açar, yalnız link döner.
     public const string StartOnboarding = "admin_start_onboarding";
-    // 078: credential-giriş ekranına süreli + tek kullanımlık link üretir (key sohbete girmez).
+    // credential-giriş ekranına süreli + tek kullanımlık link üretir (key sohbete girmez).
     public const string RequestCredentialEntryLink = "admin_request_credential_entry_link";
-    // 080: PG'de merchant key yenileme tetikler; yanıt yalnız tek gösterimlik reveal URL (key sohbete girmez).
+    // PG'de merchant key yenileme tetikler; yanıt yalnız tek gösterimlik reveal URL (key sohbete girmez).
     public const string ReissueMerchantKey = "admin_reissue_merchant_key";
 }
 
-// 061: korumalı MCP'lerdeki ortak oturum-kapatma tool'u (basket/order/payment/customer).
+// korumalı MCP'lerdeki ortak oturum-kapatma tool'u (basket/order/payment/customer).
 public static class AuthTools
 {
     public const string Logout = "logout";
@@ -152,6 +152,6 @@ public static class AuthTools
 
 public static class MailTools
 {
-    // 060: Mail.Mcp'nin tek tool'u; tüketici NotificationAgent (ChatAgent'a KAYITLI DEĞİL).
+    // Mail.Mcp'nin tek tool'u; tüketici NotificationAgent (ChatAgent'a KAYITLI DEĞİL).
     public const string SendMail = "send_mail";
 }

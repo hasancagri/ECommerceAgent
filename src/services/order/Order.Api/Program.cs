@@ -21,12 +21,12 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.OrderRead,
     AuthorizationScopes.OrderWrite,
-    // 044: satin-alma kaniti gRPC ucu reviews.write ister (R4 — ayri scope acilmaz).
+    // satin-alma kaniti gRPC ucu reviews.write ister (R4 — ayri scope acilmaz).
     AuthorizationScopes.ReviewsWrite);
-// 061: RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
+// RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "order",
     AuthorizationScopes.OrderRead, AuthorizationScopes.OrderWrite);
-// 061 logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
+// logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
@@ -38,7 +38,7 @@ builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptio
 builder.Services.AddOptions<Checkout>().BindConfiguration(nameof(Checkout))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<Checkout>(sp => sp.GetRequiredService<IOptions<Checkout>>().Value);
-// 077: hosted-CF start_payment makine token'ı (order-saga; basket.read + customer.read + payment.write).
+// hosted-CF start_payment makine token'ı (order-saga; basket.read + customer.read + payment.write).
 builder.Services.AddOptions<Order.Api.Options.SagaAuth>().BindConfiguration(nameof(Order.Api.Options.SagaAuth))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<Order.Api.Options.SagaAuth>(sp => sp.GetRequiredService<IOptions<Order.Api.Options.SagaAuth>>().Value);
@@ -51,7 +51,7 @@ if (builder.Configuration.GetConnectionString("redis") is not null)
 builder.Services.AddCachingAspect("order");
 builder.Services.AddHttpContextAccessor();
 
-// 077: hosted-CF start_payment S2S yolu — makine token (order-saga) + sepet gRPC + Payment/Customer istemcileri.
+// hosted-CF start_payment S2S yolu — makine token (order-saga) + sepet gRPC + Payment/Customer istemcileri.
 builder.Services.AddTransient<SagaTokenHandler>();
 
 var basketGrpcAddress = builder.Configuration["services:basket-api:https:0"]
@@ -78,7 +78,7 @@ builder.Services
     .AddHttpMessageHandler<SagaTokenHandler>();
 builder.Services.AddScoped<AddressClient>();
 
-// 079: Discount.Api checkout gRPC istemcisi — start_payment aktif indirim yüzdesini canlı sorar (discount.read).
+// Discount.Api checkout gRPC istemcisi — start_payment aktif indirim yüzdesini canlı sorar (discount.read).
 var discountGrpcAddress = builder.Configuration["services:discount-api:https:0"]
     ?? builder.Configuration["services:discount-api:http:0"]
     ?? "https://discount-api";
@@ -104,7 +104,7 @@ app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
 
-// 061: MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
+// MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
 app.MapMcp("/mcp").RequireAuthorization();
 app.MapMcpResourceMetadata();
 

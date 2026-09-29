@@ -1,6 +1,6 @@
 namespace Reviews.Api;
 
-// 049: satın-alma kanıtı read-model'i besler (gRPC yerine). OrderCompleted (ödeme onaylı, Confirmed
+// satın-alma kanıtı read-model'i besler (gRPC yerine). OrderCompleted (ödeme onaylı, Confirmed
 // terminal) her kalem için PurchasedProduct upsert → eligibility lokal lookup. Idempotent: Id composite
 // (aynı user+ürün tekrar → aynı satır). At-least-once güvenli; durable local queue + retry.
 [Transactional]

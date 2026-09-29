@@ -1,6 +1,6 @@
 namespace FileApi.Domains.FileAsset.Features.Queries;
 
-// 082 US2: batch ImageName → URL, fileDb'den LOKAL çözülür (dış-depoya çağrı YOK, SC-001). Tek DB
+// US2: batch ImageName → URL, fileDb'den LOKAL çözülür (dış-depoya çağrı YOK, SC-001). Tek DB
 // sorgusu (WHERE ImageName IN, SC-002). Her biri için tercih edilen konum (PreferredLocation) + config-base
 // (CoverUrlResolver). Kayıtsız ImageName → {url:null, exists:false} (hata değil).
 public static class ResolveUrls

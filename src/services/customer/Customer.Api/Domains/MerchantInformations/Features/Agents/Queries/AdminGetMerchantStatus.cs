@@ -1,6 +1,6 @@
 namespace Customer.Api.Domains.MerchantInformations.Features.Agents.Queries;
 
-// 070 US3: merchant kimlik durumu (agent yüzeyi) — GetMerchantInformation İKİZİ (bilinçli tekrar).
+// US3: merchant kimlik durumu (agent yüzeyi) — GetMerchantInformation İKİZİ (bilinçli tekrar).
 // MerchantKey HİÇBİR koşulda dönmez (maskeli durum). Kayıt yoksa configured:false döner (NotFound
 // değil — agent "tanımsız" bilgisini düz veri olarak alır). Okuma — iz yazılmaz.
 public static class AdminGetMerchantStatus

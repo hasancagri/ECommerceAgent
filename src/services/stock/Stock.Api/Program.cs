@@ -49,10 +49,10 @@ app.UseAuthentication();
 app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
-// 074: domain iş REST yüzeyi söküldü — stok okuma/yönetim tümüyle MCP (/mcp).
+// domain iş REST yüzeyi söküldü — stok okuma/yönetim tümüyle MCP (/mcp).
 // Checkout saga stok düşümü broker (CommitStock/RevertCommitStock handler'ları) — REST endpoint YOK.
 
-// 085: TEK uç — anonim (get_stock); admin tool'lar scope-budamalı görünür, scope katmanı handler'da
+// TEK uç — anonim (get_stock); admin tool'lar scope-budamalı görünür, scope katmanı handler'da
 // ([RequiredScope(StockWrite)], 403 son savunma). /mcp-admin öldü.
 app.MapMcp("/mcp");
 

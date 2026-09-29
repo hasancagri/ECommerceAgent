@@ -1,6 +1,6 @@
 namespace Payment.Api.Options;
 
-// 077: hosted-CF ödeme yapılandırması. IConfiguration'dan doğrudan okuma YASAK → tip'li POCO
+// hosted-CF ödeme yapılandırması. IConfiguration'dan doğrudan okuma YASAK → tip'li POCO
 // (BindConfiguration + ValidateOnStart). Tüketici düz PaymentOptions enjekte eder (IOptions değil).
 public class PaymentOptions
 {

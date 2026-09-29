@@ -2,7 +2,7 @@ namespace Storefront.Api;
 
 public static class OrderConsumers
 {
-    // 054: kişisel feed sinyali — tamamlanan siparişin her kalemi UserPurchase satırına döner.
+    // kişisel feed sinyali — tamamlanan siparişin her kalemi UserPurchase satırına döner.
     // PK = "{userId:N}:{productId:N}" → Store = idempotent upsert (tekrar teslim/tekrar alım zararsız).
     public static async Task Handle(IntegrationEvents.OrderCompleted evt, IDocumentSession session, CancellationToken ct)
     {

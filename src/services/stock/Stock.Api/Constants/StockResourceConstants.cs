@@ -5,10 +5,10 @@ public static class StockResourceConstants
 {
     public static readonly string STOCK_QUANTITY_CANNOT_BE_NEGATIVE = "STOCK_QUANTITY_CANNOT_BE_NEGATIVE";
 
-    // 056: checkout dususu (rezervasyonsuz)
+    // checkout dususu (rezervasyonsuz)
     public static readonly string STOCK_INSUFFICIENT = "STOCK_INSUFFICIENT";
 
-    // 070: admin artir/azalt (Adjust) — sifir delta anlamsiz.
+    // admin artir/azalt (Adjust) — sifir delta anlamsiz.
     public static readonly string STOCK_ADJUST_INVALID = "STOCK_ADJUST_INVALID";
 
     public static readonly string RECORD_NOT_FOUND = "COMMON_MESSAGE_RECORD_NOT_FOUND";

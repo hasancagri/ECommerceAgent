@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.SpecificationAttributes.Features.Agents.Queries;
 
-// 074: REST admin yüzeyi söküldü — GetSpecificationAttributes İKİZİ (bilinçli tekrar) agent yüzeyi.
+// REST admin yüzeyi söküldü — GetSpecificationAttributes İKİZİ (bilinçli tekrar) agent yüzeyi.
 // Okuma slice: audit YOK. Tüm özellik tanımları + kapalı-liste seçenekleri (043), DisplayOrder sıralı.
 public static class AdminListSpecificationAttributes
 {

@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Publishers.Features.Agents.Queries;
 
-// 067 taşıma (kullanıcı kararı): yayınevi envanteri Publisher aggregate'inin evinde. Yalnız YAYINDAKİ
+// taşıma (kullanıcı kararı): yayınevi envanteri Publisher aggregate'inin evinde. Yalnız YAYINDAKİ
 // en az bir üründe geçen yayınevleri (FR-006 ruhu). search + maxResults + TotalCount; çok kitaplı önce.
 public static class ListPublishers
 {

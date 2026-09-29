@@ -11,7 +11,7 @@ public static class GetOrders
         public DateTime CreatedTime { get; private set; }
         public decimal TotalPrice { get; private set; }
         public OrderStatus Status { get; private set; }
-        // 028: yalniz Cancelled'da dolu; agent yaniti sebep kodunu aynen tasir.
+        // yalniz Cancelled'da dolu; agent yaniti sebep kodunu aynen tasir.
         public string? CancelReason { get; private set; }
         public List<OrderItemResponse> Items { get; private set; } = [];
 
@@ -58,7 +58,7 @@ public static class GetOrders
     }
 }
 
-// 076: place_order (agent charge) SÖKÜLDÜ. 077: hosted-CF start_payment geldi. Agent yüzeyi: sipariş
+// place_order (agent charge) SÖKÜLDÜ. 077: hosted-CF start_payment geldi. Agent yüzeyi: sipariş
 // listeleme + ödeme başlatma (hosted link).
 [McpServerToolType]
 public static class GetOrdersMcpTool

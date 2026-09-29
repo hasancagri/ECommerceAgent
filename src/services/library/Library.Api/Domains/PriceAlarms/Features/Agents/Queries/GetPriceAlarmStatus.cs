@@ -1,6 +1,6 @@
 namespace Library.Api.Domains.PriceAlarms.Features.Agents.Queries;
 
-// 065: MCP okuma slice'ı — agent kullanıcının bu ürüne fiyat alarmı kurup kurmadığını sorar.
+// MCP okuma slice'ı — agent kullanıcının bu ürüne fiyat alarmı kurup kurmadığını sorar.
 // İzole handler (konvansiyon). library.read scope.
 public static class GetPriceAlarmStatus
 {

@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.ProductTags.Features.Agents.Commands;
 
-// 070 parite: etiket OLUŞTURMA (agent yüzeyi) — CreateProductTag İKİZİ (bilinçli tekrar). Etiket dış
+// parite: etiket OLUŞTURMA (agent yüzeyi) — CreateProductTag İKİZİ (bilinçli tekrar). Etiket dış
 // kontrat taşımaz (Storefront/event yok) — yalnız Catalog içi kayıt.
 public static class AdminCreateProductTag
 {

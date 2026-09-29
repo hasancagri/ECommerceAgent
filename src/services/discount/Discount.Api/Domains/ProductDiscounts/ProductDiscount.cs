@@ -1,6 +1,6 @@
 namespace Discount.Api.Domains.ProductDiscounts;
 
-// 079 materyalize read-model (aggregate DEĞİL): kampanya aktifleşince her kitap için BİR kayıt.
+// materyalize read-model (aggregate DEĞİL): kampanya aktifleşince her kitap için BİR kayıt.
 // PK = ProductId → kitapta TEK ETKİN indirim; yeni kampanya kitabın kaydını EZER (SON-GELEN-KAZANIR,
 // atlama yok). Satır hangi kampanyaya aitse (CampaignId) o kampanya bitince/iptalde temizlenir; başka
 // kampanya sonradan ezdiyse eski kampanyanın bitişi bu satıra dokunmaz. FİYAT TUTMAZ — yalnız yüzde +

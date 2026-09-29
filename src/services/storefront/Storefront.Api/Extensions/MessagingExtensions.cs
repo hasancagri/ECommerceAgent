@@ -17,7 +17,7 @@ public static class MessagingExtensions
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // 044: ReviewSummaryChanged binding'ini TUKETICI kurar (041 dersi); yayinci yalniz exchange
+            // ReviewSummaryChanged binding'ini TUKETICI kurar (041 dersi); yayinci yalniz exchange
             // deklare eder. Ayni storefront.events kuyruguna baglanir (Sequential — satir yarisi yok).
             rabbit.DeclareExchange(RabbitMqConstants.ReviewSummaryChanged.Exchange, e =>
             {
@@ -25,7 +25,7 @@ public static class MessagingExtensions
                 e.BindQueue(RabbitMqConstants.ReviewSummaryChanged.Queues.Storefront);
             });
 
-            // 054: OrderCompleted → UserPurchase birikimi (kişisel feed sinyali). Binding'i TUKETICI kurar;
+            // OrderCompleted → UserPurchase birikimi (kişisel feed sinyali). Binding'i TUKETICI kurar;
             // ayni tek-kuyruk deseni (4. exchange → storefront.events).
             rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
             {
@@ -33,7 +33,7 @@ public static class MessagingExtensions
                 e.BindQueue(RabbitMqConstants.OrderCompleted.Queues.Storefront);
             });
 
-            // 079: ProductDiscountChanged → StorefrontView.ApplyDiscount. Binding'i TUKETICI kurar (007);
+            // ProductDiscountChanged → StorefrontView.ApplyDiscount. Binding'i TUKETICI kurar (007);
             // aynı tek-kuyruk deseni (5. exchange → storefront.events, Sequential).
             rabbit.DeclareExchange(RabbitMqConstants.ProductDiscountChanged.Exchange, e =>
             {

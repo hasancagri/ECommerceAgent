@@ -32,11 +32,11 @@ public class CoverMigrationOptions
     // >0 → yalnız ilk N dosyayı sync et (credential/bucket smoke testi). 0 = tümü.
     public int SyncLimit { get; set; }
 
-    // 082 US4: mevcut fiziki kapakları (R2) kayıt defterine idempotent al. Config-gated + bir-kez.
+    // US4: mevcut fiziki kapakları (R2) kayıt defterine idempotent al. Config-gated + bir-kez.
     public RegistryBackfillOptions RegistryBackfill { get; set; } = new();
 }
 
-// 082: kayıt defteri backfill'i (fiziki depoyu tara → FileAsset upsert). Enabled=false → erken döner.
+// kayıt defteri backfill'i (fiziki depoyu tara → FileAsset upsert). Enabled=false → erken döner.
 public class RegistryBackfillOptions
 {
     public bool Enabled { get; set; }

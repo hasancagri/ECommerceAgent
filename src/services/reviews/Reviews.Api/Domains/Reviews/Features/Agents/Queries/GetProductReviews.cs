@@ -1,6 +1,6 @@
 namespace Reviews.Api.Domains.Reviews.Features.Agents.Queries;
 
-// 064: MCP okuma slice'ı — agent bir ürünün görünür yorumlarını (maskeli ad + puan + metin + tarih)
+// MCP okuma slice'ı — agent bir ürünün görünür yorumlarını (maskeli ad + puan + metin + tarih)
 // getirir. İzole handler (konvansiyon). Hidden hariç, en yeni üstte, ilk sayfa (agent özet ister).
 public static class GetProductReviews
 {

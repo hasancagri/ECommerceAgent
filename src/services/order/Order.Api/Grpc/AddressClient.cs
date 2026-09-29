@@ -1,9 +1,9 @@
 namespace Order.Api.Grpc;
 
-// 077: Order.Api → Customer.Api varsayılan adres istemcisi (S2S; makine token customer.read, SagaTokenHandler).
+// Order.Api → Customer.Api varsayılan adres istemcisi (S2S; makine token customer.read, SagaTokenHandler).
 // start_payment siparişi kullanıcının varsayılan adresine bağlar (FR-001b). Fail-closed: adres yok/erişilemez
 // → null → start_payment dostça Result hatası ("varsayılan adres bulunamadı"). Adres LLM'e girmez.
-// 074: performans için REST'ten gRPC'ye taşındı (BasketItemsClientProxy emsali).
+// performans için REST'ten gRPC'ye taşındı (BasketItemsClientProxy emsali).
 public sealed class AddressClient(AddressQuery.AddressQueryClient client)
 {
     private static readonly TimeSpan CallDeadline = TimeSpan.FromSeconds(5);

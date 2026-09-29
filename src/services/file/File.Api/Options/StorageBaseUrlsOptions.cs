@@ -2,7 +2,7 @@ using FileApi.Domains.FileAsset;
 
 namespace FileApi.Options;
 
-// 082: URL resolver yapılandırması (Desen B). Full URL veriye gömülmez; StorageFilePath (key) + o
+// URL resolver yapılandırması (Desen B). Full URL veriye gömülmez; StorageFilePath (key) + o
 // StorageType'ın base'i → URL (CoverUrlResolver). Base config'te → repoint tek yerden.
 // Bir dosya birden çok fiziki depoda (R2/Local/…) yaşayabilir; DefaultStorageType = çözümlemede
 // tercih edilen depo (o konum varsa onun URL'i döner; yoksa mevcut ilk konuma düşer).

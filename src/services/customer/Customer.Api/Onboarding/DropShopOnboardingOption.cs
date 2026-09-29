@@ -1,6 +1,6 @@
 namespace Customer.Api.Onboarding;
 
-// 070 FR-016 / 078 D3: DropShop (PaymentGateway) Merchant.Api REST + Identity bağlantı config'i —
+// DropShop (PaymentGateway) Merchant.Api REST + Identity bağlantı config'i —
 // section "DropShopOnboarding". Onboarding istemcisi (PgOnboardingClient) PG'ye MAKİNE kimliğiyle
 // (client_credentials) gider; admin kullanıcı token'ı dış realm'e ASLA taşınmaz. ApiBaseUrl boşsa
 // tool'lar "yapılamıyor" döner.

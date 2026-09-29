@@ -3,7 +3,7 @@ using OrderAggregate = Order.Api.Domains.Orders.Order;
 
 namespace Order.Api;
 
-// 077: hosted-CF ödeme sonucu (Payment.Api fanout) → checkout tetikler / sipariş iptal eder. Süreç-güdümlü
+// hosted-CF ödeme sonucu (Payment.Api fanout) → checkout tetikler / sipariş iptal eder. Süreç-güdümlü
 // (kullanıcı tetiklemez) → Domains/ dışı. Ödeme PIVOT'u callback anında (saga dışında) geçildi:
 // PaymentSucceeded → StartCheckout (CommitStock→Confirm→ClearBasket; charge YOK); PaymentFailed → Cancel
 // (stok hiç düşmedi → saga'ya girmeden). CheckoutId = OrderId (çift event → tek saga, idempotent).

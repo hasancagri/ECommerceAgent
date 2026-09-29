@@ -9,7 +9,7 @@ namespace Basket.Api.Saga;
 // "legacy gRPC" ikinci çağıranı da 074'te ölü kod olduğu doğrulanıp silindi — BasketClearGrpcService).
 // İdempotent: sepet yoksa da Ok (FR-010). Pivot sonrası geç adım — başarısızlık siparişi iptal etmez
 // (orchestrator retry/log).
-// 074: bu BC checkout sağasının KATILIMCISI (kullanıcı isteği değil, süreç güdümlü) → Domains/ dışı Saga/.
+// bu BC checkout sağasının KATILIMCISI (kullanıcı isteği değil, süreç güdümlü) → Domains/ dışı Saga/.
 // Ad = kaynak BC + Consumers (kökteki <BC>Consumers ile aynı desen); kaynak burada Checkout orchestrator.
 public class CheckoutConsumers
 {

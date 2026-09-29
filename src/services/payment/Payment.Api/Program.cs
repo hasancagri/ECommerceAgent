@@ -20,20 +20,20 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.PaymentRead,
     AuthorizationScopes.PaymentWrite);
-// 061: RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
+// RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
 // Dış-agent demeti yalnız payment.read (yazma demet dışı — data-model).
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "payment",
     AuthorizationScopes.PaymentRead);
-// 061 logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
+// logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// 077: hosted-CF ödeme yapılandırması (config[...] magic-string yasak → tip'li POCO + ValidateOnStart).
+// hosted-CF ödeme yapılandırması (config[...] magic-string yasak → tip'li POCO + ValidateOnStart).
 builder.Services.AddOptions<PaymentOptions>().BindConfiguration(nameof(PaymentOptions))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<PaymentOptions>(sp => sp.GetRequiredService<IOptions<PaymentOptions>>().Value);
-// 077: Payment.Api makine token'ı (payment-s2s client_credentials) — Customer merchant-key S2S çağrısı.
+// Payment.Api makine token'ı (payment-s2s client_credentials) — Customer merchant-key S2S çağrısı.
 builder.Services.AddOptions<Payment.Api.Options.SagaAuth>().BindConfiguration(nameof(Payment.Api.Options.SagaAuth))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<Payment.Api.Options.SagaAuth>(sp => sp.GetRequiredService<IOptions<SagaAuth>>().Value);
@@ -41,7 +41,7 @@ builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityO
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptions<IdentityOption>>().Value);
 
-// 077: Customer merchant-key S2S makine token'ı (customer.read) + PG hosted-payment istemcisi.
+// Customer merchant-key S2S makine token'ı (customer.read) + PG hosted-payment istemcisi.
 builder.Services.AddTransient<PaymentTokenHandler>();
 
 var customerGrpcAddress = builder.Configuration["services:customer-api:https:0"]
@@ -86,12 +86,12 @@ app.UseAuthentication();
 app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
-// 077: PG callback (HMAC, scope yok) ucu.
+// PG callback (HMAC, scope yok) ucu.
 app.AddPaymentIntentEndpoints(apiVersionSet);
-// 077: hosted-CF S2S — Order.Api canlı-intent + link isteği (payment.write). REST'ten gRPC'ye taşındı.
+// hosted-CF S2S — Order.Api canlı-intent + link isteği (payment.write). REST'ten gRPC'ye taşındı.
 app.MapGrpcService<PaymentIntentGrpcService>().RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
-// 061: MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
+// MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
 app.MapMcp("/mcp").RequireAuthorization();
 app.MapMcpResourceMetadata();
 

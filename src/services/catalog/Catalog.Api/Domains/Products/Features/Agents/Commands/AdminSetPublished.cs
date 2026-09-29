@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 070 US1: yayın anahtarı (agent yüzeyi) — SetProductPublished İKİZİ (bilinçli tekrar). Unpublish
+// US1: yayın anahtarı (agent yüzeyi) — SetProductPublished İKİZİ (bilinçli tekrar). Unpublish
 // ProductChangedEvent(IsDeleted:true) ile vitrinden düşürür (016 "silme yok" sürer); Publish tam
 // event'le geri açar. Fiyatsız Publish aggregate kapısına takılır (051).
 public static class AdminSetPublished

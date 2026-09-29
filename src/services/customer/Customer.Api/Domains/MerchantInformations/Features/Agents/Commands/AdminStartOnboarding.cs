@@ -1,6 +1,6 @@
 namespace Customer.Api.Domains.MerchantInformations.Features.Agents.Commands;
 
-// 078 US1/FR-001: PII'siz onboarding başlatma — PG'de hosted form oturumu açtırır, sohbete YALNIZ
+// US1/FR-001: PII'siz onboarding başlatma — PG'de hosted form oturumu açtırır, sohbete YALNIZ
 // form linki düşer. PII (TCKN/IBAN vb.) PG formunda toplanır; store'a ve LLM'e hiç uğramaz (FR-002).
 // Aynı e-postada yaşayan Pending başvuru varsa PG yeni oturum açmaz → formUrl null + dostane mesaj.
 public static class AdminStartOnboarding

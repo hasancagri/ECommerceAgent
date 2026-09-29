@@ -1,7 +1,7 @@
 namespace Library.Api.Domains.PriceAlarms.Entities;
 
 
-// 060 FR-007: gonderim denemesinin kalici izi — davranissiz, append-only dokuman (aggregate DEGIL;
+// FR-007: gonderim denemesinin kalici izi — davranissiz, append-only dokuman (aggregate DEGIL;
 // ileriki "Bildirimlerim" ekraninin tohumu). NotificationSent event'inden yazilir.
 public class NotificationRecord
 {

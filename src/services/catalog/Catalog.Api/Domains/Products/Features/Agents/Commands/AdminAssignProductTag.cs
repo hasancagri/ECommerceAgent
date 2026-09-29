@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 074: admin ürüne etiket atama (agent yüzeyi) — REST AssignTagToProduct ikizi.
+// admin ürüne etiket atama (agent yüzeyi) — REST AssignTagToProduct ikizi.
 public static class AdminAssignProductTag
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]

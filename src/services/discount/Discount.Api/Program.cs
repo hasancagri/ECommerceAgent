@@ -16,7 +16,7 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.DiscountRead,
     AuthorizationScopes.AdminDiscountWrite);
 
-// 085 R5: RFC 9728 keşfi (401 challenge + metadata) — /mcp slug'ında (admin scope'uyla). Anonim set YOK.
+// R5: RFC 9728 keşfi (401 challenge + metadata) — /mcp slug'ında (admin scope'uyla). Anonim set YOK.
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "discount",
     AuthorizationScopes.AdminDiscountWrite);
 
@@ -42,10 +42,10 @@ app.MapDefaultEndpoints();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 079 US3: checkout S2S — Order.Api canlı indirim doğrulaması (discount.read).
+// US3: checkout S2S — Order.Api canlı indirim doğrulaması (discount.read).
 app.MapGrpcService<Discount.Api.Grpc.Checkout.DiscountQueryGrpcService>().RequireAuthorization(AuthorizationScopes.DiscountRead);
 
-// 085 R5: korumalı yönetim ucu — kimliksiz istek 401 + resource_metadata challenge. /mcp-admin öldü.
+// R5: korumalı yönetim ucu — kimliksiz istek 401 + resource_metadata challenge. /mcp-admin öldü.
 app.MapMcp("/mcp").RequireAuthorization();
 app.MapMcpResourceMetadata();
 

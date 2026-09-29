@@ -1,6 +1,6 @@
 namespace Storefront.Api.AgentSql;
 
-// 069 R8: izinli vitrin yüzeyinin TEK KAYNAĞI. Bu listeden (a) bootstrap DDL üretilir,
+// R8: izinli vitrin yüzeyinin TEK KAYNAĞI. Bu listeden (a) bootstrap DDL üretilir,
 // (b) ChatAgent prompt şema bloğu ELLE yazılır, (c) scripts/check-agent-query-schema.sh
 // her kolon adının ConstValues.cs'te geçtiğini doğrular (drift guard).
 // DİKKAT: kolon satırı formatı script tarafından grep'lenir — `new("kolon_adı", ...` düzenini koru.
@@ -31,7 +31,7 @@ public static class StorefrontSellableSchema
         new("family_code", "text", "v.data->>'FamilyCode'", "Varyant ailesi kodu (NULL = ailesiz)"),
         new("image_url", "text", "v.data->>'ImageUrl'", "Kapak görseli URL"),
         new("added_at", "timestamptz", "v.mt_last_modified", "YAKLAŞIK ekleniş (kayıt güncellenme zamanı)"),
-        // 079: indirim (Discount push). view-guard: yalnız now pencere içindeyse indirim görünür — fire
+        // indirim (Discount push). view-guard: yalnız now pencere içindeyse indirim görünür — fire
         // gecikse/kalksa liste fiyatına döner (yapısal yedek). Discount fiyat tutmaz → effective_price
         // liste fiyatından hesaplanır (liste değişince otomatik doğru).
         new("discount_pct", "integer",

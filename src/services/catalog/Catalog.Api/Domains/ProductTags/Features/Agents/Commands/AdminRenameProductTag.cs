@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.ProductTags.Features.Agents.Commands;
 
-// 070 parite: etiket ADI değiştirme (agent yüzeyi) — RenameProductTag İKİZİ (bilinçli tekrar).
+// parite: etiket ADI değiştirme (agent yüzeyi) — RenameProductTag İKİZİ (bilinçli tekrar).
 // Bulunamadı → NotFound döner.
 public static class AdminRenameProductTag
 {

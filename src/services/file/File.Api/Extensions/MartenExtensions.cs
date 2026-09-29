@@ -8,7 +8,7 @@ public static class MartenExtensions
 {
     public static WebApplicationBuilder AddFileMarten(this WebApplicationBuilder builder)
     {
-        // 082: Marten fileDb — FileAsset kayıt defteri. ImageName UNIQUE index (invariant 3). Newtonsoft
+        // Marten fileDb — FileAsset kayıt defteri. ImageName UNIQUE index (invariant 3). Newtonsoft
         // (non-public setter + ctor, proje standardı). Wolverine in-proc IMessageBus (broker YOK).
         var fileDb = builder.Configuration.GetConnectionString("fileDb")!;
         builder.Services.AddMarten(opts =>

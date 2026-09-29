@@ -1,6 +1,6 @@
 namespace Customer.Api.Domains.MerchantInformations.Features.Commands;
 
-// 078 US3/FR-006+FR-013: hosted credential-giriş ekranının POST'u. Token = yetki (İlke V v1.11.1
+// US3/FR-006+FR-013: hosted credential-giriş ekranının POST'u. Token = yetki (İlke V v1.11.1
 // capability-link istisnası; scope zorlaması link ÜRETİMİNDE yapıldı). Akış: token'lı oturumu yükle →
 // ikiliyi PG'ye anında doğrula (geçersiz=RET, oturum yaşar — admin aynı ekranda düzeltir; PG-yok=
 // CredentialsVerified:false ile kaydet) → başarıda oturumu TÜKET → MerchantInformation upsert →

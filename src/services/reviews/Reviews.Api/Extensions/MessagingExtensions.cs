@@ -25,7 +25,7 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ReviewSummaryChanged>()
                 .ToRabbitExchange(RabbitMqConstants.ReviewSummaryChanged.Exchange);
 
-            // 046: moderasyon istegi ayri worker'a (RabbitMQ). Yayinci yalniz exchange deklare eder;
+            // moderasyon istegi ayri worker'a (RabbitMQ). Yayinci yalniz exchange deklare eder;
             // [Transactional] SubmitReview + transactional outbox → broker down olsa submit reviewsDb'ye
             // commit olur, mesaj outbox'ta bekler (fail-open, submit broker'a senkron baglanmaz).
             rabbit.DeclareExchange(RabbitMqConstants.ReviewModerationRequested.Exchange, e =>
@@ -35,7 +35,7 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ReviewModerationRequested>()
                 .ToRabbitExchange(RabbitMqConstants.ReviewModerationRequested.Exchange);
 
-            // 046: worker'in karari — tuketici kendi kuyrugunu deklare edilen exchange'e baglar (007) + dinler.
+            // worker'in karari — tuketici kendi kuyrugunu deklare edilen exchange'e baglar (007) + dinler.
             rabbit.DeclareExchange(RabbitMqConstants.ReviewModerated.Exchange, e =>
             {
                 e.ExchangeType = ExchangeType.Fanout;
@@ -43,7 +43,7 @@ public static class MessagingExtensions
             });
             opts.ListenToRabbitQueue(RabbitMqConstants.ReviewModerated.Queues.Reviews);
 
-            // 049: Order 'OrderCompleted' tüketilir → satın-alma kanıtı read-model. Tüketici kendi kuyruğunu
+            // Order 'OrderCompleted' tüketilir → satın-alma kanıtı read-model. Tüketici kendi kuyruğunu
             // deklare edilen exchange'e bağlar (007) + dinler. Durable → Reviews kapalıyken kaybolmaz.
             rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
             {

@@ -1,6 +1,6 @@
 namespace Payment.Api.Grpc.HostedPayment;
 
-// 077 US1: hosted-CF S2S — canlı-intent re-use sorgusu + hosted ödeme linki üretimi. Tek çağıranı
+// US1: hosted-CF S2S — canlı-intent re-use sorgusu + hosted ödeme linki üretimi. Tek çağıranı
 // Order.Api olduğu için Features/Commands'teki CreatePaymentIntent + inline "live" sorgusu buraya
 // gömüldü (Basket/Customer gRPC deseni — bilinçli tekrar). [Transactional] middleware'i (yalnız
 // IMessageBus.InvokeAsync üzerinden Wolverine handler'larına uygulanır) burada YOK; auto-save yerini

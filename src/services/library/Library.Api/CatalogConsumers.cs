@@ -1,6 +1,6 @@
 namespace Library.Api;
 
-// 060: Catalog'un fiyat değişim tüketicisi. Wolverine *Consumers (çoğul) adını keşfetMEZ —
+// Catalog'un fiyat değişim tüketicisi. Wolverine *Consumers (çoğul) adını keşfetMEZ —
 // Program.cs IncludeType ile dahil eder.
 public class CatalogConsumers
 {

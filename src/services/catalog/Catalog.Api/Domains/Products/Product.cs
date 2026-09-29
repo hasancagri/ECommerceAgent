@@ -6,7 +6,7 @@ namespace Catalog.Api.Domains.Products;
 /// (silindi), vs. Product'ta yalnız KATALOG kimliği + sunum + liste fiyatı + ölçü + SEO + kategori/etiket
 /// eşlemesi kalır. Ana repoya özgü ⊕ alanlar: AuthorIds + PublisherId (052 kitap künyesi), ImageUrl (K7). Tutarlılık sınırı köktür:
 /// koleksiyonlar private, mutasyon yalnız davranış metotlarından.
-/// 016 kararları sürer: ürün silme yolu yok (IsDeleted event kontratı gereği durur, hep false yayınlanır).
+/// kararları sürer: ürün silme yolu yok (IsDeleted event kontratı gereği durur, hep false yayınlanır).
 /// </summary>
 public class Product : AggregateRoot
 {
@@ -15,10 +15,10 @@ public class Product : AggregateRoot
     public string FullDescription { get; private set; } = string.Empty;
 
     public string Sku { get; private set; } = default!;
-    // 040 K3: Gtin modelde hazır, feed kontratı değişmediği için boş yaşar — 041 (buy-box) dolduracak.
+    // K3: Gtin modelde hazır, feed kontratı değişmediği için boş yaşar — 041 (buy-box) dolduracak.
     public string? Gtin { get; private set; }
     public string? ManufacturerPartNumber { get; private set; }
-    // 045: varyant ailesi kodu (feed'den akan opak gruplama kimliği; null = ailesiz).
+    // varyant ailesi kodu (feed'den akan opak gruplama kimliği; null = ailesiz).
     public string? FamilyCode { get; private set; }
 
     public ProductType Type { get; private set; }
@@ -43,7 +43,7 @@ public class Product : AggregateRoot
     private readonly List<Guid> _tagIds = new();
     public IReadOnlyList<Guid> TagIds => _tagIds;
 
-    // 043: kanonik özellik atamaları (Renk=Siyah...); upsert tam-değiştirme ile yazar.
+    // kanonik özellik atamaları (Renk=Siyah...); upsert tam-değiştirme ile yazar.
     private readonly List<ProductSpecificationAssignment> _specifications = new();
     public IReadOnlyList<ProductSpecificationAssignment> Specifications => _specifications;
 
@@ -234,7 +234,7 @@ public class Product : AggregateRoot
 /// <summary>
 /// Ürün tipi. nopCommerce paritesi: Simple (tekil satılan) ve Grouped (variant'ları olan üst ürün).
 /// Grouped ürünün çocukları <see cref="Product.ParentGroupedProductId"/> ile üst ürüne bağlanır.
-/// 040 K11: feed hep Simple üretir; Grouped alanları pasif taşınır.
+/// K11: feed hep Simple üretir; Grouped alanları pasif taşınır.
 /// </summary>
 public enum ProductType
 {

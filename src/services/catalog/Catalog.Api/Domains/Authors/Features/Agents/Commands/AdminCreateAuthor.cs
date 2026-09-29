@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Authors.Features.Agents.Commands;
 
-// 074: CreateAuthor agent yüzeyi — MCP-only iş yüzeyi. REST Command'ı aynı ad varsa AÇIK hata döner;
+// CreateAuthor agent yüzeyi — MCP-only iş yüzeyi. REST Command'ı aynı ad varsa AÇIK hata döner;
 // agent yolu ise ImportBook.GetOrCreateAuthors mantığını izler: aynı NormalizedName varsa MEVCUT
 // yazarı döndürür (idempotent, agent yeni yazar oluşturmadan bağ kurabilsin).
 public static class AdminCreateAuthor

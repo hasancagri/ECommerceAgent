@@ -23,7 +23,7 @@ builder.Services.AddOptions<R2Options>()
 builder.Services.AddSingleton<R2Options>(sp =>
     sp.GetRequiredService<IOptions<R2Options>>().Value);
 
-// 082: URL resolver yapılandırması (StorageType → public base).
+// URL resolver yapılandırması (StorageType → public base).
 builder.Services.AddOptions<StorageBaseUrlsOptions>()
     .BindConfiguration(StorageBaseUrlsOptions.SectionName);
 builder.Services.AddSingleton<StorageBaseUrlsOptions>(sp =>
@@ -32,7 +32,7 @@ builder.Services.AddSingleton<StorageBaseUrlsOptions>(sp =>
 builder.Services.AddAllDependencies();
 // XlsxCoverSource somut tipiyle enjekte edilir (arayüzsüz stateless helper) → elle kayıt.
 builder.Services.AddSingleton<XlsxCoverSource>();
-// 082: resolver concrete tiple inject edilir (Scrutor AsImplementedInterfaces concrete kaydetmez).
+// resolver concrete tiple inject edilir (Scrutor AsImplementedInterfaces concrete kaydetmez).
 builder.Services.AddSingleton<CoverUrlResolver>();
 
 // Marten (fileDb) + Wolverine kurulumu Extensions/ altında (yükseklik ayrımı).
@@ -71,7 +71,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddHostedService<CoverMigrationHostedService>();
 // Yerel disk → R2 kopyalama. Her zaman kayıtlı; SyncLocalToR2=false / Backend!=R2 ise erken döner.
 builder.Services.AddHostedService<R2SyncHostedService>();
-// 082 US4: R2 kapaklarını kayıt defterine idempotent al. RegistryBackfill:Enabled=false / Backend!=R2 → erken döner.
+// US4: R2 kapaklarını kayıt defterine idempotent al. RegistryBackfill:Enabled=false / Backend!=R2 → erken döner.
 builder.Services.AddHostedService<RegistryBackfillHostedService>();
 
 var app = builder.Build();

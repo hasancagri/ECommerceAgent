@@ -1,6 +1,6 @@
 namespace Payment.Api.Grpc;
 
-// 077: Payment.Api → Customer.Api merchant API key istemcisi (PG hosted-payment X-Api-Key kaynağı).
+// Payment.Api → Customer.Api merchant API key istemcisi (PG hosted-payment X-Api-Key kaynağı).
 // Customer MerchantKeyService'i makine token'ıyla (customer.read; PaymentTokenHandler) çağırır.
 // first-party mağaza = tek merchant → merchantId taşınmaz. Fail-closed: bulunamaz/erişilemez → null
 // (link üretilmez). Key ASLA UI/LLM'e sızmaz. 074: performans için REST'ten gRPC'ye taşındı.

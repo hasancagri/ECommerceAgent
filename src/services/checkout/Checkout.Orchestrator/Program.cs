@@ -37,7 +37,7 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 074: POST /checkout REST giriş yüzü söküldü — checkout sağası yalnız broker StartCheckout ile doğar
+// POST /checkout REST giriş yüzü söküldü — checkout sağası yalnız broker StartCheckout ile doğar
 // (Order.Api place_order yayınlar). REST endpoint YOK.
 
 app.MapMcp("/mcp");

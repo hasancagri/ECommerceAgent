@@ -1,6 +1,6 @@
 namespace Catalog.Api;
 
-// 083 US2/T021: File.Api'nin CoverIngested event'ini tüketir (kaynak=File.Api → conventions kaynak-adı
+// US2/T021: File.Api'nin CoverIngested event'ini tüketir (kaynak=File.Api → conventions kaynak-adı
 // kuralı; Catalog'un İLK integration-event tüketicisi). ISBN'den ürünü bulur → Product.SetImage(url) →
 // ProductChangedEvent yayar (Storefront read-model kapağı yansıtır — FR-008). Ürün taslak olsa da kapak
 // düşer; yayın ayrı yolla (publish_imported). Ürün yoksa no-op (yarış: kapak üründen önce gelmez normalde).

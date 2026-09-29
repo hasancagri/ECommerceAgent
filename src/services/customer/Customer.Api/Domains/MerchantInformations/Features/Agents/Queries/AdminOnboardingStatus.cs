@@ -1,6 +1,6 @@
 namespace Customer.Api.Domains.MerchantInformations.Features.Agents.Queries;
 
-// 078 US4: DropShop onboarding DURUM sorgusu — S2S REST (PgOnboardingClient, kontrat #2).
+// US4: DropShop onboarding DURUM sorgusu — S2S REST (PgOnboardingClient, kontrat #2).
 // Yanıtta MerchantId/MerchantKey YOKTUR (FR-008): teslim yolu mail + tek gösterimlik link +
 // store credential ekranıdır; Approved mesajı admini o yola yönlendirir. Okuma — iz yazılmaz (FR-009).
 public static class AdminOnboardingStatus

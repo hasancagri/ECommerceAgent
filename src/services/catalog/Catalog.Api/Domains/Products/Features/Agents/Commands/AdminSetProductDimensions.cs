@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 074: admin ürün ölçü ayarı (agent yüzeyi) — REST SetProductDimensions ikizi.
+// admin ürün ölçü ayarı (agent yüzeyi) — REST SetProductDimensions ikizi.
 public static class AdminSetProductDimensions
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]

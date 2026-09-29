@@ -12,13 +12,13 @@ public class StorefrontView
     public Guid ProductId { get; private set; }
 
     // Catalog kaynagi — henuz gelmediyse null (kismi satir). Name null = "Catalog raporlamadi".
-    // 006: Description/Price/Brand eklendi; Price null = fat veri gelmedi (dolu-satir filtresinin isareti).
-    // 016: BrandId/CategoryId/Category eklendi — kimlik + ad birlikte tasinir (R7); Id'ler opak degerdir.
+    // Description/Price/Brand eklendi; Price null = fat veri gelmedi (dolu-satir filtresinin isareti).
+    // BrandId/CategoryId/Category eklendi — kimlik + ad birlikte tasinir (R7); Id'ler opak degerdir.
     // Event'te kategori zorunludur; buradaki null YALNIZ "Catalog henuz raporlamadi" demektir.
     public string? Name { get; private set; }
     public string? Description { get; private set; }
     public decimal? Price { get; private set; }
-    // 052: Brand→çok-yazar (Authors) + tek yayınevi (Publisher). AuthorRef read-model'in KENDİ küçük
+    // Brand→çok-yazar (Authors) + tek yayınevi (Publisher). AuthorRef read-model'in KENDİ küçük
     // record'u (BC izolasyonu — Shared tipini sızdırmaz, aynı kavram farklı model). null = Catalog raporlamadı.
     public List<AuthorRef> Authors { get; private set; } = [];
     public Guid? PublisherId { get; private set; }
@@ -28,26 +28,26 @@ public class StorefrontView
     public string? ImageUrl { get; private set; }
     public bool IsDeleted { get; private set; }
 
-    // 043: kanonik ozellikler (ad ciftleri — facet + detay) ve sorgu anahtarlari ("Attribute|Option").
+    // kanonik ozellikler (ad ciftleri — facet + detay) ve sorgu anahtarlari ("Attribute|Option").
     // SpecKeys, Specs'ten TURETILIR (ApplyCatalog) — jsonb ?| kesisim sorgusunun duz anahtari (R6).
     public List<SpecPair> Specs { get; private set; } = [];
     public string[] SpecKeys { get; private set; } = [];
 
-    // 045: varyant ailesi kodu (opsiyonel; null = ailesiz). Liste gruplama anahtarı
+    // varyant ailesi kodu (opsiyonel; null = ailesiz). Liste gruplama anahtarı
     // coalesce(FamilyCode, ProductId) sorgu-zamanında kurulur (ayrı bayrak saklanmaz).
     public string? FamilyCode { get; private set; }
 
     // Stock kaynagi — null = henuz raporlamadi ("bilinmiyor"). In-stock bu adetten turetilir.
     public int? StockQuantity { get; private set; }
 
-    // 044: Reviews kaynagi — ReviewSummaryChanged MUTLAK ozeti yazar. null/0 = rozet cizilmez (FR-006).
+    // Reviews kaynagi — ReviewSummaryChanged MUTLAK ozeti yazar. null/0 = rozet cizilmez (FR-006).
     public decimal? RatingAverage { get; private set; }
     public int RatingCount { get; private set; }
 
     // Ayri surec (BackgroundService vb.) sahiplenir; ingestion ASLA yazmaz. Default false.
     public bool IsAvailableForSale { get; private set; }
 
-    // 079: Discount kaynağı (push) — kitabın tek indiriminin yüzdesi + penceresi. null = indirim yok.
+    // Discount kaynağı (push) — kitabın tek indiriminin yüzdesi + penceresi. null = indirim yok.
     // Etkin fiyat BURADA saklanmaz; sorgu-zamanı view-guard (now pencere içinde mi) + liste fiyatından
     // hesaplanır (StorefrontSellableSchema). Discount.Api fiyat tutmadığından liste değişimi otomatik doğru.
     public int? DiscountPct { get; private set; }
@@ -75,20 +75,20 @@ public class StorefrontView
         IsDeleted = isDeleted;
         Specs = specs?.ToList() ?? [];
         SpecKeys = Specs.Select(s => s.Key).ToArray();
-        // 045: null gelirse aileden çıkar (aile üyeliği Catalog'dan akan güncel değerdir).
+        // null gelirse aileden çıkar (aile üyeliği Catalog'dan akan güncel değerdir).
         FamilyCode = string.IsNullOrWhiteSpace(familyCode) ? null : familyCode;
     }
 
     public void ApplyStock(int quantity) => StockQuantity = quantity;
 
-    // 044: Count=0 ⇒ ikisi de temizlenir (kontrat: Average yok sayilir; tek yorum gizlenince rozet kalkar).
+    // Count=0 ⇒ ikisi de temizlenir (kontrat: Average yok sayilir; tek yorum gizlenince rozet kalkar).
     public void ApplyReviewSummary(decimal average, int count)
     {
         RatingAverage = count == 0 ? null : average;
         RatingCount = count;
     }
 
-    // 079: Discount push'u uygular. pct<=0 = temizlik (bitiş/iptal) → alanlar null (indirim kalkar);
+    // Discount push'u uygular. pct<=0 = temizlik (bitiş/iptal) → alanlar null (indirim kalkar);
     // 1-99 = kitabın indirimi + penceresi. Etkin fiyat sorgu-zamanı view-guard'la hesaplanır (burada değil).
     public void ApplyDiscount(int pct, DateTime? startsAt, DateTime? endsAt)
     {
@@ -106,7 +106,7 @@ public class StorefrontView
     }
 
     /// <summary>
-    /// 067: yeniden-embedding karari (saf; handler + backfill AYNI karara uyar). Bos aciklama → Clear;
+    /// yeniden-embedding karari (saf; handler + backfill AYNI karara uyar). Bos aciklama → Clear;
     /// metin degisti (Ordinal) YA DA temsil eksik → Generate; aksi halde Keep (API cagrisi bosa gitmez).
     /// Temsil AYRI dokumanda yasar (ProductDescriptionEmbedding) — view satiri sismez.
     /// </summary>
@@ -122,7 +122,7 @@ public class StorefrontView
     }
 }
 
-// 067: yeniden-embedding karari (enum aggregate/read-model dosyasinda yasar — konvansiyon).
+// yeniden-embedding karari (enum aggregate/read-model dosyasinda yasar — konvansiyon).
 public enum EmbeddingDecision
 {
     Keep,
@@ -130,11 +130,11 @@ public enum EmbeddingDecision
     Clear
 }
 
-// 052: read-model'in KENDİ yazar record'u (Id+ad). Shared.IntegrationEvents.AuthorRef'ten AYRI —
+// read-model'in KENDİ yazar record'u (Id+ad). Shared.IntegrationEvents.AuthorRef'ten AYRI —
 // BC izolasyonu (aynı kavram farklı model); event tipini read-model'e sızdırmaz.
 public record AuthorRef(Guid Id, string Name);
 
-// 043: satirdaki tek ozellik cifti (kanonik ADlar — event sozlesmesi). Key = "Attribute|Option".
+// satirdaki tek ozellik cifti (kanonik ADlar — event sozlesmesi). Key = "Attribute|Option".
 public record SpecPair
 {
     public string Attribute { get; private init; } = default!;

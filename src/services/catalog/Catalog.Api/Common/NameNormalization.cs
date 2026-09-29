@@ -1,6 +1,6 @@
 namespace Catalog.Api.Common;
 
-// 016: Category/Brand teklik anahtarı üretimi (research R3). Fabrikalar ve get-or-create
+// Category/Brand teklik anahtarı üretimi (research R3). Fabrikalar ve get-or-create
 // sorguları AYNI fonksiyonu kullanır ki eşleşme iki tarafta da tutarlı olsun.
 // Teknik helper (domain değil) — Domains/ dışında.
 public static class NameNormalization

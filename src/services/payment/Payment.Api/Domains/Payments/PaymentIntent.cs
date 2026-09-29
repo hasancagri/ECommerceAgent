@@ -1,6 +1,6 @@
 namespace Payment.Api.Domains.Payments;
 
-// 077: hosted-CF ödeme girişimi. "ödeme yap" → PG hosted link istenir; link + PG referansı burada
+// hosted-CF ödeme girişimi. "ödeme yap" → PG hosted link istenir; link + PG referansı burada
 // Pending saklanır, callback (başarı/başarısız) veya terk-timeout durumu terminal'e taşır. Kart alanı
 // HİÇ taşımaz. Durum geçişleri + guard'lar aggregate'te (İLKE II); anemik değil. TxRef mağaza-üretimli
 // tekil (Marten unique index) → çift callback idempotent tek sonuç.

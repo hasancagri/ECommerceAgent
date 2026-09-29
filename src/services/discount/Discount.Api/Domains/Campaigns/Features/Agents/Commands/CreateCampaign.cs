@@ -2,7 +2,7 @@ using Discount.Api.Process;
 
 namespace Discount.Api.Domains.Campaigns.Features.Agents.Commands;
 
-// 079 US1/US2: admin süzgeçle kampanya açar. Campaign.Create → (aktifse) süzgeci kitap setine çöz +
+// US1/US2: admin süzgeçle kampanya açar. Campaign.Create → (aktifse) süzgeci kitap setine çöz +
 // her kitaba ProductDiscount YAZ (varsa üzerine yaz — son-gelen-kazanır) + ProductDiscountChanged push;
 // gelecek tarihli ise ProductDiscount YAZMA (Scheduled). Her iki halde start/end scheduled message kurulur
 // (durable süre yönetimi). Yanıt kısa özet {applied, scheduled}.

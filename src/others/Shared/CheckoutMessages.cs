@@ -2,7 +2,7 @@ using Wolverine.Persistence.Sagas;
 
 namespace Shared;
 
-// 049: Checkout orchestrator broker komut/yanıt sözleşmeleri (hedefli async; fanout DEĞİL).
+// Checkout orchestrator broker komut/yanıt sözleşmeleri (hedefli async; fanout DEĞİL).
 // İlke I v1.11.0 sanctioned kanal. Düz record'lar — Wolverine [SagaIdentity] orchestrator'da uygulanır
 // (Shared Wolverine'e bağımlı değil). Envelope: komut = CheckoutId + IdempotencyKey; yanıt = CheckoutId
 // + Success + ErrorClass. Additive alanlar default'lu eklenir (eski tüketici kırılmaz).
@@ -11,7 +11,7 @@ public static class CheckoutMessages
     // Geçici (retry edilebilir) vs kalıcı (telafi/iptal gerektiren) hata ayrımı (FR-025).
     public enum ErrorClass { None = 0, Transient = 1, Permanent = 2 }
 
-    // 077: PaymentMode + Charge yolu SÖKÜLDÜ. Ödeme her zaman ÖNCEDEN çekildi (hosted-CF callback başarılı
+    // PaymentMode + Charge yolu SÖKÜLDÜ. Ödeme her zaman ÖNCEDEN çekildi (hosted-CF callback başarılı
     // → Order.Api StartCheckout yayınlar) → saga charge ATLAR, sipariş ZATEN oluşturulmuştur (OrderId dolu).
 
     // Kalem: stok commit ProductId+Quantity kullanır; Order ayrıca Name+UnitPrice ister (varsayılanlı —
@@ -41,7 +41,7 @@ public static class CheckoutMessages
     public record CommitStockCommand(Guid CheckoutId, Guid OrderId, Guid ProductId, Guid UserId, int Quantity, string IdempotencyKey);
     public record StockCommitted([property: SagaIdentity] Guid CheckoutId, Guid ProductId, bool Success, ErrorClass ErrorClass, string? MessageCode = null);
 
-    // 077: ChargePaymentCommand + PaymentCharged SÖKÜLDÜ (ödeme hosted-CF ile öncedendir; saga charge çekmez).
+    // ChargePaymentCommand + PaymentCharged SÖKÜLDÜ (ödeme hosted-CF ile öncedendir; saga charge çekmez).
 
     public record ConfirmOrderCommand(Guid CheckoutId, Guid OrderId, string IdempotencyKey);
     public record OrderConfirmed([property: SagaIdentity] Guid CheckoutId, bool Success, ErrorClass ErrorClass, string? MessageCode = null);

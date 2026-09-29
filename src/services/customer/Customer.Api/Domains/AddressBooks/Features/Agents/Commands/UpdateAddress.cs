@@ -1,7 +1,7 @@
 namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 
-// 063: MCP yazma slice'ı — agent chat'ten mevcut bir adresi günceller. İzole handler (bkz. AddAddress).
-// 070 canlı-test dersi: tam-alan güncelleme LLM'e değişmeyen alanları YENİDEN yazdırıyordu ve model
+// MCP yazma slice'ı — agent chat'ten mevcut bir adresi günceller. İzole handler (bkz. AddAddress).
+// canlı-test dersi: tam-alan güncelleme LLM'e değişmeyen alanları YENİDEN yazdırıyordu ve model
 // alan uydurabiliyordu (posta kodu 34674→34000 drift'i). KISMİ güncellemeye çevrildi: yalnız verilen
 // alan değişir, verilmeyen mevcut değerinde kalır — model değişmeyeni hiç göndermez, uyduramaz.
 public static class UpdateAddress

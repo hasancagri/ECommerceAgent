@@ -2,7 +2,7 @@ using Discount.Api.Domains.ProductCatalogRefs;
 
 namespace Discount.Api.Domains.Campaigns;
 
-// 079: süzgeç → somut kitap seti (snapshot). Tek-kitap doğrudan (scopeRef = productId); kategori/yazar/
+// süzgeç → somut kitap seti (snapshot). Tek-kitap doğrudan (scopeRef = productId); kategori/yazar/
 // yayınevi `ProductCatalogRef` izdüşümünden çözülür (yalnız yayınlı kitaplar). Saf `Resolve` çekirdeği
 // (İLKE VI test-first) in-memory koleksiyonu süzer; `ResolveAsync` Marten'den hedefli okuyup ona delege
 // eder (bilinçli tekrar: sorgu kaba önfiltre, saf çekirdek kararın tek kaynağı).

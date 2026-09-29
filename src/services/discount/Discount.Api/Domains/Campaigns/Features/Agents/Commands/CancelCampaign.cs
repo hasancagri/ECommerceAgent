@@ -1,6 +1,6 @@
 namespace Discount.Api.Domains.Campaigns.Features.Agents.Commands;
 
-// 079 US1/edge: admin kampanyayı iptal eder → Campaign.Cancel + o kampanyanın ProductDiscount'ları silinir
+// US1/edge: admin kampanyayı iptal eder → Campaign.Cancel + o kampanyanın ProductDiscount'ları silinir
 // + ProductDiscountChanged(pct:0) push (Storefront liste fiyatına döner). Scheduled end-fire sonradan
 // gelse bile no-op (satır yok — idempotent).
 public static class CancelCampaign

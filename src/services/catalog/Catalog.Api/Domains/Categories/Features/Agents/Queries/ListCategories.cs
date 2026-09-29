@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Categories.Features.Agents.Queries;
 
-// 067 taşıma (kullanıcı kararı): envanter listeleri Catalog'da — Author/Publisher/Category otoritesi
+// taşıma (kullanıcı kararı): envanter listeleri Catalog'da — Author/Publisher/Category otoritesi
 // burası (Storefront kitap-listesi/arama yüzeyi olarak kalır). Sızıntı guard'ı: yalnız YAYINDAKİ
 // (Published) en az bir üründe kullanılan kategoriler (FR-006 ruhu). Ağaç bilgisi bonus: yalnız
 // Catalog bilir (ParentCategoryId) — Storefront düz ad taşıyordu.

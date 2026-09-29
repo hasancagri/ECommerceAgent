@@ -57,7 +57,7 @@ public static class AuthorizationScopes
     // Identity.Server ic yuzeyini belirler.
     public const string IdentityRolesManage = "identity.roles.manage";
 
-    // 047 (PG bloğu): PaymentGateway MCP tool'ları store fasadına downstream bağlandı — fasat bunları
+    // (PG bloğu): PaymentGateway MCP tool'ları store fasadına downstream bağlandı — fasat bunları
     // PRM'de ilan eder + DiscoveryScope'ta talep eder. Audience'lar PG BC'lerinde (merchant.api /
     // commission.api); yetki PG'nin "Platform" şemasında + tool-bazlı [RequiredScope]'ta zorlanır.
     public const string MerchantRead = "merchant.read";

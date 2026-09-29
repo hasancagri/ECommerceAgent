@@ -5,13 +5,13 @@ public class ProductStock : AggregateRoot
 {
     public Guid ProductId { get; private set; }
 
-    // 012: kalici alan adi Quantity (OnHand = fiziksel stok). Feed/Commit/restock disinda degismez.
+    // kalici alan adi Quantity (OnHand = fiziksel stok). Feed/Commit/restock disinda degismez.
     public int Quantity { get; private set; }
 
     // Domain OnHand semantigi (I1); ayni deger, okunabilirlik icin.
     [JsonIgnore] public int OnHand => Quantity;
 
-    // 028: islenmis saga operasyon anahtarlari ("orderId:commit" / "orderId:revert").
+    // islenmis saga operasyon anahtarlari ("orderId:commit" / "orderId:revert").
     // At-least-once teslimatta mukerrer Commit/RevertCommit'i no-op yapar. Bounded (son 100).
     [JsonProperty("ProcessedOps")] private List<string> _processedOps = new();
     private const int ProcessedOpsLimit = 100;
@@ -70,7 +70,7 @@ public class ProductStock : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    // 070: admin artir/azalt tek delta metodu — invariant (OnHand >= 0) aggregate'te; sifir delta anlamsiz.
+    // admin artir/azalt tek delta metodu — invariant (OnHand >= 0) aggregate'te; sifir delta anlamsiz.
     /// <summary>Stok adedini delta kadar oynatir (+/-); negatife dusus ve sifir delta reddedilir.</summary>
     public ResultDomain Adjust(int delta)
     {
@@ -92,7 +92,7 @@ public class ProductStock : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    // 056: rezervasyon kalkti — sepet stok tutmaz; stok gercegi checkout anidir.
+    // rezervasyon kalkti — sepet stok tutmaz; stok gercegi checkout anidir.
     // Commit = dogrudan dusum. Invariant'lar: yeterlilik (OnHand >= quantity, eksiye inmez) +
     // orderId idempotency (at-least-once teslimatta mukerrer Commit no-op).
     /// <summary>Checkout dususu: OnHand'den dogrudan duser; yetersizse hata; orderId ile idempotent.</summary>
@@ -114,7 +114,7 @@ public class ProductStock : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    // 028: saga telafisi — commit edilmis adedi stoga geri ekler. orderId ile idempotent;
+    // saga telafisi — commit edilmis adedi stoga geri ekler. orderId ile idempotent;
     // yalniz daha once commit edilmis siparis geri alinabilir (kacak artis engellenir).
     /// <summary>Saga telafisi: commit edilmis adedi stoga geri ekler; orderId ile idempotent.</summary>
     public ResultDomain RevertCommit(int quantity, Guid orderId)

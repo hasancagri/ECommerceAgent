@@ -1,9 +1,9 @@
 namespace Order.Api.Grpc;
 
-// 077: Order.Api → Payment.Api hosted-CF ödeme girişimi istemcisi (senkron S2S; makine token payment.write,
+// Order.Api → Payment.Api hosted-CF ödeme girişimi istemcisi (senkron S2S; makine token payment.write,
 // SagaTokenHandler). İki uç: canlı-intent sorgusu (re-use — order oluşturmadan önce) + link isteği.
 // Fail-closed: erişilemez/hata → null (start_payment dostça Result hatası döner). Kontrat: contracts/store-internal.md.
-// 074: performans için REST'ten gRPC'ye taşındı (AddressClient/BasketItemsClientProxy emsali).
+// performans için REST'ten gRPC'ye taşındı (AddressClient/BasketItemsClientProxy emsali).
 public sealed class PaymentIntentClient(PaymentIntentService.PaymentIntentServiceClient client)
 {
     private static readonly TimeSpan CallDeadline = TimeSpan.FromSeconds(5);

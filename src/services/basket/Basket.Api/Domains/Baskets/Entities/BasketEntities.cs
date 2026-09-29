@@ -17,7 +17,6 @@ public class BasketItem
     public string? ImageUrl { get; private set; }
     public decimal Price { get; private set; }
 
-    // 012: sepette adet. Varsayilan 1 (eski dokumanlarla ve mevcut testlerle geriye-uyumlu).
     public int Quantity { get; private set; } = 1;
 
     public void SetQuantity(int quantity) => Quantity = quantity;

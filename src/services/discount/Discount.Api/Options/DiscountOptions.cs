@@ -1,6 +1,6 @@
 namespace Discount.Api.Options;
 
-// 079: Discount BC yapılandırması. IConfiguration'dan doğrudan okuma YASAK → tip'li POCO
+// Discount BC yapılandırması. IConfiguration'dan doğrudan okuma YASAK → tip'li POCO
 // (BindConfiguration + ValidateOnStart). Şimdilik dar; scheduling/telafi ayarları buraya eklenir.
 public class DiscountOptions
 {

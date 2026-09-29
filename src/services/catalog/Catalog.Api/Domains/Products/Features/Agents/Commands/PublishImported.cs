@@ -5,7 +5,7 @@ using Catalog.Api.Domains.Categories;
 
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 083 US3/FR-009: import-kökenli, fiyat>0 taslakları TOPLU yayınlar. Köken izi = ImportRow.ProductId
+// US3/FR-009: import-kökenli, fiyat>0 taslakları TOPLU yayınlar. Köken izi = ImportRow.ProductId
 // (Processed satırlar) — yalnız bu ürünlere dokunur; elle oluşturulmuş (import-dışı) taslaklar etkilenmez.
 // Kapı: !Published && Price>0 (IsPublishable). Yayınlanan her ürün için ProductChangedEvent (Storefront'a
 // düşer). AdminRepublishProducts bulk-fat-event deseninin ikizi (bilinçli tekrar).

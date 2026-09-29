@@ -1,6 +1,6 @@
 namespace Catalog.Api.Import;
 
-// 083 US1: Excel'den okunan ham katalog kaydı + işleme durumu. Import makinesinin geçici defteri
+// US1: Excel'den okunan ham katalog kaydı + işleme durumu. Import makinesinin geçici defteri
 // (aggregate DEĞİL; Domains/ dışı — conventions read-model/seeder muafiyeti). ISBN = idempotency
 // anahtarı; processor bekleyen satırları ürüne çevirir (exactly-once). Not kullanılan xlsx kolonları:
 // imageUrl (kapak async File.Api'den) + discount (v1 dışı) — staging'e alınmaz.

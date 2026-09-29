@@ -1,6 +1,6 @@
 namespace Reviews.Api;
 
-// 046: Reviews.Moderation worker'inin karari (ReviewModerated) tuketilir. Review.ApplyModeration
+// Reviews.Moderation worker'inin karari (ReviewModerated) tuketilir. Review.ApplyModeration
 // uygulanir; Visible→Hidden olduysa MUTLAK ozet yeniden hesaplanip ReviewSummaryChanged yayinlanir.
 // Eski ModerateReview handler mantigi (LLM cagrisi haric) buraya tasindi.
 [Transactional]

@@ -3,14 +3,14 @@ namespace Storefront.Api.Constants;
 // Storefront context'ine ozel hata kodu sabitleri (Result pattern: Code serbest metin degil, sabittir).
 public static class StorefrontResourceConstants
 {
-    // 019: arama aninda embedding servisi erisilemez — filtre-yalniz arama etkilenmez (SC-005).
+    // arama aninda embedding servisi erisilemez — filtre-yalniz arama etkilenmez (SC-005).
     public static readonly string STOREFRONT_EMBEDDING_SERVICE_UNAVAILABLE = "STOREFRONT_EMBEDDING_SERVICE_UNAVAILABLE";
 
-    // 067: benzerlik referansinin temsili yok (urun yok ya da aciklamasi henuz embed edilmedi) —
+    // benzerlik referansinin temsili yok (urun yok ya da aciklamasi henuz embed edilmedi) —
     // beklenen durum, hata degil (SC-002); Found=false + bu kod doner.
     public static readonly string STOREFRONT_SIMILARITY_SOURCE_UNAVAILABLE = "STOREFRONT_SIMILARITY_SOURCE_UNAVAILABLE";
 
-    // 069: query_storefront bekçi/çalıştırma ret-hata kodları (makine-okur; asistanın düzeltme
+    // query_storefront bekçi/çalıştırma ret-hata kodları (makine-okur; asistanın düzeltme
     // döngüsü bu kodlarla çalışır, FR-007). Bekçi = çalıştırma ÖNCESİ; Permission/Timeout/Execution = DB katmanı.
     public static readonly string AgentSqlMultiStatement = "AGENT_SQL_MULTI_STATEMENT";
     public static readonly string AgentSqlNotReadOnly = "AGENT_SQL_NOT_READ_ONLY";

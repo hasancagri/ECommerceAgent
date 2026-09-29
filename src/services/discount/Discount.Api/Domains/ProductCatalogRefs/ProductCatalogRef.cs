@@ -1,6 +1,6 @@
 namespace Discount.Api.Domains.ProductCatalogRefs;
 
-// 079 destek read-model (aggregate DEĞİL): Catalog `ProductChangedEvent`'inden beslenen izdüşüm;
+// destek read-model (aggregate DEĞİL): Catalog `ProductChangedEvent`'inden beslenen izdüşüm;
 // süzgeci (kategori/yazar/yayınevi) kitap setine çözmek için. FİYAT/İSİM TUTMAZ (BC izolasyonu —
 // Discount.Api yalnız süzgeç çözümü için gereken ürün↔taksonomi bağını taşır). PK = ProductId.
 public class ProductCatalogRef

@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// 079 backfill: tüm YAYINDAKİ ürünler için `ProductChangedEvent`'i yeniden yayınlar. Yeni bir downstream BC
+// backfill: tüm YAYINDAKİ ürünler için `ProductChangedEvent`'i yeniden yayınlar. Yeni bir downstream BC
 // (ör. Discount `ProductCatalogRef`) canlıya alındığında ya da bir read-model sıfırlandığında, event-besleme
 // geçmişi taşımadığından boş kalır — bu tool geçmişi replay eder. TÜM tüketiciler için idempotent
 // (Storefront upsert + embedding "Keep"; Library OldPrice=null → alarm yok). AdminUpdateProduct fat-event

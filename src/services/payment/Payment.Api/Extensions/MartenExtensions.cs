@@ -18,7 +18,7 @@ public static class MartenExtensions
                         s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
                     });
 
-                // 077: hosted-CF PaymentIntent (mock Payment aggregate söküldü). TxRef unique = idempotency temeli
+                // hosted-CF PaymentIntent (mock Payment aggregate söküldü). TxRef unique = idempotency temeli
                 // (çift callback tek sonuç); UserId index = get_my_payments + canlı-intent re-use sorgusu.
                 // Sabit alias ŞART: PaymentIntent tablo adı tr-TR ToLower'da 'mt_doc_paymentıntent' (dotless ı)
                 // olur; Marten'in computed-index delta eşleşmesi TABLO adındaki ı'da bozulur → var olan index'i

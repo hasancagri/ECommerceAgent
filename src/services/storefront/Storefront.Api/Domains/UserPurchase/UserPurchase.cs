@@ -1,6 +1,6 @@
 namespace Storefront.Api.Domains.UserPurchase;
 
-// 054: kullanıcı satın-alma birikimi — kişisel feed'in tek sinyal kaynağı. Order 'OrderCompleted'
+// kullanıcı satın-alma birikimi — kişisel feed'in tek sinyal kaynağı. Order 'OrderCompleted'
 // fanout'undan beslenir (Reviews 'PurchasedProduct' emsalinin Storefront kopyası — bilinçli tekrar,
 // BC izolasyonu). AggregateRoot DEĞİL (read-model). Id = "{userId:N}:{productId:N}" → idempotent
 // upsert (aynı ürünü tekrar alım aynı satır). Backfill yok; append-only, revoke yok.

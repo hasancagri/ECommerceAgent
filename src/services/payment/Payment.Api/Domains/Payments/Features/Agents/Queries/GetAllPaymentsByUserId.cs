@@ -1,6 +1,6 @@
 namespace Payment.Api.Domains.Payments.Features.Agents.Queries;
 
-// 077: get_my_payments artık PaymentIntent kayıtlarını listeler (mock Payment aggregate söküldü).
+// get_my_payments artık PaymentIntent kayıtlarını listeler (mock Payment aggregate söküldü).
 public static class GetAllPaymentsByUserId
 {
     public record GetAllPaymentsByUserIdQuery(Guid UserId);

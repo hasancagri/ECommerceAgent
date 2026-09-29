@@ -1,6 +1,6 @@
 namespace Catalog.Api.Domains.Categories.Features.Agents.Commands;
 
-// 074: CreateCategory REST Command'ının agent İKİZİ (bilinçli tekrar) — MCP-only iş yüzeyi.
+// CreateCategory REST Command'ının agent İKİZİ (bilinçli tekrar) — MCP-only iş yüzeyi.
 // Yaratım bilinçlidir: aynı ad varsa get-or-create DEĞİL, açık hata (feed yolu Upsert'te).
 // Yazılan kategori vitrindedir (K8).
 public static class AdminCreateCategory

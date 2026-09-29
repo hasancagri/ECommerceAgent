@@ -1,6 +1,6 @@
 namespace Storefront.Api.Domains.StorefrontView;
 
-// 067: aciklamadan turetilen anlamsal temsil (1536, kosinus) — StorefrontView'un PK-es AYRI yol arkadasi
+// aciklamadan turetilen anlamsal temsil (1536, kosinus) — StorefrontView'un PK-es AYRI yol arkadasi
 // dokumani. AYRI cunku: 1536 float JSONB'de ~17KB metin eder; view icinde olsaydi tum tam-satir okuma
 // yollari (liste/facet/arama) her cagrida yuzlerce MB tasirdi. Yasam-dongusu durumu TASIMAZ: gorunurluk
 // HER ZAMAN StorefrontView satilabilirlik filtresinden gelir (FR-007); yazan da ayni handler/transaction.

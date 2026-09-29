@@ -14,11 +14,11 @@ public static class MessagingExtensions
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // 049: hedefli komutlar per-BC kuyruğa; yanıtlar tek reply kuyruğundan dinlenir (broker saga).
+            // hedefli komutlar per-BC kuyruğa; yanıtlar tek reply kuyruğundan dinlenir (broker saga).
             opts.PublishMessage<CreateOrderCommand>().ToRabbitQueue(RabbitMqConstants.Checkout.OrderCommandsQueue);
             opts.PublishMessage<ConfirmOrderCommand>().ToRabbitQueue(RabbitMqConstants.Checkout.OrderCommandsQueue);
             opts.PublishMessage<CancelOrderCommand>().ToRabbitQueue(RabbitMqConstants.Checkout.OrderCommandsQueue);
-            // 077: ChargePaymentCommand route SÖKÜLDÜ (ödeme hosted-CF ile öncedendir; saga charge çekmez).
+            // ChargePaymentCommand route SÖKÜLDÜ (ödeme hosted-CF ile öncedendir; saga charge çekmez).
             opts.PublishMessage<CommitStockCommand>().ToRabbitQueue(RabbitMqConstants.Checkout.StockCommandsQueue);
             opts.PublishMessage<RevertCommitStockCommand>().ToRabbitQueue(RabbitMqConstants.Checkout.StockCommandsQueue);
             opts.PublishMessage<ClearBasketCommand>().ToRabbitQueue(RabbitMqConstants.Checkout.BasketCommandsQueue);
@@ -30,7 +30,7 @@ public static class MessagingExtensions
             // Hedef BC'ler yanıtları buraya yayınlar (tüketici binding'i burada — 007 dersi).
             opts.ListenToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
 
-            // 049: geçici hata retry saga'da DEĞİL — Wolverine policy'de (FR-024). Artan gecikmeyle 3 deneme;
+            // geçici hata retry saga'da DEĞİL — Wolverine policy'de (FR-024). Artan gecikmeyle 3 deneme;
             // tükenirse mesaj dead-letter'a. (Aynı politika hedef BC'lerde de step-komut tüketiminde geçerli.)
             opts.OnException<Exception>().RetryWithCooldown(
                 TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15));

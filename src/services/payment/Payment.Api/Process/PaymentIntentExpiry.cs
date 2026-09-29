@@ -1,6 +1,6 @@
 namespace Payment.Api.Process;
 
-// 077 US2: terk-timeout iç süreci (kullanıcı tetiklemez → Domains/ dışı Process/). CreatePaymentIntent
+// US2: terk-timeout iç süreci (kullanıcı tetiklemez → Domains/ dışı Process/). CreatePaymentIntent
 // anında ScheduleAsync(PaymentIntentExpiryCheck, IntentTimeoutSeconds) kurulur; tick'te intent hâlâ
 // Pending ise Expire + PaymentFailed("ABANDONED"). Callback vs timer yarışı: Status guard → hangisi önce
 // commit ederse kazanır, diğeri no-op. Checkout watchdog (ScheduleAsync) emsali; Marten-backed dayanıklı.

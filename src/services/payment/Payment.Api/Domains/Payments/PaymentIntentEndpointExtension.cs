@@ -2,7 +2,7 @@ using Payment.Api.Domains.Payments.Features.Commands;
 
 namespace Payment.Api.Domains.Payments;
 
-// 077: PG dış webhook ucu. intents/live + intents S2S (Order.Api) gRPC'ye taşındı (bkz.
+// PG dış webhook ucu. intents/live + intents S2S (Order.Api) gRPC'ye taşındı (bkz.
 // Grpc/PaymentIntentGrpcService.cs) — İlke I genişletmesi: dış webhook/PSP callback'i istisna, REST kalır.
 public static class PaymentIntentEndpointExtension
 {

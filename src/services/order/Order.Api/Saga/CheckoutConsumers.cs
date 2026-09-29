@@ -3,11 +3,11 @@ using OrderAggregate = Order.Api.Domains.Orders.Order;
 
 namespace Order.Api.Saga;
 
-// 049: checkout orchestrator sipariş broker handler'ları. Komutları OrderCommandsQueue'dan tüketir,
+// checkout orchestrator sipariş broker handler'ları. Komutları OrderCommandsQueue'dan tüketir,
 // Order aggregate davranışını (Create/Confirm/Cancel — İlke II) tetikler, sonucu reply kuyruğuna
 // yayınlar. Pivot (Confirm) anında OrderCompleted fanout'u (048 Personalization) burada yayılır.
 // Idempotent: PaymentId=CheckoutId ile tek sipariş; Confirm/Cancel yalnız Pending'den.
-// 074: bu BC checkout sağasının KATILIMCISI (kullanıcı isteği değil, süreç güdümlü) → Domains/ dışı Saga/.
+// bu BC checkout sağasının KATILIMCISI (kullanıcı isteği değil, süreç güdümlü) → Domains/ dışı Saga/.
 // Ad = kaynak BC/orkestratör + Consumers (Stock.Api Saga/CheckoutConsumers ile aynı desen); kaynak
 // burada Checkout orchestrator (eski ad OrderEventHandlers — aggregate'e göre, yeni kural kaynağa göre).
 public class CheckoutConsumers

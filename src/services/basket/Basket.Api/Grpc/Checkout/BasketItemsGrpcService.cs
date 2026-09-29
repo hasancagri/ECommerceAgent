@@ -2,7 +2,7 @@ using BasketAggregate = Basket.Api.Domains.Baskets.Basket;
 
 namespace Basket.Api.Grpc.Checkout;
 
-// 039: chat siparis tamamlama — Order.Api sepet kalemlerini sunucu tarafinda okur (kalem
+// chat siparis tamamlama — Order.Api sepet kalemlerini sunucu tarafinda okur (kalem
 // sunucu-otoritesi; LLM'e girmez). 074: Features/ yalnizca kullanici/agent-tetikledigi slice'lari
 // tutar — bu sorgu yalniz gRPC'den tuketildigi icin (kullanici yolu degil) buraya, cagiran class'in
 // icine tasindi; eski Domains/Features/Queries/GetBasket.cs silindi. Bilincli tekrar: Agents/Queries/

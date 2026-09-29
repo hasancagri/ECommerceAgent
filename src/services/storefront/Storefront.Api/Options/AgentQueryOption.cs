@@ -1,6 +1,6 @@
 namespace Storefront.Api.Options;
 
-// 069: serbest-sorgu kapısının (query_storefront) tavan + kısıtlı-rol ayarları. RolePassword
+// serbest-sorgu kapısının (query_storefront) tavan + kısıtlı-rol ayarları. RolePassword
 // user-secrets/env'den gelir (appsettings'e YAZILMAZ); fail-fast ValidateOnStart.
 public class AgentQueryOption
 {

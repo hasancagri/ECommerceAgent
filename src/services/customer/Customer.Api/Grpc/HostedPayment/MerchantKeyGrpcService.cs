@@ -1,6 +1,6 @@
 namespace Customer.Api.Grpc.HostedPayment;
 
-// 077: Payment.Api PG hosted-payment X-Api-Key kaynağı — YAPISAL S2S kanal (makine token customer.read).
+// Payment.Api PG hosted-payment X-Api-Key kaynağı — YAPISAL S2S kanal (makine token customer.read).
 // MerchantKey MCP/agent'a çıkmaz — yalnız bu kanaldan döner. 074: tek çağıranı bu servis olduğu için
 // sorgu doğrudan buraya gömülü (Address gRPC deseni — bilinçli tekrar, eski internal REST ucu söküldü).
 public class MerchantKeyGrpcService(IQuerySession session) : MerchantKeyService.MerchantKeyServiceBase

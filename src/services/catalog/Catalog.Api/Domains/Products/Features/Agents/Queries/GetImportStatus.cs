@@ -2,7 +2,7 @@ using Catalog.Api.Import;
 
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 
-// 083 US1/FR-010: import ilerleme + başarısızlık raporu. Global sayım (pending/processed/failed) +
+// US1/FR-010: import ilerleme + başarısızlık raporu. Global sayım (pending/processed/failed) +
 // başarısız satırların {isbn,error} listesi. Salt-okur; admin kararını (yeniden yükle / düzelt) besler.
 public static class GetImportStatus
 {

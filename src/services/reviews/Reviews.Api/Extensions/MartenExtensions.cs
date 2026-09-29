@@ -20,7 +20,7 @@ public static class MartenExtensions
                     .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.UserId, x => x.ProductId)
                     .Index(x => x.ProductId);
 
-                // 049: satın-alma kanıtı read-model (Id = "{userId:N}:{productId:N}"; eligibility PK lookup).
+                // satın-alma kanıtı read-model (Id = "{userId:N}:{productId:N}"; eligibility PK lookup).
                 opts.Schema.For<PurchasedProduct>();
             })
             .IntegrateWithWolverine()

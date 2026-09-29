@@ -4,7 +4,7 @@ using Wolverine;
 
 namespace FileApi;
 
-// 083 US2/T019: Catalog'un ProductAdded event'ini tüketir (kaynak=Catalog → conventions kaynak-adı kuralı).
+// US2/T019: Catalog'un ProductAdded event'ini tüketir (kaynak=Catalog → conventions kaynak-adı kuralı).
 // ISBN'in kapağını çözer: R2'de hazırsa URL'i doğrudan; değilse yerel staging'den ({RootPath}/covers/{isbn})
 // okuyup R2'ye yükler + kayıt defterine düşürür (RegisterFile). Kapak bulunursa CoverIngested(isbn,url) yayar
 // (Catalog SetImage'e köprü); bulunmazsa event YOK (ürün placeholder'da kalır — import bloklanmaz, FR-008).
