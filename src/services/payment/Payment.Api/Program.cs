@@ -1,4 +1,3 @@
-
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddOpenApiDocumentation();
@@ -37,7 +36,7 @@ builder.Services.AddSingleton<PaymentOptions>(sp => sp.GetRequiredService<IOptio
 // 077: Payment.Api makine token'ı (payment-s2s client_credentials) — Customer merchant-key S2S çağrısı.
 builder.Services.AddOptions<Payment.Api.Options.SagaAuth>().BindConfiguration(nameof(Payment.Api.Options.SagaAuth))
     .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Payment.Api.Options.SagaAuth>(sp => sp.GetRequiredService<IOptions<Payment.Api.Options.SagaAuth>>().Value);
+builder.Services.AddSingleton<Payment.Api.Options.SagaAuth>(sp => sp.GetRequiredService<IOptions<SagaAuth>>().Value);
 builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityOption))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptions<IdentityOption>>().Value);

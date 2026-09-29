@@ -1,6 +1,6 @@
 using BasketAggregate = Basket.Api.Domains.Baskets.Basket;
 
-namespace Basket.Api.Grpc;
+namespace Basket.Api.Grpc.Checkout;
 
 // 039: chat siparis tamamlama — Order.Api sepet kalemlerini sunucu tarafinda okur (kalem
 // sunucu-otoritesi; LLM'e girmez). 074: Features/ yalnizca kullanici/agent-tetikledigi slice'lari
@@ -14,8 +14,9 @@ public class BasketItemsGrpcService(IQuerySession session) : BasketQuery.BasketQ
     {
         var reply = new GetBasketItemsReply();
 
+        var userId = Guid.Parse(request.UserId);
         var basket = await session.Query<BasketAggregate>()
-            .FirstOrDefaultAsync(x => x.UserId == Guid.Parse(request.UserId), context.CancellationToken);
+            .FirstOrDefaultAsync(x => x.UserId == userId, context.CancellationToken);
         if (basket is null)
             return reply; // sepet yok -> bos (Order tarafi 'rejected' verir)
 
