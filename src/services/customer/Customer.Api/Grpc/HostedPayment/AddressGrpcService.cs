@@ -1,4 +1,4 @@
-namespace Customer.Api.Grpc;
+namespace Customer.Api.Grpc.HostedPayment;
 
 // 077 (074'te REST'ten gRPC'ye taşındı): Order.Api (hosted-CF ödeme) siparişi varsayılan adrese bağlar
 // — YAPISAL S2S kanal (makine token customer.read). Adres MCP/agent yüzeyinden AYRI. 074: tek çağıranı

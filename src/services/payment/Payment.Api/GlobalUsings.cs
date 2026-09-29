@@ -48,4 +48,5 @@ global using Grpc.Core;
 global using Shared.Grpc.Payment;
 global using Shared.Grpc.Customer;
 global using Payment.Api.Grpc;
+global using Payment.Api.Grpc.HostedPayment;
 global using Payment.Api.Extensions;

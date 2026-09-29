@@ -1,13 +1,10 @@
 global using Asp.Versioning;
-global using Asp.Versioning.Builder;
-global using Common.Auths;
 global using Common.Dependencies;
 global using Common.Exceptions;
 global using Common.Extensions;
 global using Common.Utils.Constants;
 global using Marten;
 global using Marten.Newtonsoft;
-global using Microsoft.AspNetCore.Mvc;
 global using Shared;
 global using Shared.Utils.Constants;
 global using System.Reflection;
@@ -21,6 +18,4 @@ global using Checkout.Orchestrator.Options;
 global using Checkout.Orchestrator.Constants;
 global using Checkout.Orchestrator.Dependencies;
 global using Checkout.Orchestrator.Extensions;
-
-// --- hoisted (2+ dosyada tekrar; using consolidation) ---
 global using static Shared.CheckoutMessages;

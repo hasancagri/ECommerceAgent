@@ -1,4 +1,4 @@
-namespace Payment.Api.Grpc;
+namespace Payment.Api.Grpc.HostedPayment;
 
 // 077 US1: hosted-CF S2S — canlı-intent re-use sorgusu + hosted ödeme linki üretimi. Tek çağıranı
 // Order.Api olduğu için Features/Commands'teki CreatePaymentIntent + inline "live" sorgusu buraya

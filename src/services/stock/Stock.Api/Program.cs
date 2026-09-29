@@ -31,22 +31,11 @@ if (builder.Configuration.GetConnectionString("redis") is not null)
 builder.Services.AddCachingAspect("stock");
 
 builder.Services.AddHttpContextAccessor();
-// 085 R1: TEK uç /mcp (085 — /mcp-admin öldü). Oturum başına TAZE options (SDK, ConfigureSessionOptions
-// verilince IOptionsFactory'den yeni kurar); tool seti isteği ATAN TOKEN'IN SCOPE'una göre budanır
-// (yol-prefix değil): admin tool'lar YALNIZ ilgili scope token'da varsa görünür.
+// TEK uç /mcp — anonim (get_stock) + admin tool'lar aynı assembly taramasında. Tool-görünürlük budaması
+// KALDIRILDI; yetki tek katman: handler'daki [RequiredScope(StockWrite)] (403 son savunma).
 builder.Services
     .AddMcpServer()
-    .WithHttpTransport(http => http.ConfigureSessionOptions = (ctx, opts, _) =>
-    {
-        var tools = opts.ToolCollection;
-        if (tools is null)
-            return Task.CompletedTask;
-        foreach (var tool in tools
-                     .Where(t => !McpScopePruningExtension.IsToolVisible(
-                         t.ProtocolTool.Name, Stock.Api.Mcp.StockAdminSurface.ToolScopeMap, ctx.User)).ToArray())
-            tools.Remove(tool);
-        return Task.CompletedTask;
-    })
+    .WithHttpTransport()
     .WithToolsFromAssembly();
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.

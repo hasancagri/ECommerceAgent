@@ -1,6 +1,6 @@
 using Discount.Api.Domains.ProductDiscounts;
 
-namespace Discount.Api.Grpc;
+namespace Discount.Api.Grpc.Checkout;
 
 // 079 US3: checkout S2S — Order.Api sağası ödeme tutarını hesaplarken ürünlerin AKTİF indirim yüzdesini
 // canlı doğrular. FİYAT DÖNMEZ (yalnız yüzde). Yalnız pencere-içi (IsActiveAt) ProductDiscount döner —

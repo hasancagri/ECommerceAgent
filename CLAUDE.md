@@ -46,14 +46,14 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
-| `catalog` | catalogDb | Zengin `Product`+`Category`+`Author`+`Publisher`+`ProductTag`+`SpecificationAttribute` (kitap künyesi: çok-yazar + tek yayınevi); admin düzenleme + yayın anahtarı + fiyat geçmişi (058, append-only `ProductPriceChange`); admin yüzeyi TEK `/mcp`'de scope-budamalı (085 — `/mcp-admin` söküldü; 070: admin tool'lar + `AdminActionLog` izi); **Excel katalog import (083):** token-linkli xlsx yükleme ekranı → `ImportRow` staging → `ImportProcessor` TASLAK ürün (`ProductAdded`, exactly-once) + `publish_imported` toplu yayın + `get_import_status`; kapağı File.Api'den `CoverIngested` tüketir (`FileConsumers`→`SetImage`); eski books.json seeder söküldü | `specs/040-catalog-domain-extract` |
+| `catalog` | catalogDb | Zengin `Product`+`Category`+`Author`+`Publisher`+`ProductTag`+`SpecificationAttribute` (kitap künyesi: çok-yazar + tek yayınevi); admin düzenleme + yayın anahtarı + fiyat geçmişi (058, append-only `ProductPriceChange`); admin yüzeyi TEK `/mcp`'de (085 — `/mcp-admin` söküldü; 070: admin tool'lar + `AdminActionLog` izi); **Excel katalog import (083):** token-linkli xlsx yükleme ekranı → `ImportRow` staging → `ImportProcessor` TASLAK ürün (`ProductAdded`, exactly-once) + `publish_imported` toplu yayın + `get_import_status`; kapağı File.Api'den `CoverIngested` tüketir (`FileConsumers`→`SetImage`); eski books.json seeder söküldü | `specs/040-catalog-domain-extract` |
 | `basket` | basketDb | Kalıcı sepet + kalem; anonim sahiplik (057; login-merge yüzeyi söküldü, `MergeFrom` domain'de durur); stok tutmaz/süre yok (056), stok gerçeği checkout'ta; yüzey MCP-only + checkout gRPC | `specs/012-stock-reservation` |
 | `order` | orderDb | Sipariş aggregate + yaşam döngüsü; orchestrator'dan broker Confirm/Cancel; hosted-CF ödeme yolu (`start_payment` — sepet+adres oku, Pending order, Payment S2S hosted link; 077); `PaymentSucceeded`→StartCheckout / `PaymentFailed`→Cancel tüketir; Confirm'de `OrderCompleted` fanout (Reviews + Storefront) | `specs/028-checkout-saga` |
 | `checkout` | checkoutDb | Broker-only checkout sağası (`CheckoutProcess`, ayrı servis); 077: ödeme öncedendir (hosted-CF) → CommitStock→Confirm→ClearBasket (Charge adımı SÖKÜLDÜ); StartCheckout OrderId dolu (`CheckoutId=OrderId`); CommittingStock'ta LIFO telafi + watchdog | `specs/049-checkout-orchestrator` |
 | `payment` | paymentDb | Hosted-CF ödeme (077): `PaymentIntent` (kart alanı yok); PG hosted link (`PgHostedPaymentClient`, MerchantKey S2S) + HMAC callback (`CallbackSecret` ayrı) → `PaymentSucceeded`/`PaymentFailed` fanout; terk-timer `ScheduleAsync`→Expire; TxRef unique idempotent | `specs/077-hosted-cf-payment` |
-| `stock` | stockDb | `ProductStock` (OnHand); ilk stok `ProductLinked`'ten; checkout düşümü broker'dan (056); admin artır/azalt + mutlak set (058); admin yüzeyi TEK `/mcp`'de scope-budamalı (085 — `/mcp-admin` söküldü; 070: set/adjust tool + iz; `Adjust` domain guard'lı) | `specs/014-supplier-stock-authority` |
+| `stock` | stockDb | `ProductStock` (OnHand); ilk stok `ProductLinked`'ten; checkout düşümü broker'dan (056); admin artır/azalt + mutlak set (058); admin yüzeyi TEK `/mcp`'de (085 — `/mcp-admin` söküldü; 070: set/adjust tool + iz; `Adjust` domain guard'lı) | `specs/014-supplier-stock-authority` |
 | `storefront` | storefrontDb | Push-only read-model (`StorefrontView`); müşteri REST okuma yüzeyi (liste/facet/aile/harf-dizin/feed) SÖKÜLDÜ — okuma yolu asistan; `UserPurchase` birikimi sürer; asistan yüzeyi TEK tool `query_storefront` (069: salt-okur `storefront_sellable` view + `AgentSqlGuard` bekçi + kısıtlı DB rolü + `{{EMBED}}` anlamsal + `AgentQueryLog` izi; 070: sorgu rehberi/playbook KANONİK evi tool Description'ı, ChatAgent kopyası donduruldu; parametrik arama + `find_similar_books` SÖKÜLDÜ) | `specs/003-storefront-read-model` |
-| `customer` | customerDb | Wallet (tokenize kart, PAN yok; kart YAZMA yüzeyi yok — yalnız okuma + payment-context) + AddressBook; izole, event yok; merchant-admin yüzeyi TEK korumalı `/mcp`'de scope-budamalı (085 — `/mcp-admin` söküldü; 078: PII'siz hosted onboarding — 070 imperatif MCP sapması SÖKÜLDÜ, PG'ye tipli S2S REST; SAPMA-2 = anonim token-yetkili credential ekranı `/merchant-credentials/{token}`, key sohbete girmez) | `specs/022-wallet-address-book` |
+| `customer` | customerDb | Wallet (tokenize kart, PAN yok; kart YAZMA yüzeyi yok — yalnız okuma + payment-context) + AddressBook; izole, event yok; merchant-admin yüzeyi TEK korumalı `/mcp`'de (085 — `/mcp-admin` söküldü; 078: PII'siz hosted onboarding — 070 imperatif MCP sapması SÖKÜLDÜ, PG'ye tipli S2S REST; SAPMA-2 = anonim token-yetkili credential ekranı `/merchant-credentials/{token}`, key sohbete girmez) | `specs/022-wallet-address-book` |
 | `reviews` | reviewsDb | Satın-alma şartlı yorum; AI moderasyon AYRI worker'da (broker); özet event → Storefront | `specs/044-product-reviews` |
 | `library` | libraryDb | Kullanıcı-ürün ilgi kayıtları; ilk dilim fiyat alarmı (yaşayan abonelik, email snapshot) + `NotificationRecord` izi; `ProductChangedEvent.OldPrice` tetiği → alarm başına `PriceAlarmTriggered` | `specs/060-price-alarm-mail` |
 | `gateway` | — | YARP reverse proxy; tek giriş | — |
@@ -75,16 +75,17 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
   agent'ı host eder — tam **agent-only / BYO-agent**. Müşteri **kendi AI istemcisiyle** (Claude Desktop
   vb.) platform MCP fasadının **TEK `/mcp` ucuna** (085 — `/mcp-admin` söküldü, tek login, upfront) bağlanır;
   tool'lar alt BC `/mcp`'lerinden toplanır, çağrı sahibi BC'ye kullanıcı token'ıyla proxy'lenir. Admin de
-  AYNI `/mcp`'de, token scope'una göre budanmış görünür (085). Login/OIDC doğrudan Identity (agent OAuth);
+  AYNI `/mcp`'de görünür (tool-görünürlük budaması söküldü; yetki handler `[RequiredScope]`). Login/OIDC doğrudan Identity (agent OAuth);
   web cookie-login yok. Kalkan referanslar: AppHost web/chat-agent kayıtları, Identity
   `ecommerce.bff`+`chat-agent-discovery` client + WebApp redirect URI'ları, NotificationAgent mail'deki
   WebApp ürün linki. UI'a ait `ICustomerRefitService` vb. WebApp ile birlikte gitti.
 - **Admin yüzeyi MCP'de (070→085, `specs/070-admin-mcp-surface` · `specs/085-single-mcp-surface`):**
-  catalog/stock/customer/discount admin tool'ları TEK `/mcp`'de yaşar — **085: ayrı `MapMcp("/mcp-admin")`
-  ucu SÖKÜLDÜ**; görünürlük yol-prefix'ten TOKEN SCOPE'una taşındı (`ConfigureSessionOptions` +
-  `McpScopePruningExtension.IsToolVisible`). Tool→scope eşlemesi her BC'nin `*AdminSurface.ToolScopeMap`
-  holder'ında (tek kaynak). **TUZAK: yeni admin tool eklerken `ToolNames`+`ToolScopeMap`'in İKİSİNE EKLE**
-  (074/085 dersi). Seed OAuth istemcisi `external-admin-agent` artık müşteri istemcisiyle
+  catalog/stock/customer/discount admin tool'ları TEK `/mcp`'de yaşar (085: ayrı `MapMcp("/mcp-admin")`
+  ucu SÖKÜLDÜ). **BC-seviyesi tool-görünürlük budaması KALDIRILDI** — `McpScopePruningExtension` +
+  `ConfigureSessionOptions` + BC `*AdminSurface.ToolScopeMap/ToolNames` söküldü; görünürlük AgentPlatform
+  fasadının işi (bkz. R3 `ScopeResolver`). Yetki tek katman: her admin slice handler'ındaki
+  **`[RequiredScope]` (403 son savunma)** — yeni admin tool = yalnız bu attribute, ayrı liste YOK. Catalog
+  `CatalogAdminSurface.SCOPES` yalnız auth kaydı + PRM demeti için kalır. Seed OAuth istemcisi `external-admin-agent` artık müşteri istemcisiyle
   (`external-customer-agent`) AYNI `/mcp`'ye bağlanır (fasat tek union PRM ilan eder). Claude Desktop'ta
   iki kayıt aynı URL'e — cache/kimlik ayrışması mcp-remote `--static-oauth-client-info` ile (her kayıt
   kendi `client_id`'ini sabitler; `~/.mcp-auth` hash'i buradan türer, sunucuda ek kod YOK). Her admin yazma

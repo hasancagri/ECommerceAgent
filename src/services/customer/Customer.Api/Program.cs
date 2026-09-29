@@ -53,23 +53,11 @@ builder.Services.AddCachingAspect("customer");
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddGrpc();
-// 085 R1: TEK korumalı uç /mcp — müşteri + merchant-admin tool'ları birlikte (/mcp-admin öldü). Oturum
-// başına TAZE options; tool seti isteği ATAN TOKEN'IN SCOPE'una göre budanır: merchant-admin tool'lar
-// YALNIZ merchant.credentials.write scope'lu token'da görünür (müşteri DCR istemcileri admin şemasını
-// görmez — tavan AgentPlatform'da, bkz. R3).
+// TEK korumalı uç /mcp — müşteri + merchant-admin tool'ları birlikte, tek assembly taramasıyla.
+// Tool-görünürlük budaması KALDIRILDI; yetki tek katman: handler'daki [RequiredScope] (403 son savunma).
 builder.Services
     .AddMcpServer()
-    .WithHttpTransport(http => http.ConfigureSessionOptions = (ctx, opts, _) =>
-    {
-        var tools = opts.ToolCollection;
-        if (tools is null)
-            return Task.CompletedTask;
-        foreach (var tool in tools
-                     .Where(t => !McpScopePruningExtension.IsToolVisible(
-                         t.ProtocolTool.Name, Customer.Api.Mcp.CustomerAdminSurface.ToolScopeMap, ctx.User)).ToArray())
-            tools.Remove(tool);
-        return Task.CompletedTask;
-    })
+    .WithHttpTransport()
     .WithToolsFromAssembly();
 
 var app = builder.Build();
@@ -88,10 +76,10 @@ app.UseAuthorization();
 // 076: payment-context internal ucu SÖKÜLDÜ (kart-saklama gitti).
 // 077: Order.Api hosted-CF ödemesi varsayılan adresi S2S çeker (customer.read).
 // 074: performans için REST'ten gRPC'ye taşındı (İlke I — BC-arası S2S artık gRPC, dış webhook hariç).
-app.MapGrpcService<Customer.Api.Grpc.AddressGrpcService>()
+app.MapGrpcService<Customer.Api.Grpc.HostedPayment.AddressGrpcService>()
     .RequireAuthorization(AuthorizationScopes.CustomerRead);
 // 077: Payment.Api PG hosted-payment X-Api-Key kaynağı S2S çeker (customer.read). REST'ten gRPC'ye taşındı.
-app.MapGrpcService<Customer.Api.Grpc.MerchantKeyGrpcService>()
+app.MapGrpcService<Customer.Api.Grpc.HostedPayment.MerchantKeyGrpcService>()
     .RequireAuthorization(AuthorizationScopes.CustomerRead);
 
 // 078: hosted credential-giriş ekranı — ANONİM (token = yetki; İlke V v1.11.1 capability-link istisnası).

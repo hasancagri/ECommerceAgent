@@ -30,12 +30,12 @@ public static class MessagingExtensions
 
             opts.Policies.UseDurableLocalQueues();
             opts.Policies.AddMiddleware(
-                typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
+                typeof(ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // *EventHandlers static sinifi ad konvansiyonuyla otomatik kesfedilmiyor (Storefront deseni);
             // acikca dahil et — yoksa ClearBasketCommand (049) calismaz.
-            opts.Discovery.IncludeType(typeof(Basket.Api.Saga.CheckoutConsumers));
+            opts.Discovery.IncludeType(typeof(Saga.CheckoutConsumers));
         });
 
         return builder;
