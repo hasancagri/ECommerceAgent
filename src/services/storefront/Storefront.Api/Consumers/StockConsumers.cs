@@ -1,4 +1,4 @@
-namespace Storefront.Api;
+namespace Storefront.Api.Consumers;
 
 public static class StockConsumers
 {
