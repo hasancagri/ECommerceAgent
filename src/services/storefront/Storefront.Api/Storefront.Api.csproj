@@ -8,11 +8,10 @@
   </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
         <PackageReference Include="Marten" />
         <PackageReference Include="Marten.Newtonsoft" />
-        <PackageReference Include="Marten.PgVector" />
-        <PackageReference Include="Pgvector" />
+        <PackageReference Include="Elastic.Clients.Elasticsearch" />
+        <PackageReference Include="Aspire.Elastic.Clients.Elasticsearch" />
         <PackageReference Include="Microsoft.Extensions.AI" />
         <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
         <PackageReference Include="Newtonsoft.Json" />

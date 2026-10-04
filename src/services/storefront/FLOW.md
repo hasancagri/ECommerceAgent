@@ -1,57 +1,56 @@
 # Storefront — Domain Süreci
 
-**BC ne yapar:** Catalog+Stock+Reviews+Discount+Order'dan akan **şişman event'leri** ürün-anahtarlı tek
-satırda (composite read-model) toplar; vitrini asistana açık **tek serbest-sorgu kapısından** sunar.
-Müşteri REST okuma yüzeyi (liste/facet/aile/harf dizini/feed) söküldü — okuma yolu asistandır.
+**BC ne yapar:** Catalog+Stock+Reviews+Discount'tan akan **şişman event'leri** ürün-anahtarlı bir
+**event-log'a** (Postgres, gerçek-kaynak) biriktirir; **async projeksiyonla** her ürünü katlayıp
+**Elasticsearch** arama dokümanı üretir; vitrini asistana **tek ES-DSL sorgu kapısından** sunar.
 
 > Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
 > Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Beş kaynak event'i TEK sıralı kuyruğa akar.** Catalog, Stock,      `(storefront.events`
-   Reviews, Discount, Order aynı kuyruğa bağlanır → satır yarışı yok.    ` → Sequential)`
-2. **Catalog içeriği satıra yazılır.** Ad/fiyat/yazarlar/yayınevi/      `(ProductChangedEvent`
-   kategori + kanonik spec'ler + varyant aile kodu, tek alan grubu.      ` → ApplyCatalog)`
-3. **Açıklama değişince anlamsal temsil tazelenir.** Karar saf:         `(DecideEmbedding`
-   boş açıklama temsili siler; değişen/eksik temsil yeniden üretilir     ` → ProductDescriptionEmbedding)`
-   (aynı transaction, ayrı yol-arkadaşı satır; view şişmez).
-4. **Geçmiş katalog açılışta taranır.** Açıklaması dolu ama temsilsiz   `(EmbeddingBackfillService)`
-   satırlar batch'lerle doldurulur; iş yoksa no-op (idempotent).
-5. **Stok adedi satıra yazılır.** Yalnız `StockQuantity`; diğer         `(StockChangedEvent`
-   kaynakların alanlarına dokunmaz.                                      ` → ApplyStock)`
-6. **Puan özeti satıra yazılır.** Mutlak değer; Count=0 rozeti          `(ReviewSummaryChanged`
-   temizler. Satır yoksa da kısmi satır yaratılır.                       ` → ApplyReviewSummary)`
-7. **İndirim yüzdesi + penceresi satıra yazılır.** pct≤0 = temizlik     `(ProductDiscountChanged`
-   (indirim kalkar). Yalnız var olan (Catalog'lı) satıra uygulanır;      ` → ApplyDiscount)`
-   yoksa no-op. Etkin fiyat BURADA tutulmaz — sorgu-zamanı hesaplanır.
-8. **Satır her kaynak için upsert'lenir.** Herhangi bir kaynak          `(StorefrontView.Create)`
-   satırı doğurabilir; her kaynak YALNIZ kendi alanını yazar.
-9. **Asistan sorusu TEK sorgu kapısından yanıtlanır.** Asistanın        `(AgentSqlGuard`
-   kurduğu salt-okur sorgu önce bekçiden geçer (yazma/yüzey-dışı         ` → QueryStorefront`
-   istek ÇALIŞMADAN reddedilir), anlamsal metin sistemce temsile         ` → AgentQueryLog)`
-   çevrilir, sorgu yalnız satılabilir yüzeyde koşar ve ret dahil
-   her çağrı iz bırakır. Temalı arama + benzerlik de bu kapıdandır;
-   eşik altı sonuç = "bulunamadı". Keşif envanteri Catalog'dadır.
-10. **Satılabilir yüzey tek ilişki olarak kurulur.** Açılışta           `(StorefrontSellableSchema`
-    satılabilirlik filtresi gömülü görünüm + tek-yetkili kısıtlı         ` → AgentQuerySurfaceBootstrap)`
-    rol tazelenir; yayından kalkan ürün yüzeyde HİÇ var olmaz. Etkin
-    fiyat (indirim penceresi içindeyse indirimli) yüzeyde türetilir.
-11. **Tamamlanan sipariş satın-alma kaydına döner.** Kalem başına       `(OrderCompleted`
-    kullanıcı+ürün satırı; tekrar teslim/alım aynı satır (idempotent).   ` → UserPurchase)`
-    Birikim kişisel bağlam içindir; sorgu yüzeyinin yapısal DIŞIDIR.
+1. **Dört kaynak event'i TEK sıralı kuyruğa akar.** Catalog, Stock,     `(storefront.events`
+   Reviews, Discount aynı kuyruğa bağlanır → stream yarışı yok.          ` → Sequential)`
+2. **Her event ürün stream'ine append edilir.** Consumer yalnız          `(CatalogConsumers`
+   durable inbox'a yazar (fold/ES değil); gerçek-kaynak = Postgres        ` → Events.Append)`
+   event-log. Dört kaynak dört ayrı consumer, aynı stream.
+3. **Async projeksiyon etkilenen ürünleri taze katlar.** Daemon           `(StorefrontProjection`
+   her batch'te ProductId'leri stream'den katlar — saf fold.              ` → AggregateStreamAsync)`
+4. **Katlanan doc alan grupları birleşir.** Her kaynak YALNIZ            `(StorefrontDocument.ApplyCatalog`
+   kendi alanını yazar; kısmi satır geçerli; mutlak değer                 `/ApplyStock/ApplyReviewSummary`
+   son-yazan-kazanır.                                                     `/ApplyDiscount)`
+5. **Satılabilir doc ES'e yazılır, değilse silinir.** IsDeleted ya        `(StorefrontProjection`
+   da fiyatsız (Catalog raporlamadı) → ES'ten silinir; satılamaz          ` → IsSellable)`
+   kitap index'te HİÇ bulunmaz (projeksiyon-zamanı dışlama).
+6. **Etkin fiyat yazım-anında hesaplanır.** İndirim penceresi            `(EffectivePrice)`
+   içindeyse indirimli, değilse liste fiyatı — doc alanına yazılır.
+7. **Açıklama değişince anlamsal temsil tazelenir.** Karar saf: boş       `(DecideEmbedding`
+   → yok, değişti/eksik → üret, aynı+var → koru (önceki vektör            ` → embedding dense_vector)`
+   ES'teki doc'tan okunur). Embedding ES dense_vector alanı.
+8. **Asistan sorusu TEK ES-DSL kapısından yanıtlanır.** Asistanın        `(QueryStorefront`
+   yazdığı ham ES Query DSL önce minimal rail'den geçer (sabit            ` → AgentQueryLog)`
+   index + size≤50 + _source whitelist + timeout), `{{EMBED}}`
+   metni sistemce vektöre çevrilir (knn), sorgu çalışır; ret dahil
+   her çağrı iz bırakır. Text+fuzzy+kNN+filtre tek sorguda; eşik-
+   altı/boş sonuç = "bulunamadı". Keşif envanteri Catalog'dadır.
+9. **Arama index'i açılışta garanti edilir.** ES index yoksa            `(StorefrontSearchIndex`
+   mapping'le kurulur (idempotent). Soğuk başlangıç + yeniden-kurulum     ` → EnsureAsync)`
+   = dev full-reset + kaynak BC republish (R8, event-log'u yeniden
+   doldurur). Elle reindex (sil+kur+rebuild) BACKLOG.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
-- **Rich aggregate DEĞİL.** `StorefrontView` invariant taşımaz; Catalog+Stock+Reviews+Discount'un ProductId-anahtarlı tek composite satırı.
-- **Kısmi satır geçerli.** Her kaynak yalnız kendi alanını yazar; `Price`/`Name` null = "Catalog raporlamadı" (dolu-satır filtresi eler).
-- **Push-only, geri-çekiş YOK.** Yalnız şişman event tüketir; hiçbir kaynağa dış çağrı yapmaz (fat-event dersi).
-- **Tek yazıcı + Sequential.** Beş exchange tek kuyruğa; eşzamanlı yazım = optimistic concurrency → Wolverine retry.
-- **Etkin fiyat türetilir, saklanmaz.** İndirim yüzdesi+penceresi tutulur; ödenecek fiyat sorgu-zamanı (pencere içinde mi) liste fiyatından hesaplanır → liste değişimi otomatik doğru.
-- **Anlamsal temsil yaşam-döngüsü taşımaz.** Ayrı yol-arkadaşı satırda yaşar; görünürlük HER ZAMAN satılabilirlik filtresinden gelir (yayından kalkan ürün temsili dursa da görünmez).
-- **Alakasızlık eşiği dürüstlük kuralıdır.** Eşik altı benzerlik "bulunamadı"dır; en-yakın-ama-alakasız sonuç asla "benzer" diye sunulmaz.
-- **Serbest sorgu yalnız satılabilir yüzeyi görür ve iz bırakır.** Kapı salt-okurdur; satın-alma kayıtları ve yayından kalkan ürün yüzeyin yapısal DIŞIDIR; ret dahil her sorgu kayda geçer (`AgentQueryLog`).
+- **Gerçek-kaynak = Postgres event-log; ES türetilmiş.** ES her zaman log'tan yeniden kurulabilir; kaynak BC'ye uzanmadan rebuild olur (İLKE I).
+- **Rich aggregate DEĞİL.** `StorefrontDocument` invariant taşımaz; dört kaynağın ürün-anahtarlı katlanmış birleşimi (read-model/projeksiyon istisnası).
+- **Kısmi satır geçerli.** Her kaynak yalnız kendi alanını yazar; `Price`/`Name` yok = "Catalog raporlamadı" → satılamaz (ES'e yazılmaz).
+- **Push-only, geri-çekiş YOK.** Yalnız şişman event tüketir; hiçbir kaynağa dış çağrı yapmaz.
+- **Sıra = append order; idempotency = mutlak değer.** Tek kuyruk + Sequential stream sırasını korur; tekrar teslim aynı değer → doc değişmez (optimistic-concurrency retry yok, append-only).
+- **Satılabilirlik projeksiyon-zamanı.** Satılamaz/silinmiş kitap ES'te HİÇ yok — LLM filtresi unutsa da sızmaz (çözüm-zamanı filtre değil).
+- **Etkin fiyat yazım-anında türetilir.** İndirim penceresi event'siz biterse bir sonraki event'e dek bayat kalabilir (vitrin yaklaşık/bayat-toleranslı; kesin satış kararı checkout'ta).
+- **Sorgu kapısı salt-okur + iz bırakır.** Ham ES DSL çalışır; minimal rail (sabit index + size tavan + _source whitelist + timeout) ucuz felaketi önler; ret dahil her sorgu `AgentQueryLog`'a geçer. Tam JSON guard ayrı iş.
+- **Alakasızlık/boşluk dürüstlük kuralıdır.** Boş/eşik-altı sonuç "bulunamadı"dır; uydurma yok.
 
 ## Sınır (bu BC'nin dokunmadığı)
 
-Ürün yazımı/CRUD, fiyatlandırma, sepet, sipariş yok. `IsAvailableForSale` ayrı süreç sahipli (ingestion asla yazmaz).
+Ürün yazımı/CRUD, fiyatlandırma, sepet, sipariş yok. Kişisel satın-alma kaydı (UserPurchase) **Library
+BC'ye taşındı** — sorgu yüzeyi satın-almayı görmez. Keşif envanteri (kategori/yazar/yayınevi) Catalog'da.

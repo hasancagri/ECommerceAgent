@@ -23,6 +23,15 @@ public static class MessagingExtensions
             });
             opts.ListenToRabbitQueue(RabbitMqConstants.ProductChanged.Queues.Library);
 
+            // 086: Tüketici: Order 'OrderCompleted' → UserPurchase birikimi (Storefront'tan taşındı).
+            // Binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi) + kendi kuyruğunu dinler.
+            rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.OrderCompleted.Queues.Library);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.OrderCompleted.Queues.Library);
+
             // Tüketici: NotificationAgent'ın gönderim sonucu → NotificationRecord izi.
             rabbit.DeclareExchange(RabbitMqConstants.NotificationSent.Exchange, e =>
             {
@@ -47,6 +56,7 @@ public static class MessagingExtensions
             // *Consumers (çoğul) Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et (Reviews emsali).
             opts.Discovery.IncludeType(typeof(Library.Api.CatalogConsumers));
             opts.Discovery.IncludeType(typeof(Library.Api.NotificationAgentConsumers));
+            opts.Discovery.IncludeType(typeof(Library.Api.OrderConsumers));
         });
 
         return builder;

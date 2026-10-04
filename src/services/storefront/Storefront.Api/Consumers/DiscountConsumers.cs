@@ -1,23 +1,13 @@
 namespace Storefront.Api.Consumers;
 
-// Discount `ProductDiscountChanged` → StorefrontView.ApplyDiscount (push read-model). Kaynak = Discount
-// (dosya adı kuralı: kaynak + Consumers). pct=0 → indirim temizlenir. Wolverine keşfi "Consumers" son-ekini
-// taramaz → Program.cs IncludeType ZORUNLU; binding'i TÜKETİCİ kurar (007). Etkin fiyat burada TUTULMAZ
-// (sorgu-zamanı view-guard + liste fiyatından hesaplanır).
+// 086: Discount `ProductDiscountChanged` → ürün stream'ine append. "Satır yoksa no-op" mantığı KALKTI
+// (append her zaman); fold pct=0'ı temizlik olarak uygular, etkin fiyatı projeksiyon yazım-anında hesaplar.
+// Wolverine keşfi "Consumers" son-ekini taramaz → Program.cs IncludeType ZORUNLU.
 public static class DiscountConsumers
 {
-    public static async Task Handle(
-        IntegrationEvents.ProductDiscountChanged evt,
-        IDocumentSession session,
-        CancellationToken ct)
+    public static async Task Handle(IntegrationEvents.ProductDiscountChanged evt, IDocumentSession session, CancellationToken ct)
     {
-        var view = await session.LoadAsync<Domains.StorefrontView.StorefrontView>(evt.ProductId, ct);
-        // İndirim yalnız var olan (Catalog'tan gelmiş) satıra uygulanır; yoksa temizlik no-op.
-        if (view is null)
-            return;
-
-        view.ApplyDiscount(evt.DiscountPct, evt.StartsAt, evt.EndsAt);
-        session.Store(view);
+        session.Events.Append(evt.ProductId, evt);
         await session.SaveChangesAsync(ct);
     }
 }

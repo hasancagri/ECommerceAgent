@@ -19,6 +19,10 @@ public static class MartenExtensions
                 opts.Schema.For<PriceAlarm>()
                     .Index(x => x.UserId)
                     .Index(x => x.ProductId);
+
+                // 086: kişisel satın-alma birikimi (Storefront'tan taşındı). Id = "{userId}:{productId}"
+                // (idempotent upsert); erişim yolu UserId → index onun için.
+                opts.Schema.For<Library.Api.Domains.UserPurchase.UserPurchase>().Index(x => x.UserId);
             })
             .IntegrateWithWolverine()
             .ApplyAllDatabaseChangesOnStartup();

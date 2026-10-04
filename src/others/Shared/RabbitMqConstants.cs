@@ -101,7 +101,7 @@ public static class RabbitMqConstants
     }
 
     // Order yayınlar (checkout başarı = Confirm pivotu). Reviews tüketir (satın-alma kanıtı projeksiyonu).
-    // Storefront da tüketir (kişisel feed UserPurchase birikimi) — mevcut tek kuyruğuna bağlanır.
+    // 086: Library tüketir (kişisel UserPurchase birikimi — Storefront'tan taşındı); Storefront artık DİNLEMEZ.
     public static class OrderCompleted
     {
         public const string Exchange = "order.completed";
@@ -109,7 +109,7 @@ public static class RabbitMqConstants
         public static class Queues
         {
             public const string Reviews = "reviews.order-completed";
-            public const string Storefront = StorefrontEvents.Queue;
+            public const string Library = "library.order-completed";
         }
     }
 
