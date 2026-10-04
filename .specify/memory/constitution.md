@@ -11,7 +11,7 @@
      Templates: plan/spec/tasks ✅ değişiklik gerekmez.
      Runtime docs: CLAUDE.md ⚠ pending (078 Polish T019 günceller). -->
 
-# ECommerceWithAgentFramework Constitution
+# ECommerceAgent Constitution
 
 Bu anayasa, projenin pazarlık edilemez mimari ilkelerini tanımlar. Her spec, plan
 ve implementation bu ilkelere uymak zorundadır. Ayrıntılı, çalışma-anı (runtime)

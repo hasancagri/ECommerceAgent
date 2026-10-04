@@ -8,7 +8,7 @@ kod standartları, servisler-arası desenler orada. Bu dosya yalnız BU projeye 
 
 ## Komutlar
 
-Repo kökünden. Çözüm: `ECommerceWithAgentFramework.slnx` (`dotnet build/test` dosyayı
+Repo kökünden. Çözüm: `ECommerceAgent.slnx` (`dotnet build/test` dosyayı
 otomatik bulur, açıkça vermeye gerek yok). Format/lint script'i YOK.
 
 ```bash
