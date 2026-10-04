@@ -16,7 +16,7 @@ kaldır. Kart-saklama mevcut **ödeme yöntemi** olduğundan, ona kuple **agent 
 
 ## Kapsam — REMOVE
 
-### Store (ECommerceWithAgentFramework)
+### Store (ECommerceAgent)
 - **Customer.Api:** `Domains/Wallets/*` (Wallet aggregate, SavedCard, WalletMcpTools/list_cards,
   GetCardsForAgent, GetPaymentContextForAgent, WalletEndpointExtension payment-context ucu) ·
   `Infrastructure/Tokenization/*` (ICardTokenizer, GatewayCardTokenizer, MerchantTokenProvider) ·

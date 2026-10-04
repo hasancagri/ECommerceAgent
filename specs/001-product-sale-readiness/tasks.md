@@ -9,7 +9,7 @@ description: "Task list for Product Sale Readiness (Completeness Gating)"
 ## Görevler
 
 - [x] T001 `tests/Catalog.Api.Tests/Catalog.Api.Tests.csproj` oluştur (Basket.Api.Tests pattern'i; ProjectReference → Catalog.Api).
-- [x] T002 Test projesini `ECommerceWithAgentFramework.slnx` `/tests/` klasörüne kaydet.
+- [x] T002 Test projesini `ECommerceAgent.slnx` `/tests/` klasörüne kaydet.
 - [x] T003 TDD (önce başarısız): `ProductCompletenessTests.cs` — boş açıklama/görselle `Product.Create` → `IsComplete/IsOnSale == false`; ikisi dolu + aktif → `true`; yalnız-whitespace açıklama → eksik.
 - [x] T004 `Domains/Products/Product.cs`: kalıcı `bool IsComplete { get; private set; }`, computed `IsOnSale => IsActive && IsComplete`, `private RecalculateCompleteness()` (`!IsNullOrWhiteSpace(Description) && !IsNullOrWhiteSpace(ImageUrl)`); `Create`/`Update`/`UpdateImageUrl` sonunda çağır.
 - [x] T005 `Features/Agent/SearchProducts.cs`: WHERE'e `&& x.IsComplete`.

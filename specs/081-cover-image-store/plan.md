@@ -77,7 +77,7 @@ src/aspire/AppHost/AppHost.cs           # + AddProject<File_Api>("file-api") + c
 src/aspire/AppHost/AppHost.csproj       # + ProjectReference File.Api
 src/services/gateway/Gateway/appsettings.Development.json  # + files-route + file.cluster (anon /files/**)
 Directory.Packages.props                # + ClosedXML
-ECommerceWithAgentFramework.slnx        # + File.Api (+ File.Api.Tests)
+ECommerceAgent.slnx        # + File.Api (+ File.Api.Tests)
 
 tests/File.Api.Tests/                   # CoverKey sanitize/guard + migration skip-existing (saf, test-first)
 ```

@@ -112,7 +112,7 @@ src/aspire/AppHost/
 ├── AppHost.cs                            # +reviews-moderation-agent resource (rabbit); reviewsApi OpenAI bağı kalkar
 └── AppHost.csproj                        # +ProjectReference Reviews.Moderation
 
-ECommerceWithAgentFramework.slnx          # +Reviews.Moderation projesi (src/agents/ klasörü)
+ECommerceAgent.slnx          # +Reviews.Moderation projesi (src/agents/ klasörü)
 ```
 
 **Structure Decision**: Yeni worker `src/agents/` altında (kullanıcının ilkesi: agent yazımı agents/'ta).

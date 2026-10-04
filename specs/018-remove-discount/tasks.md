@@ -121,7 +121,7 @@ US2/US3 tüketici temizlikleri onu güvenli kılar. Her faz sonunda çözüm der
 
 **Independent Test**: AppHost ayağa kalkar; resource listesinde discount-api/discountDb yok; uçtan uca alışveriş tamamlanır.
 
-- [X] T033 [US1] ECommerceWithAgentFramework.slnx: Discount.Api ve Discount.Api.Tests proje kayıtlarını sil
+- [X] T033 [US1] ECommerceAgent.slnx: Discount.Api ve Discount.Api.Tests proje kayıtlarını sil
 - [X] T034 [US1] src/aspire/AppHost/AppHost.cs + AppHost.csproj: discountDb, discount-api resource'u, WithReference(discountApi)
       (webapp/chat-agent/ingestion), WaitFor ve proje referansını sil
 - [X] T035 [P] [US1] src/services/gateway/Gateway/appsettings.Development.json: discount-route, discount-mcp-route ve discount.cluster sil
