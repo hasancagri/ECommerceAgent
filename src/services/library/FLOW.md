@@ -22,6 +22,9 @@ yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayı
 6. **Kullanıcı alarmı kaldırır.** Hard delete; yaşam döngüsü biter.    `(RemovePriceAlarm)`
 7. **Gönderim sonucu iz olarak yazılır.** Worker'ın sonucu             `(NotificationAgentConsumers ← NotificationSent`
    append-only kayda düşer (sent / no-email / hata özeti).              ` → NotificationRecord)`
+8. **Tamamlanan sipariş kişisel satın-alma kaydına döner.** Kalem      `(OrderConsumers ← OrderCompleted`
+   başına kullanıcı+ürün satırı; tekrar teslim/alım aynı satır          ` → UserPurchase)`
+   (idempotent upsert). Storefront'tan taşındı (086); kişisel bağlam.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
@@ -29,6 +32,7 @@ yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayı
 - **Tetik = gerçek fiyat değişimi.** Eski fiyat yoksa (fiyat-dışı düzenleme) tetik yok; alarm yoksa sessiz.
 - **Tek alarm kuralı idempotent.** İkinci kurma isteği hata değil, başarı (düğme durumu bozulmaz).
 - **İz append-only.** `NotificationRecord` davranışsız dokümandır; alarm silinse de iz kalır.
+- **Satın-alma kaydı idempotent + append-only.** `UserPurchase` read-model'dir (aggregate değil); Id = "{userId}:{productId}" → tekrar alım aynı satır; backfill/revoke yok.
 
 ## Sınır (bu BC'nin dokunmadığı)
 

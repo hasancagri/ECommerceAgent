@@ -4,7 +4,6 @@ namespace Storefront.Api.Extensions;
 
 // Storefront mesajlaşma kurulumu: Wolverine + RabbitMQ broker topolojisi (exchange/binding/listen)
 // + handler keşfi. Program.cs orkestrasyon dışı tutulur.
-// SIRA: çağrısı Program.cs'te AddCachingAspect'ten ÖNCE olmalı (cache aspect IMessageBus'ı sarar).
 public static class MessagingExtensions
 {
     public static WebApplicationBuilder AddStorefrontMessaging(this WebApplicationBuilder builder)
@@ -27,15 +26,9 @@ public static class MessagingExtensions
                 e.BindQueue(RabbitMqConstants.ReviewSummaryChanged.Queues.Storefront);
             });
 
-            // OrderCompleted → UserPurchase birikimi (kişisel feed sinyali). Binding'i TUKETICI kurar;
-            // ayni tek-kuyruk deseni (4. exchange → storefront.events).
-            rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-                e.BindQueue(RabbitMqConstants.OrderCompleted.Queues.Storefront);
-            });
+            // 086: OrderCompleted binding SÖKÜLDÜ — UserPurchase Library BC'ye taşındı (FR-011).
 
-            // ProductDiscountChanged → StorefrontView.ApplyDiscount. Binding'i TUKETICI kurar (007);
+            // ProductDiscountChanged → ürün stream'ine append. Binding'i TUKETICI kurar (007);
             // aynı tek-kuyruk deseni (5. exchange → storefront.events, Sequential).
             rabbit.DeclareExchange(RabbitMqConstants.ProductDiscountChanged.Exchange, e =>
             {
@@ -43,12 +36,12 @@ public static class MessagingExtensions
                 e.BindQueue(RabbitMqConstants.ProductDiscountChanged.Queues.Storefront);
             });
 
-            // TEK kuyruk (storefront.events): üç exchange de buraya bağlı; Sequential işleme sayesinde
-            // aynı view satırına eşzamanlı yazım olmaz — ConcurrencyException kaynağında çözülür.
+            // TEK kuyruk (storefront.events): dört exchange de buraya bağlı. Sequential KALIR — aynı ürün
+            // stream'ine eşzamanlı append determinizmi (stream sırası = fold sırası, R3).
             opts.ListenToRabbitQueue(RabbitMqConstants.StorefrontEvents.Queue).Sequential();
 
-            // Composite satirda kaynaklar-arasi eszamanli yazim cakismasi (optimistic concurrency) → retry.
-            opts.OnException<JasperFx.ConcurrencyException>().RetryTimes(5);
+            // 086: ConcurrencyException retry SÖKÜLDÜ (C2) — eski StorefrontView doc optimistic-concurrency
+            // içindi; artık event-log'a append (append-only, doc çakışması yok).
             opts.Policies.UseDurableLocalQueues();
             // Handler-level yetki: middleware SADECE [RequiredScope] tasiyan komut/sorgulara weave edilir.
             // REST + MCP ortak yetki noktasi.
@@ -60,7 +53,6 @@ public static class MessagingExtensions
             opts.Discovery.IncludeType(typeof(CatalogConsumers));
             opts.Discovery.IncludeType(typeof(ReviewsConsumers));
             opts.Discovery.IncludeType(typeof(StockConsumers));
-            opts.Discovery.IncludeType(typeof(OrderConsumers));
             opts.Discovery.IncludeType(typeof(DiscountConsumers));
         });
 

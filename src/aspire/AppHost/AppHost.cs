@@ -17,6 +17,26 @@ var rabbit = builder.AddRabbitMQ("rabbitmq")
 var redis = builder.AddRedis("redis")
     .WithLifetime(ContainerLifetime.Persistent);
 
+// 086: Storefront arama projeksiyonu = Elasticsearch (tek node dev). Kalıcı + data volume:
+// veri her zaman event-log'dan yeniden kurulabilir (rebuildable), ama reset'te boş-yeniden-kurma
+// maliyetinden kaçınmak için kalıcı. Yalnız storefront-api referanslar.
+var elasticsearch = builder.AddElasticsearch("elasticsearch")
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
+
+// Kibana — ES'i gözle gezmek (Discover + Dev Tools): index içeriği, mapping, DSL deneme.
+// Dev-only görünürlük aracı; arama yolu programatik (Claude Desktop → ES DSL). Kibana 8.x elastic
+// superuser'ı reddeder (system indices) → service-account token şart. Token ES data volume'de
+// kalıcı (restart'ta ölmez, yalnız tam reset'te); secret parameter'dan (user-secrets) enjekte.
+// (Yeniden) üretim: scripts/kibana-service-token.sh çıktısını user-secrets'a yaz.
+var kibanaToken = builder.AddParameter("kibana-service-token", secret: true);
+builder.AddContainer("kibana", "docker.elastic.co/kibana/kibana", "8.17.3")
+    .WithEnvironment("ELASTICSEARCH_HOSTS", elasticsearch.GetEndpoint("http"))
+    .WithEnvironment("ELASTICSEARCH_SERVICEACCOUNTTOKEN", kibanaToken)
+    .WithHttpEndpoint(targetPort: 5601, name: "http")
+    .WaitFor(elasticsearch)
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var catalogDb = postgres.AddDatabase("catalogDb");
 var basketDb = postgres.AddDatabase("basketDb");
 var orderDb = postgres.AddDatabase("orderDb");
@@ -76,14 +96,15 @@ var orderApi = builder.AddProject<Projects.Order_Api>("order-api")
     .WaitFor(basketApi)
     .WaitFor(redis);
 
+// 086: Redis SÖKÜLDÜ — yeni ES/event-log yüzeyinde cache'lenen slice yok (read-model REST kalıntısı gitti).
 var storefrontApi = builder.AddProject<Projects.Storefront_Api>("storefront-api")
     .WithHttpHealthCheck("/health")
     .WithReference(storefrontDb)
     .WithReference(rabbit)
-    .WithReference(redis)
+    .WithReference(elasticsearch)
     .WaitFor(storefrontDb)
     .WaitFor(rabbit)
-    .WaitFor(redis);
+    .WaitFor(elasticsearch);
 
 var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithHttpHealthCheck("/health")

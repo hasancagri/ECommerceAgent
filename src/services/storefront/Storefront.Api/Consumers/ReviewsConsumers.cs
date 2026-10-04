@@ -1,17 +1,11 @@
 namespace Storefront.Api.Consumers;
 
+// 086: Reviews `ReviewSummaryChanged` → ürün stream'ine append. MUTLAK özet; fold Count=0'ı temizler.
 public static class ReviewsConsumers
 {
-    // puan ozeti — MUTLAK deger yazilir (Count=0 temizler). Satir yoksa da yaratilir
-    // (kismi satir gecerli — Catalog verisi gelince dolu-satir filtresine girer).
     public static async Task Handle(IntegrationEvents.ReviewSummaryChanged evt, IDocumentSession session, CancellationToken ct)
     {
-        var view = await session.LoadAsync<StorefrontView>(evt.ProductId, ct)
-                   ?? StorefrontView.Create(evt.ProductId);
-
-        view.ApplyReviewSummary(evt.Average, evt.Count);
-
-        session.Store(view);
+        session.Events.Append(evt.ProductId, evt);
         await session.SaveChangesAsync(ct);
     }
 }

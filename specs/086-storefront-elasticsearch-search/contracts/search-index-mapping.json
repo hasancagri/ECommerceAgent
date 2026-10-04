@@ -1,0 +1,55 @@
+{
+  "_comment": "Storefront arama index mapping sözleşmesi (R4). Sunucu-sahipli; LLM index/mapping vermez. _id = ProductId (R5). embedding _source'tan ayıklanır (yanıta dönmez).",
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "tr_text": { "type": "turkish" }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "product_id": { "type": "keyword" },
+      "name": {
+        "type": "text",
+        "analyzer": "tr_text",
+        "fields": { "keyword": { "type": "keyword", "ignore_above": 512 } }
+      },
+      "description": { "type": "text", "analyzer": "tr_text" },
+      "authors": { "type": "text", "analyzer": "tr_text" },
+      "publisher": {
+        "type": "text",
+        "analyzer": "tr_text",
+        "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } }
+      },
+      "category": {
+        "type": "text",
+        "analyzer": "tr_text",
+        "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } }
+      },
+      "price": { "type": "float" },
+      "effective_price": { "type": "float" },
+      "stock": { "type": "integer" },
+      "rating_average": { "type": "float" },
+      "rating_count": { "type": "integer" },
+      "specs": {
+        "type": "nested",
+        "properties": {
+          "attribute": { "type": "keyword" },
+          "option": { "type": "keyword" }
+        }
+      },
+      "family_code": { "type": "keyword" },
+      "image_url": { "type": "keyword", "index": false },
+      "added_at": { "type": "date" },
+      "discount_pct": { "type": "integer" },
+      "discount_ends_at": { "type": "date" },
+      "embedding": {
+        "type": "dense_vector",
+        "dims": 1536,
+        "index": true,
+        "similarity": "cosine"
+      }
+    }
+  }
+}

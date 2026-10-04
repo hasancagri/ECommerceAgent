@@ -1,7 +1,10 @@
+
 namespace Storefront.Api.Extensions;
 
-// Storefront kalıcılık kurulumu: Marten (Postgres document store) + pgvector + read-model/embedding
-// şemaları + Wolverine entegrasyonu. Program.cs orkestrasyon dışı tutulur (yükseklik ayrımı).
+// 086: Storefront kalıcılık = Marten EVENT-LOG (gerçek-kaynak) + async projection daemon (→ Elasticsearch).
+// Eski read-model (StorefrontView doc) + pgvector + ayrı embedding doc SÖKÜLDÜ. Gelen integration event'ler
+// ürün stream'ine append edilir; StorefrontProjection stream'i katlayıp ES'e yazar/siler. AgentQueryLog doc
+// (ES sorgu izi) Postgres'te KALIR.
 public static class MartenExtensions
 {
     public static WebApplicationBuilder AddStorefrontMarten(this WebApplicationBuilder builder)
@@ -15,30 +18,14 @@ public static class MartenExtensions
                     nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,
                     configure: s => s.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor);
 
-                // pgvector extension'ı şemaya ekler + Npgsql vector type handler kaydeder. Embedding JSONB
-                // içinde float[] yaşar; kNN sorgusu (data->>'DescriptionEmbedding')::vector cast'iyle koşar.
-                // VectorOn/HNSW bilinçli YOK (research R7): 20k satırda exact scan ms mertebesi, index'e gerek yok.
-                opts.UsePgVector();
-
-                // Rich aggregate degil (invariant tasimaz); ProductId, Marten Id'si. Tek composite satir.
-                // Optimistic concurrency: farkli kaynaklarin ayni satira eszamanli yazmasinda lost-update
-                // olmaz — cakisan handler ConcurrencyException alir, Wolverine retry'da taze yukleyip uygular.
-                opts.Schema.For<StorefrontView>().Identity(x => x.ProductId).UseOptimisticConcurrency(true);
-
-                // kullanıcı satın-alma birikimi (kişisel feed sinyali). PK = "{userId:N}:{productId:N}"
-                // (idempotent upsert); feed sorgusunun tek erişim yolu UserId — index onun için.
-                opts.Schema.For<Storefront.Api.Domains.UserPurchase.UserPurchase>().Index(x => x.UserId);
-
-                // anlamsal temsil AYRI dokümanda (view satırı şişmez; tam-satır okuma yolları etkilenmez).
-                // Optimistic concurrency bilinçli YOK: handler/backfill yarışında son yazan kazanır (aynı metnin
-                // temsili — içerik eşdeğer). Görünürlük StorefrontView satılabilirlik filtresinde (FR-007).
-                opts.Schema.For<Storefront.Api.Domains.StorefrontView.ProductDescriptionEmbedding>()
-                    .Identity(x => x.ProductId);
-
-                // sorgu izi (ret dahil her query_storefront çağrısı bir satır; FR-006/SC-005).
-                opts.Schema.For<Storefront.Api.AgentSql.AgentQueryLog>();
+                // sorgu izi (ret dahil her query_storefront çağrısı bir satır; FR-009).
+                opts.Schema.For<Storefront.Api.QueryLog.AgentQueryLog>();
             })
             .IntegrateWithWolverine()
+            // Event-log → Elasticsearch: DI'lı async projeksiyon (ctor ES client + embedding üretici).
+            .AddProjectionWithServices<StorefrontProjection>(ProjectionLifecycle.Async, ServiceLifetime.Singleton)
+            // Async daemon Solo (dev Wolverine Solo durability ile uyumlu; daemon koşmazsa projeksiyon çalışmaz).
+            .AddAsyncDaemon(DaemonMode.Solo)
             .ApplyAllDatabaseChangesOnStartup();
 
         return builder;

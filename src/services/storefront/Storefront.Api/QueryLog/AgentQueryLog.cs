@@ -1,7 +1,7 @@
-namespace Storefront.Api.AgentSql;
+namespace Storefront.Api.QueryLog;
 
 // R6: sorgu izi — aggregate DEĞİL (davranışsız iz dokümanı; read-model/iz istisnası).
-// Ret DAHİL her çağrıda bir satır; sahip bağlantıyla yazılır (kısıtlı rol buraya yazamaz — yapısal).
+// 086: artık ES DSL izi (Marten doc Postgres'te kalır). Ret DAHİL her çağrıda bir satır (FR-009).
 public class AgentQueryLog
 {
     private AgentQueryLog()
@@ -10,12 +10,13 @@ public class AgentQueryLog
 
     public Guid Id { get; private set; }
 
-    // Ham metin, {{EMBED}} İKAMESİZ — asistanın yazdığı hal (vektör log'a sızmaz, R3).
+    // 086: ham ES DSL JSON (asistanın yazdığı hal), {{EMBED}} İKAMESİZ — vektör log'a sızmaz (R3).
+    // Alan adı `Sql` KORUNDU (rename yok, C4): tarihsel iz uyumu + guard hizası.
     public string Sql { get; private set; } = null!;
 
     public AgentQueryVerdict Verdict { get; private set; }
 
-    // StorefrontResourceConstants.AgentSql* sabiti (Rejected/Failed'da dolu).
+    // StorefrontResourceConstants.STOREFRONT_SEARCH_* sabiti (Rejected/Failed'da dolu).
     public string? RejectCode { get; private set; }
 
     // Tam Postgres/SQLSTATE metni (yalnız iz; asistana budanmış döner, R5).
