@@ -39,7 +39,7 @@ Değişen mevcut servisler: `src/services/{catalog,stock,discount}/*.Api/`. Repo
       (Scrutor `AddAllDependencies` — Stock.Api ile birebir aynı), boş `Program.cs` (yalnızca
       `WebApplication.CreateBuilder` + `AddOpenApiDocumentation()`) — hepsi
       `src/services/storefront/Storefront.Api/` altında
-- [X] T002 [P] `ECommerceWithAgentFramework.slnx`'e `src/services/storefront/Storefront.Api/Storefront.Api.csproj`
+- [X] T002 [P] `ECommerceAgent.slnx`'e `src/services/storefront/Storefront.Api/Storefront.Api.csproj`
       (`/src/services/` klasörü altına) ve `tests/Storefront.Api.Tests/Storefront.Api.Tests.csproj`
       (`/tests/` klasörü altına) ekle
 - [X] T003 [P] `tests/Storefront.Api.Tests/Storefront.Api.Tests.csproj` (Stock.Api.Tests.csproj'u

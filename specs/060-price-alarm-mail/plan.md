@@ -98,7 +98,7 @@ Değişen mevcut dosyalar:
 ├── src/others/Identity.Server/{Config,Rbac/KnownScopes}.cs + Common/AuthorizationScopes.cs  # library.*
 ├── src/aspire/AppHost/AppHost.cs            # libraryDb + 3 proje + mailpit container
 ├── Directory.Packages.props                 # MailKit
-├── ECommerceWithAgentFramework.slnx         # 3 yeni proje
+├── ECommerceAgent.slnx         # 3 yeni proje
 ├── src/ui/WebApp/                           # ILibraryRefitService + Detail sayfası düğme + handler'lar
 └── CLAUDE.md                                # BC haritasına library satırı + NotificationAgent/Mail.Mcp
 

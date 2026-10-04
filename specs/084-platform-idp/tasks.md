@@ -8,7 +8,7 @@ description: "Task list — Platform IdP Terfisi (Dilim A)"
 
 **Tests**: İLKE VI — yalnız saf mantık (AppRegistry doğrulama değişmezleri) için test-first ZORUNLU. Taşıma/kablo/altyapı = canlı doğrulama (quickstart S1-S6).
 
-**İki repo**: `AgentPlatform/` (YENİ) + `ECommerceWithAgentFramework/` (mevcut). Paylaşılan: `Platform.Auth` NuGet.
+**İki repo**: `AgentPlatform/` (YENİ) + `ECommerceAgent/` (mevcut). Paylaşılan: `Platform.Auth` NuGet.
 
 ## Phase 1: Setup
 

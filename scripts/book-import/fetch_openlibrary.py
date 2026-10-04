@@ -33,7 +33,7 @@ SUBJECTS = [
 ]
 
 # OL etiketi: açıklayıcı User-Agent ister (iletişim için). Rate-limit'e kibar davran.
-USER_AGENT = "ECommerceWithAgentFramework-BookSeed/1.0 (education; contact: hasancagridemiriz@gmail.com)"
+USER_AGENT = "ECommerceAgent-BookSeed/1.0 (education; contact: hasancagridemiriz@gmail.com)"
 FIELDS = "key,title,author_name,isbn,publisher,cover_i,subject,first_publish_year,language"
 PAGE_SIZE = 100
 THROTTLE_SEC = 1.0          # sayfalar arası bekleme (rate-limit)

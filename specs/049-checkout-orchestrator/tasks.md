@@ -20,7 +20,7 @@ karar metotları) test-first; test task'ı implementasyondan ÖNCE. Handler/endp
 
 ## Phase 1: Setup (Paylaşılan İskelet)
 
-- [X] T001 `Checkout.Orchestrator` projesini oluştur `src/services/checkout/Checkout.Orchestrator/Checkout.Orchestrator.csproj` + `ECommerceWithAgentFramework.slnx`'e ekle
+- [X] T001 `Checkout.Orchestrator` projesini oluştur `src/services/checkout/Checkout.Orchestrator/Checkout.Orchestrator.csproj` + `ECommerceAgent.slnx`'e ekle
 - [X] T002 [P] AppHost'a ekle: `checkoutDb` + `checkout-orchestrator` (rabbit + orderApi/stockApi/basketApi/paymentApi WaitFor) `src/aspire/AppHost/AppHost.cs`
 - [X] T003 [P] `CheckoutSchemaName` sabiti ekle `src/others/Common/Utils/Constants/SchemaConstants.cs`
 - [X] T004 [P] `Properties/launchSettings.json` (Development env + http/https profil) — 048 dersi `src/services/checkout/Checkout.Orchestrator/Properties/launchSettings.json`

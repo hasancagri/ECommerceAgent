@@ -113,7 +113,7 @@ tests/Mcp.Gateway.Tests/
 src/others/Identity.Server/Config.cs          # external-customer-agent (public+PKCE, müşteri scope demeti)
 src/services/gateway/Gateway/appsettings*     # /mcp + /mcp-admin → mcp-gateway route (tek dış giriş)
 src/aspire/AppHost/AppHost.cs                 # mcp-gateway kaydı + tool topladığı BC'leri WaitFor
-ECommerceWithAgentFramework.slnx              # 1 yeni proje (+ test)
+ECommerceAgent.slnx              # 1 yeni proje (+ test)
 ```
 
 **Structure Decision**: Yeni izole servis `src/agents/Mcp.Gateway` (agent-facing, DB'siz standalone MCP —

@@ -6,11 +6,11 @@
 
 **Status**: Draft
 
-**Input**: User description: "Domain içinde dönen her sonucu ResultDomain ile sar; aggregate-klasör ve ValueObjects yerleşim kurallarını CLAUDE.md'ye kural olarak yaz. Hem PaymentGateway hem ECommerceWithAgentFramework."
+**Input**: User description: "Domain içinde dönen her sonucu ResultDomain ile sar; aggregate-klasör ve ValueObjects yerleşim kurallarını CLAUDE.md'ye kural olarak yaz. Hem PaymentGateway hem ECommerceAgent."
 
 ## Bağlam
 
-İki repo (**PaymentGateway** + **ECommerceWithAgentFramework**) mimariyi paylaşır: Vertical Slice + CQRS,
+İki repo (**PaymentGateway** + **ECommerceAgent**) mimariyi paylaşır: Vertical Slice + CQRS,
 zengin aggregate'ler, Result pattern. Şu an domain katmanında tutarsızlık var: bazı aggregate davranış
 metotları sonucu `ResultDomain` ile sararken (ör. `SettlementAccount.UpdateDetails`), bazıları ham
 enum/bool/değer döner (ör. `DomainControlChallenge.Verify` → `ChallengeOutcome`, `Merchant.TryActivate`
@@ -122,7 +122,7 @@ loose VO dosyaları `ValueObjects/` altına taşınır; build yeşil kalır.
   kapsamı dışındadır ve yerinde kalır.
 - **FR-010**: Üç kural (FR-001..FR-004 özeti, FR-007, FR-008) her iki repo'nun `CLAUDE.md`'sine
   örnekli ve muafiyetli olarak yazılır.
-- **FR-011**: Standart hem PaymentGateway hem ECommerceWithAgentFramework'te paralel uygulanır; her
+- **FR-011**: Standart hem PaymentGateway hem ECommerceAgent'te paralel uygulanır; her
   repo kendi spec/plan/tasks döngüsüyle ilerler ama kural metni aynıdır.
 
 ### Key Entities

@@ -29,7 +29,7 @@ Paylaşılan: `src/others/`, `src/aspire/AppHost/`, `src/ui/WebApp/`, `src/servi
 - [X] T005 [P] `src/others/Identity.Server/Config.cs`: 2 ApiScope + ApiResource `customer.api` + `ecommerce.bff` AllowedScopes'a customer scope'ları ekle
 - [X] T006 `src/aspire/AppHost/AppHost.cs`: `customerDb` + `customer-api` resource (WithReference db/rabbit/identity); gateway + web referanslarına ekle
 - [X] T007 [P] `tests/Customer.Api.Tests/Customer.Api.Tests.csproj` oluştur (xUnit + Shouldly; Customer.Api referansı)
-- [X] T008 [P] `ECommerceWithAgentFramework.slnx`: Customer.Api + Customer.Api.Tests projelerini çözüme ekle
+- [X] T008 [P] `ECommerceAgent.slnx`: Customer.Api + Customer.Api.Tests projelerini çözüme ekle
 
 ---
 

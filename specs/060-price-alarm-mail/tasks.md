@@ -16,7 +16,7 @@
 - [X] T002 [P] `src/services/library/Library.Api/` iskeleti: csproj (Common/Shared/ServiceDefaults ref), `GlobalUsings.cs`, `Properties/launchSettings.json` (TUZAK: şart), `Constants/LibraryResourceConstants.cs` (boş sınıf)
 - [X] T003 [P] `src/agents/NotificationAgent/` iskeleti (Reviews.Moderation şablonu): csproj (ServiceDefaults+Shared ref, Agents.AI + Agents.AI.Workflows + Extensions.AI.OpenAI paketleri), `GlobalUsings.cs`, `Properties/launchSettings.json`, user-secrets Id
 - [X] T004 [P] `src/agents/Mail.Mcp/` iskeleti: csproj (ModelContextProtocol.AspNetCore + MailKit + ServiceDefaults), `GlobalUsings.cs`, `Properties/launchSettings.json`
-- [X] T005 `ECommerceWithAgentFramework.slnx`'e 3 yeni proje + `tests/Library.Api.Tests` girişleri; test projesi iskeleti (xUnit+Shouldly, Library.Api ref)
+- [X] T005 `ECommerceAgent.slnx`'e 3 yeni proje + `tests/Library.Api.Tests` girişleri; test projesi iskeleti (xUnit+Shouldly, Library.Api ref)
 - [X] T006 `src/aspire/AppHost/AppHost.cs`: `libraryDb` + `mailpit` container (`axllent/mailpit`, SMTP 1025 endpoint + HTTP 8025 endpoint) + `library-api` (libraryDb+rabbit+identityServer ref/WaitFor) + `mail-mcp` (mailpit SMTP endpoint'i env: `Smtp__Host`/`Smtp__Port`) + `notification-agent` (rabbit + mail-mcp ref)
 
 ---

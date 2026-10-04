@@ -21,7 +21,7 @@ canlı doğrulama (quickstart). Fasad DB'siz + domain aggregate yok.
 ## Phase 1: Setup (Shared Infrastructure)
 
 - [X] T001 `src/agents/Mcp.Gateway/Mcp.Gateway.csproj` oluştur (net10; ref: Common, Shared, ServiceDefaults; `ModelContextProtocol.AspNetCore` + `ModelContextProtocol.Core`; sürümsüz PackageReference)
-- [X] T002 `Mcp.Gateway` + `tests/Mcp.Gateway.Tests`'i `ECommerceWithAgentFramework.slnx`'e ekle
+- [X] T002 `Mcp.Gateway` + `tests/Mcp.Gateway.Tests`'i `ECommerceAgent.slnx`'e ekle
 - [X] T003 [P] `src/agents/Mcp.Gateway/GlobalUsings.cs`
 - [X] T004 [P] `src/agents/Mcp.Gateway/Properties/launchSettings.json` (Production default tuzağı — bkz [[aspire-service-needs-launchsettings]])
 - [X] T005 [P] `src/agents/Mcp.Gateway/Options/FacadeOption.cs` (downstream BC listesi + yüzey + RequiresUserAuth + discovery makine kimliği + CacheTtl) + `appsettings*.json` (downstream-registry.md eşlemesi)

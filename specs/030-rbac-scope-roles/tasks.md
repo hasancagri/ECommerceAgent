@@ -24,7 +24,7 @@ sabiti + WebApp'te tek header linki. Yeni servis/BC yok.
 **Purpose**: Proje iskeleti ve test projesi
 
 - [X] T001 [P] `src/others/Identity.Server/Rbac/` klasörünü oluştur ve `tests/Identity.Server.Tests/`
-  xUnit+Shouldly projesini (yoksa) kur, `ECommerceWithAgentFramework.slnx`'e ekle
+  xUnit+Shouldly projesini (yoksa) kur, `ECommerceAgent.slnx`'e ekle
 
 ---
 

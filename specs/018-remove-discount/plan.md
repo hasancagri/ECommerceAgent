@@ -73,7 +73,7 @@ src/ui/WebApp/Services/Refit/IDiscountRefitService.cs
 src/ui/WebApp/Pages/Basket/Dto/{GetDiscountByCouponResponse,ApplyDiscountRateRequest}.cs
 
 DÜZENLENİR:
-ECommerceWithAgentFramework.slnx                # 2 proje kaydı düşer
+ECommerceAgent.slnx                # 2 proje kaydı düşer
 src/aspire/AppHost/AppHost.cs                   # discountDb + discount-api + 4 referans
 src/services/gateway/Gateway/appsettings.Development.json  # 2 route + 1 cluster
 src/others/Shared/{IntegrationEvents,RabbitMqConstants}.cs # event + sabitler

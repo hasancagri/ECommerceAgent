@@ -20,7 +20,7 @@ gereği yeni test-first birim gerekmez. Regression = mevcut `tests/Reviews.Api.T
 
 - [x] T001 Yeni proje `src/agents/Reviews.Moderation/Reviews.Moderation.csproj` oluştur (Sdk.Web, net10.0, Nullable+ImplicitUsings, yeni UserSecretsId); ProjectReference: `src/aspire/ServiceDefaults` + `src/others/Shared`.
 - [x] T002 Worker paket refs ekle (sürümsüz — CPM), T014'te Reviews'ten sökülenleri aynala: `Microsoft.Agents.AI`, `Microsoft.Extensions.AI`, `Microsoft.Extensions.AI.OpenAI` + messaging için `WolverineFx` + `WolverineFx.RabbitMQ`. Marten/Postgres/Http/JwtBearer/gRPC YOK (worker DB'siz). Sürümler zaten `Directory.Packages.props`'ta.
-- [x] T003 `ECommerceWithAgentFramework.slnx`'e `src/agents/` klasörü altına Reviews.Moderation projesini ekle.
+- [x] T003 `ECommerceAgent.slnx`'e `src/agents/` klasörü altına Reviews.Moderation projesini ekle.
 - [x] T004 `src/aspire/AppHost/AppHost.csproj`'a Reviews.Moderation ProjectReference ekle.
 - [x] T005 `src/aspire/AppHost/AppHost.cs`: `reviews-moderation-agent` resource kaydet (`AddProject`, `.WithReference(rabbit)`, `.WaitFor(rabbit)`); **reviewsDb referansı YOK**.
 - [x] T006 [P] Worker `src/agents/Reviews.Moderation/GlobalUsings.cs` oluştur (Wolverine, Wolverine.RabbitMQ, Shared, Shared.IntegrationEvents, Microsoft.Extensions.AI, Microsoft.Agents.AI vb.).

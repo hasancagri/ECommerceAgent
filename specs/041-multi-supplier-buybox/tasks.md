@@ -11,7 +11,7 @@ Söküm ÖNCE gelir (eski ingest yolu ile yeni yol birlikte yaşayamaz); söküm
 
 ## Phase 2A: Söküm (foundational — eski ingest yolu gider)
 
-- [X] T002 IngestionAgent projesini sil: `src/agents/IngestionAgent/` + `ECommerceWithAgentFramework.slnx` kaydı
+- [X] T002 IngestionAgent projesini sil: `src/agents/IngestionAgent/` + `ECommerceAgent.slnx` kaydı
 - [X] T003 Supplier.Gateway projesini sil: `src/services/supplier/Supplier.Gateway/` + slnx kaydı
 - [X] T004 AppHost temizliği: `ingestion-agent` + `supplier-gateway` resource'ları + `supplierGatewayDb`:
       `src/aspire/AppHost/AppHost.cs`

@@ -13,7 +13,7 @@
 
 - [X] T001 Branch aç: master'dan `054-personal-home-feed` (implement bu branch'te)
 - [X] T002 `tests/Storefront.Api.Tests` projesi yoksa oluştur (xUnit + Shouldly, Central Package
-      Management sürümsüz referans) ve `ECommerceWithAgentFramework.slnx`'e bağla; varsa geç
+      Management sürümsüz referans) ve `ECommerceAgent.slnx`'e bağla; varsa geç
 
 ## Phase 2: Foundational
 

@@ -4,7 +4,7 @@ Refactor davranışı değiştirmez; doğrulama derleyici + mevcut birim testler
 
 ## Ön koşul
 - .NET 10 SDK
-- Repo kökü: `/Users/macbook/Desktop/ECommerceWithAgentFramework`
+- Repo kökü: `/Users/macbook/Desktop/ECommerceAgent`
 
 ## Adımlar
 

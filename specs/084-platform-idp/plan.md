@@ -70,7 +70,7 @@ Platform.Auth (NuGet)               # ← Common'ın NÖTR kısmı: IdentityOpti
                                     #   ECommerce + AgentPlatform tüketir. (ScopeClaimArrayHandler DEĞİL —
                                     #   sunucu-handler'ı IdP'de kalır, AgentPlatform'a taşınır)
 
-# Mevcut repo: ECommerceWithAgentFramework/
+# Mevcut repo: ECommerceAgent/
 src/others/Common/
 └── Utils/Constants/AuthorizationScopes.cs  # ⟳ KALIR — ECommerce'in KENDİ scope ad-uzayı (app #1)
 src/aspire/AppHost/AppHost.cs               # ⟳ identity-server proje-ref → dış-servis ref (AgentPlatform URL)
