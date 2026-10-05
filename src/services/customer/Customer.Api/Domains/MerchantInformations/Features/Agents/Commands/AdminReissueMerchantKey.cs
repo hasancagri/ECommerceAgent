@@ -33,18 +33,22 @@ public static class AdminReissueMerchantKey
                 return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Error(new MessageItem
                 { Code = CustomerResourceConstants.MERCHANT_ONBOARDING_UNAVAILABLE });
 
-            // Yeni key için yeni kayıt çevrimi (callback onu Active'e çeker). Guard PG'den önce.
+            // Yeni key için yeni kayıt çevrimi (callback onu Active'e çeker).
             var correlationId = Guid.NewGuid();
             var started = info.StartRegistration(correlationId);
             if (!started.IsSuccess)
                 return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Error(started.Messages);
 
+            // 087 reissue YARIŞ FIX'i: yeni pending-correlation'ı PG'yi çağırmadan ÖNCE durable commit et.
+            // PG reissue callback'i ANINDA döner; bu commit olmadan callback eski correlation'ı görüp nötr
+            // reddeder (yeni key düşmez). StartRegistration overwrite-safe → PG başarısızsa kilitlenme yok.
+            session.Store(info);
+            await session.SaveChangesAsync(ct);
+
             var accepted = await gateway.ReissueAsync(info.MerchantId, cmd.Reason?.Trim(), correlationId, ct);
             if (accepted is null)
                 return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Error(new MessageItem
                 { Code = CustomerResourceConstants.MERCHANT_ONBOARDING_UNAVAILABLE });
-
-            session.Store(info);
 
             return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Ok(new AdminReissueMerchantKeyResponse
             {

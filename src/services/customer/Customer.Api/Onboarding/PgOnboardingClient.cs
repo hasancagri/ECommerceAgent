@@ -19,9 +19,13 @@ public sealed class PgOnboardingClient(
     public sealed record ApplicationStatus(string Status, string? Message, string? RejectReason);
 
     // 087 register-request kontratı: finansal alan yalnız GÖVDEDE (MCP arg değil, sunucu-tarafı okunur).
-    // contactEmail = başvuru kimliği (MCP arg, hassas değil); legalName/taxNumber/iban = MerchantBusinessProfile
-    // secret config'ten (FR-002). Hiçbiri log/trace/dönüşe yazılmaz.
-    private sealed record RegisterBusiness(string ContactEmail, string LegalName, string TaxNumber, string Iban);
+    // Alan adları PG BusinessBody ile BİREBİR (case-insensitive JSON); Email = başvuru kimliği (MCP arg);
+    // geri kalanı MerchantBusinessProfile secret config'ten (FR-002). Hiçbiri log/trace/dönüşe yazılmaz.
+    // Type = PG MerchantType enum değeri (sayısal; PG string converter'ı yok).
+    private sealed record RegisterBusiness(
+        int Type, string Name, string Email, string GsmNumber, string Address, string Iban,
+        string ContactName, string ContactSurname,
+        string? IdentityNumber, string? TaxOffice, string? TaxNumber, string? LegalCompanyTitle);
     private sealed record RegisterRequest(Guid CorrelationId, string CallbackUrl, RegisterBusiness Business);
     private sealed record ReissueRequest(Guid CorrelationId, string CallbackUrl, Guid MerchantId, string? Reason);
 
@@ -36,7 +40,11 @@ public sealed class PgOnboardingClient(
             () => WithBootstrapKey(new HttpRequestMessage(HttpMethod.Post, Url("/api/v1/onboarding/register"))
             {
                 Content = JsonContent.Create(new RegisterRequest(correlationId, option.CallbackUrl,
-                    new RegisterBusiness(contactEmail, businessProfile.LegalName, businessProfile.TaxNumber, businessProfile.Iban)))
+                    new RegisterBusiness(
+                        businessProfile.Type, businessProfile.Name, contactEmail, businessProfile.GsmNumber,
+                        businessProfile.Address, businessProfile.Iban, businessProfile.ContactName,
+                        businessProfile.ContactSurname, businessProfile.IdentityNumber, businessProfile.TaxOffice,
+                        businessProfile.TaxNumber, businessProfile.LegalName)))
             }),
             "onboarding register", ct);
 

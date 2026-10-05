@@ -14,11 +14,17 @@ public static class MerchantRegistrationCallbackEndpointExtension
     {
         app.MapPost("/internal/merchant-registration/callback", async (
             HttpRequest request,
-            CallbackSignatureValidator validator,
+            Customer.Api.Onboarding.DropShopOnboardingOption options,
             IMessageBus bus,
             ILogger<CallbackSignatureValidator> logger,
             CancellationToken ct) =>
         {
+            // CallbackSignatureValidator yalnız marker ITransientDependency taşır → Scrutor onu concrete
+            // tip olarak KAYDETMEZ; endpoint'e concrete inject edilince Minimal API body sanıp deserialize
+            // eder → 500 (Payment.Api /callback emsali). DropShopOnboardingOption (resolvable) inject edilir,
+            // validator inline new'lenir (saf HMAC helper'ı).
+            var validator = new CallbackSignatureValidator(options);
+
             // 1) Raw body (imza ham gövde üzerinden; deserialize ÖNCESİ).
             using var reader = new StreamReader(request.Body);
             var rawBody = await reader.ReadToEndAsync(ct);

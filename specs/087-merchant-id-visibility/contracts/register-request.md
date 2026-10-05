@@ -15,10 +15,18 @@ Content-Type: application/json
   "correlationId": "<guid>",               # store üretir; callback'le eşleşir
   "callbackUrl": "<CallbackBaseUrl>/internal/merchant-registration/callback",
   "business": {                            # finansal dahil — yalnız S2S gövde, MCP arg DEĞİL
-    "legalName": "string",
-    "taxNumber": "string",
-    "contactEmail": "string",
-    "iban": "string"                        # hassas; gövdede, loglanmaz
+    "type": 3,                              # PG MerchantType (sayısal; 3=LimitedOrJointStockCompany)
+    "name": "string",                       # işyeri/site adı
+    "email": "string",                      # başvuru kimliği (tek MCP arg = contactEmail)
+    "gsmNumber": "string",
+    "address": "string",
+    "iban": "string",                       # hassas; gövdede, loglanmaz
+    "contactName": "string",
+    "contactSurname": "string",
+    "taxOffice": "string?",                 # şirket tiplerinde zorunlu
+    "taxNumber": "string?",                 # hassas; LimitedOrJointStock'ta zorunlu
+    "legalCompanyTitle": "string?",         # şirket tiplerinde zorunlu (= LegalName)
+    "identityNumber": "string?"             # Personal/PrivateCompany'de zorunlu
   }
 }
 ```

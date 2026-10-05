@@ -74,16 +74,15 @@ public class MerchantInformation : AggregateRoot
     /// <summary>087: henüz kayıtsız (credential'sız) yeni merchant kaydı — makine-handoff yolu için tohum. Store tek-merchant.</summary>
     public static MerchantInformation NewUnregistered() => new();
 
-    /// <summary>087: kayıt çevrimi başlatır (store→PG register tetiği). Correlation set + Pending. Boş correlation RET; zaten Pending + FARKLI correlation RET (tek-aktif kayıt guard); aynı correlation idempotent.</summary>
+    /// <summary>087: kayıt/yenileme çevrimi başlatır (store→PG tetiği). Correlation set + Pending. Boş
+    /// correlation RET. Overwrite-safe (087 reissue yarış fix'i): bir Pending yeni correlation'la ÜZERİNE
+    /// yazılabilir — reissue PG'den ÖNCE pending'i commit eder, PG başarısızsa sonraki çevrim bayat
+    /// pending'i ezer (kilitlenme yok). Tek first-party merchant → eşzamanlı çift-kayıt riski yok.</summary>
     public ResultDomain StartRegistration(Guid correlationId)
     {
         if (correlationId == Guid.Empty)
             return ResultDomain.Error(new MessageItem
             { Property = nameof(PendingCorrelationId), Code = CustomerResourceConstants.VALUE_IS_REQUIRED });
-
-        if (Registration == RegistrationStatus.Pending && PendingCorrelationId != correlationId)
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(Registration), Code = CustomerResourceConstants.INVALID_OPERATION_ERROR });
 
         Registration = RegistrationStatus.Pending;
         PendingCorrelationId = correlationId;
