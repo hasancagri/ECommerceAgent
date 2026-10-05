@@ -63,4 +63,98 @@ public class MerchantInformationTests
         result.IsSuccess.ShouldBeFalse();
         info.MerchantKey.ShouldBe(ValidKey);
     }
+
+    // --- 087: makine-handoff kayıt + HMAC-callback credential set ---
+
+    [Fact]
+    public void StartRegistration_Pending_ve_correlation_set()
+    {
+        var correlation = Guid.NewGuid();
+        var info = MerchantInformation.NewUnregistered();
+
+        var result = info.StartRegistration(correlation);
+
+        result.IsSuccess.ShouldBeTrue();
+        info.Registration.ShouldBe(RegistrationStatus.Pending);
+        info.PendingCorrelationId.ShouldBe(correlation);
+    }
+
+    [Fact]
+    public void StartRegistration_bos_correlation_Error()
+    {
+        var info = MerchantInformation.NewUnregistered();
+
+        var result = info.StartRegistration(Guid.Empty);
+
+        result.IsSuccess.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void StartRegistration_zaten_Pending_farkli_correlation_Error()
+    {
+        var info = MerchantInformation.NewUnregistered();
+        info.StartRegistration(Guid.NewGuid());
+
+        var result = info.StartRegistration(Guid.NewGuid());
+
+        result.IsSuccess.ShouldBeFalse(); // tek-aktif kayıt guard
+    }
+
+    [Fact]
+    public void StartRegistration_zaten_Pending_ayni_correlation_idempotent_Ok()
+    {
+        var correlation = Guid.NewGuid();
+        var info = MerchantInformation.NewUnregistered();
+        info.StartRegistration(correlation);
+
+        var result = info.StartRegistration(correlation);
+
+        result.IsSuccess.ShouldBeTrue();
+        info.PendingCorrelationId.ShouldBe(correlation);
+    }
+
+    [Fact]
+    public void ApplyCredentialsFromCallback_eslesen_correlation_Active_ve_key_set()
+    {
+        var correlation = Guid.NewGuid();
+        var info = MerchantInformation.NewUnregistered();
+        info.StartRegistration(correlation);
+
+        var result = info.ApplyCredentialsFromCallback(correlation, ValidMerchant, ValidKey);
+
+        result.IsSuccess.ShouldBeTrue();
+        info.Registration.ShouldBe(RegistrationStatus.Active);
+        info.MerchantId.ShouldBe(ValidMerchant);
+        info.MerchantKey.ShouldBe(ValidKey);
+        info.CredentialsVerified.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ApplyCredentialsFromCallback_eslesmeyen_correlation_notr_Error_persist_yok()
+    {
+        var info = MerchantInformation.NewUnregistered();
+        info.StartRegistration(Guid.NewGuid());
+
+        var result = info.ApplyCredentialsFromCallback(Guid.NewGuid(), ValidMerchant, ValidKey);
+
+        result.IsSuccess.ShouldBeFalse();
+        info.Registration.ShouldBe(RegistrationStatus.Pending);
+        info.MerchantKey.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ApplyCredentialsFromCallback_cift_callback_ayni_correlation_idempotent_noop()
+    {
+        var correlation = Guid.NewGuid();
+        var info = MerchantInformation.NewUnregistered();
+        info.StartRegistration(correlation);
+        info.ApplyCredentialsFromCallback(correlation, ValidMerchant, ValidKey);
+
+        // İkinci kez aynı callback: no-op Ok, key değişmez (farklı key denense bile yazmaz).
+        var result = info.ApplyCredentialsFromCallback(correlation, Guid.NewGuid(), "mk_other");
+
+        result.IsSuccess.ShouldBeTrue();
+        info.MerchantId.ShouldBe(ValidMerchant);
+        info.MerchantKey.ShouldBe(ValidKey);
+    }
 }

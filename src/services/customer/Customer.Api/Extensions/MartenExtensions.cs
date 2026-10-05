@@ -18,9 +18,6 @@ public static class MartenExtensions
                 opts.Schema.For<Customer.Api.Domains.AddressBooks.AddressBook>().Index(x => x.UserId);
                 // Merchant kimliği (tekil kayıt) — merchant onboarding/admin.
                 opts.Schema.For<Customer.Api.Domains.MerchantInformations.MerchantInformation>();
-                // tek kullanımlık credential-giriş ekran oturumu — token'la yüklenir.
-                opts.Schema.For<Customer.Api.Domains.MerchantInformations.CredentialEntrySession>()
-                    .Index(x => x.Token);
             })
             .IntegrateWithWolverine()
             .ApplyAllDatabaseChangesOnStartup();

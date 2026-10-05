@@ -28,8 +28,8 @@ public static class AdminOnboardingStatus
                 { Code = CustomerResourceConstants.MERCHANT_ONBOARDING_UNAVAILABLE });
 
             var message = status.Status == "Approved"
-                ? "Başvuru onaylandı. Erişim bilgileri başvuru e-postasına gönderilen tek gösterimlik " +
-                  "bağlantıda; kaydetmek için admin_request_credential_entry_link ile store ekranını kullanın."
+                ? "Başvuru onaylandı. Merchant kimliği store'a güvenli callback ile otomatik geldi/gelecek; " +
+                  "admin_get_merchant_status ile doğrulayın (elle giriş gerekmez)."
                 : status.Message ?? string.Empty;
 
             return FeatureObjectResultModel<AdminOnboardingStatusResponse>.Ok(new AdminOnboardingStatusResponse

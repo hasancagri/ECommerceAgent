@@ -1,10 +1,9 @@
 namespace Customer.Api.Domains.MerchantInformations.Features.Agents.Commands;
 
-// 080/PG-046: merchant kaybettiği/sızdığından şüphelendiği MerchantKey yerine taze key alır. Store
-// kayıtlı MerchantId ile PG'ye reissue tetikler (merchant KEY'i kaybetti, Id'yi değil); PG eski key'i
-// her temsilde anında öldürür + yeni key'i tek gösterimlik reveal linkiyle sunar. Yanıt YALNIZ reveal
-// URL (key sohbete/store'a girmez — FR-005). Yeni key'in store'a yazımı mevcut credential-giriş
-// yoluyla (admin_request_credential_entry_link → SubmitMerchantCredentials, PG doğrulamalı UpdateKey).
+// 087 US1/FR-004: merchant kaybettiği/sızdığından şüphelendiği MerchantKey yerine taze key alır. Store
+// kayıtlı MerchantId ile PG'ye reissue tetikler (correlationId + callbackUrl ile); PG eski key'i anında
+// öldürür + YENİ key'i aynı HMAC-callback yoluyla (ReceiveMerchantCredentials) store'a teslim eder.
+// EKRANSIZ — reveal URL / elle-giriş adımı YOK. Yanıt sır-free: yalnız durum (key sohbete/dönüşe girmez).
 public static class AdminReissueMerchantKey
 {
     [RequiredScope(AuthorizationScopes.MerchantCredentialsWrite)]
@@ -12,11 +11,10 @@ public static class AdminReissueMerchantKey
 
     public class AdminReissueMerchantKeyResponse
     {
-        public string RevealUrl { get; set; } = string.Empty;
-        public DateTimeOffset ExpiresAt { get; set; }
         public string Message { get; set; } = string.Empty;
     }
 
+    [Transactional]
     public class AdminReissueMerchantKeyCommandHandler
     {
         public async Task<FeatureObjectResultModel<AdminReissueMerchantKeyResponse>> Handle(
@@ -31,22 +29,27 @@ public static class AdminReissueMerchantKey
                 return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Error(new MessageItem
                 { Code = CustomerResourceConstants.RECORD_NOT_FOUND });
 
-            var reissue = gateway.IsConfigured
-                ? await gateway.ReissueAsync(info.MerchantId, cmd.Reason?.Trim(), ct)
-                : null;
-
-            // PG erişilemez / config yok / merchant Active değil → dostane hata, teknik detay sızmaz.
-            if (reissue is null)
+            if (!gateway.IsConfigured)
                 return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Error(new MessageItem
                 { Code = CustomerResourceConstants.MERCHANT_ONBOARDING_UNAVAILABLE });
 
+            // Yeni key için yeni kayıt çevrimi (callback onu Active'e çeker). Guard PG'den önce.
+            var correlationId = Guid.NewGuid();
+            var started = info.StartRegistration(correlationId);
+            if (!started.IsSuccess)
+                return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Error(started.Messages);
+
+            var accepted = await gateway.ReissueAsync(info.MerchantId, cmd.Reason?.Trim(), correlationId, ct);
+            if (accepted is null)
+                return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Error(new MessageItem
+                { Code = CustomerResourceConstants.MERCHANT_ONBOARDING_UNAVAILABLE });
+
+            session.Store(info);
+
             return FeatureObjectResultModel<AdminReissueMerchantKeyResponse>.Ok(new AdminReissueMerchantKeyResponse
             {
-                RevealUrl = reissue.RevealUrl,
-                ExpiresAt = reissue.ExpiresAt,
-                Message = "Yeni key hazir; reveal linkini merchant'a iletin — key BIR KEZ gosterilir. " +
-                          "Merchant key'i okuduktan sonra admin_request_credential_entry_link ile store'a " +
-                          "elle girer (eski key artik gecersizdir)."
+                Message = "Key yenileme baslatildi; eski key gecersiz. Yeni key store'a guvenli sekilde " +
+                          "otomatik gelir (elle giris yok). Durumu admin_get_merchant_status ile dogrulayin."
             });
         }
     }

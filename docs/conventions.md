@@ -166,6 +166,9 @@ Domains/<Aggregate>/
   (ör. ödeme sağlayıcı geri bildirimi) — üçüncü taraf gRPC desteklemez, HTTP zorunlu kalır. Client tarafı
   auth: mevcut `DelegatingHandler` (S2S makine token'ı) `AddGrpcClient(...).AddHttpMessageHandler<T>()`
   ile aynen REST client'lardaki gibi takılır (.NET gRPC client'ı HttpClient temelli).
+- **Sır/kimlik değeri insan-yüzeyde render EDİLMEZ.** Credential/finansal/PII değeri ekran/chat/MCP-dönüşüne
+  ve log/trace'e girmez (kontrol-düzlemi ≠ veri-düzlemi). Teslim S2S/HMAC-callback, kullanım gRPC; LLM yalnız
+  sır-olmayan opak tutamaç görür, sunucu değere çözer. ADR `adr-mcp-control-plane-no-secret-return`.
 - **MCP yalnız agent tüketir.** Agent olmayan kod (WebApp/servis) imperatif `CallToolAsync` süremez →
   REST/gRPC. Chat akışında MCP DOLAYLI: agent tool'u LLM prompt'uyla seçer, elle `CallToolAsync` YOK.
   MCP tool YALNIZ `Features/Agents/<X>ForAgent` slice'ını çağırır (ince sarmalayıcı).

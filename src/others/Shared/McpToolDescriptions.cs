@@ -341,37 +341,29 @@ public static class McpToolDescriptions
         public const string GetMerchantStatus =
             "Ödeme gateway'i merchant kimliğinin durumunu döndürür: {configured, merchantId?, updatedAt?}. " +
             "\"Merchant kimliği tanımlı mı\", \"ödeme kimliği durumu\" gibi istekler için. configured=false ise kimlik " +
-            "tanımsızdır — önce admin_start_onboarding ile başvur ya da admin_request_credential_entry_link ile gir. " +
+            "tanımsızdır — önce admin_start_onboarding ile kaydı başlat. " +
             "Not: MerchantKey (sır) hiçbir zaman dönmez.";
 
         public const string OnboardingStatus =
             "Ödeme gateway'indeki merchant başvurusunun durumunu sorgular (email = başvuruda kullanılan adres). " +
             "\"Başvurum onaylandı mı\", \"onboarding durumu\" gibi istekler için. Yanıt {status: None|Pending|Approved|Rejected, " +
-            "message, rejectReason?}. Not: MerchantKey döndürmez — Approved'da erişim bilgileri başvuru e-postasındaki " +
-            "tek gösterimlik bağlantıdadır; kaydetmek için admin_request_credential_entry_link ile ekran linki üret.";
+            "message, rejectReason?}. Not: MerchantId/MerchantKey döndürmez — onaylanınca credential store'a sunucu-tarafı " +
+            "güvenli callback ile otomatik gelir, elle giriş/aktarım gerekmez.";
 
         public const string StartOnboarding =
-            "Yeni satıcı (merchant) kaydı başlatır: ödeme gateway'inde (DropShop) hosted form oturumu açar, yanıt yalnız " +
-            "form linkidir. " +
+            "Yeni satıcı (merchant) kaydını başlatır: store sunucu-tarafı ödeme gateway'ine (DropShop) güvenli kayıt isteği " +
+            "gönderir, yanıt yalnız durum bilgisidir (Pending). " +
             "\"Yeni satıcı kaydı başlat\", \"yeni merchant ekle\", \"satıcı onboarding başlat\" gibi istekler için. " +
-            "email başvurunun kimliğidir — durum sorgusu aynı adresle yapılır (admin_onboarding_status). Aynı e-postada " +
-            "bekleyen başvuru varsa yeni form açılmaz, formUrl null + açıklama döner. Not: TCKN/IBAN gibi kimlik/finans " +
-            "bilgisi isteme — müstakbel merchant formu PG ekranında kendisi doldurur, PII sohbete girmez.";
-
-        public const string RequestCredentialEntryLink =
-            "Merchant credential (MerchantId + MerchantKey) girişi için store'un hosted ekranına süreli + tek kullanımlık " +
-            "link üretir. " +
-            "\"Merchant kimlik giriş linki oluştur\", \"credential giriş ekranı linki\" gibi istekler için. Yanıt " +
-            "{url, expiresAt, message}; sohbete yalnız linki düşür. Not: MerchantId/MerchantKey'i sohbetten isteme ve asla " +
-            "sohbete yazma — admin ikiliyi PG teslim sayfasından alıp bu ekrana elle girer; store kayıt anında PG'ye doğrular.";
+            "email başvurunun kimliğidir — durum sorgusu aynı adresle yapılır (admin_onboarding_status). PG admini onaylayınca " +
+            "MerchantId+MerchantKey store'a güvenli callback ile otomatik gelir. Not: TCKN/IBAN/MerchantKey gibi kimlik/finans/sır " +
+            "bilgisi isteme ve sohbete yazma — bu değerler sohbete hiç girmez, sunucu-tarafı taşınır.";
 
         public const string ReissueMerchantKey =
             "Merchant MerchantKey'ini kaybettiğinde/sızdığında ödeme gateway'inde (DropShop) yeni key üretir; eski key her " +
-            "temsilde anında geçersiz olur. " +
+            "temsilde anında geçersiz olur, yeni key store'a güvenli callback ile otomatik gelir. " +
             "\"Merchant key'ini yenile\", \"anahtarı sıfırla\" gibi istekler için. Store'un kayıtlı MerchantId'si kullanılır " +
-            "(Id istenmez). reason opsiyonel (unuttum/sızıntı-şüphesi). Yanıt yalnız tek gösterimlik reveal linkidir; merchant " +
-            "yeni key'i bir kez okur, sonra admin_request_credential_entry_link ile store'a girer. Not: key'i sohbetten isteme " +
-            "ve asla sohbete yazma.";
+            "(Id istenmez). reason opsiyonel (unuttum/sızıntı-şüphesi). Yanıt yalnız durum bilgisidir. Not: MerchantKey sohbete " +
+            "hiç girmez — elle okuma/giriş adımı yoktur, sunucu-tarafı callback'le teslim edilir.";
     }
 
     public static class AuthTools

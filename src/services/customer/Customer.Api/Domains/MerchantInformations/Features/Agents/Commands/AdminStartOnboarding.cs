@@ -1,8 +1,9 @@
 namespace Customer.Api.Domains.MerchantInformations.Features.Agents.Commands;
 
-// US1/FR-001: PII'siz onboarding başlatma — PG'de hosted form oturumu açtırır, sohbete YALNIZ
-// form linki düşer. PII (TCKN/IBAN vb.) PG formunda toplanır; store'a ve LLM'e hiç uğramaz (FR-002).
-// Aynı e-postada yaşayan Pending başvuru varsa PG yeni oturum açmaz → formUrl null + dostane mesaj.
+// 087 US1/FR-002: makine-handoff merchant kaydı — store-başlatır. Admin MCP aksiyonu tetikler; store
+// correlationId üretir, MerchantInformation'ı Pending'e alır, PG'ye S2S register isteği atar (bootstrap
+// key + callbackUrl gövdede/başlıkta). Finansal/sır bilgi MCP arg'ına girmez. Yanıt sır-free: yalnız
+// durum (Pending) — MerchantId/MerchantKey DÖNMEZ (onayda HMAC-callback'le gelir). (078 hosted form SÖKÜLDÜ.)
 public static class AdminStartOnboarding
 {
     [RequiredScope(AuthorizationScopes.MerchantCredentialsWrite)]
@@ -10,15 +11,16 @@ public static class AdminStartOnboarding
 
     public class AdminStartOnboardingResponse
     {
-        public string? FormUrl { get; set; }
         public string ApplicationStatus { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
     }
 
+    [Transactional]
     public class AdminStartOnboardingCommandHandler
     {
         public async Task<FeatureObjectResultModel<AdminStartOnboardingResponse>> Handle(
             AdminStartOnboardingCommand cmd,
+            IDocumentSession session,
             Onboarding.PgOnboardingClient gateway,
             CancellationToken ct)
         {
@@ -26,30 +28,34 @@ public static class AdminStartOnboarding
                 return FeatureObjectResultModel<AdminStartOnboardingResponse>.Error(new MessageItem
                 { Property = nameof(cmd.Email), Code = CustomerResourceConstants.VALUE_IS_REQUIRED });
 
-            var session = gateway.IsConfigured
-                ? await gateway.CreateSessionAsync(cmd.Email.Trim(), ct)
-                : null;
-
-            // PG erişilemez / config yok → dostane hata, teknik detay sızmaz (FR-011).
-            if (session is null)
+            if (!gateway.IsConfigured)
                 return FeatureObjectResultModel<AdminStartOnboardingResponse>.Error(new MessageItem
                 { Code = CustomerResourceConstants.MERCHANT_ONBOARDING_UNAVAILABLE });
 
-            if (session.FormUrl is null)
-            {
-                return FeatureObjectResultModel<AdminStartOnboardingResponse>.Ok(new AdminStartOnboardingResponse
-                {
-                    FormUrl = null,
-                    ApplicationStatus = session.ApplicationStatus,
-                    Message = "Bu e-posta ile bekleyen bir basvuru zaten var; durumu admin_onboarding_status ile takip edin."
-                });
-            }
+            // Store tek-merchant: kayıt yoksa tohum üret; varsa mevcut kayıt üstünden yeni çevrim.
+            var info = await session.Query<MerchantInformation>().FirstOrDefaultAsync(ct)
+                       ?? MerchantInformation.NewUnregistered();
+
+            var correlationId = Guid.NewGuid();
+            // Guard (tek-aktif kayıt) PG'ye gitmeden önce: zaten Pending + farklı correlation ise reddet.
+            var started = info.StartRegistration(correlationId);
+            if (!started.IsSuccess)
+                return FeatureObjectResultModel<AdminStartOnboardingResponse>.Error(started.Messages);
+
+            // PG'ye S2S register (bootstrap key + callbackUrl gövdede). null = PG erişilemez → fail-closed,
+            // hiçbir şey persist edilmez (info henüz Store edilmedi).
+            var accepted = await gateway.RegisterAsync(cmd.Email.Trim(), correlationId, ct);
+            if (accepted is null)
+                return FeatureObjectResultModel<AdminStartOnboardingResponse>.Error(new MessageItem
+                { Code = CustomerResourceConstants.MERCHANT_ONBOARDING_UNAVAILABLE });
+
+            session.Store(info);
 
             return FeatureObjectResultModel<AdminStartOnboardingResponse>.Ok(new AdminStartOnboardingResponse
             {
-                FormUrl = session.FormUrl,
-                ApplicationStatus = session.ApplicationStatus,
-                Message = "Basvuru formu hazir; linki mustakbel merchant'a iletin, formu PG ekraninda kendisi doldurur."
+                ApplicationStatus = accepted.Status,
+                Message = "Kayit baslatildi (Pending). PG admini onaylayinca merchant kimligi store'a " +
+                          "guvenli sekilde otomatik gelir; durumu admin_onboarding_status ile izleyin."
             });
         }
     }
