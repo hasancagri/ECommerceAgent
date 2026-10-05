@@ -8,40 +8,53 @@ namespace Customer.Api.Onboarding;
 public sealed class PgOnboardingClient(
     HttpClient http,
     DropShopOnboardingOption option,
+    MerchantBusinessProfileOption businessProfile,
     ILogger<PgOnboardingClient> logger)
 {
     private static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(30);
 
     public bool IsConfigured => option.IsConfigured;
 
-    // Kontrat #1 yanıtı: Pending-varken formUrl null + applicationStatus="Pending" gelir.
-    public sealed record OnboardingSession(string? FormUrl, DateTimeOffset? ExpiresAt, string ApplicationStatus);
-
     // Kontrat #2 yanıtı: 404 yerine status="None" döner; MerchantId/MerchantKey ASLA yer almaz.
     public sealed record ApplicationStatus(string Status, string? Message, string? RejectReason);
 
-    private sealed record CreateSessionRequest(string Email);
-    private sealed record ValidateRequest(Guid MerchantId, string MerchantKey);
-    private sealed record ValidateReply(bool Valid);
-    private sealed record ReissueRequest(Guid MerchantId, string? Reason);
+    // 087 register-request kontratı: finansal alan yalnız GÖVDEDE (MCP arg değil, sunucu-tarafı okunur).
+    // Alan adları PG BusinessBody ile BİREBİR (case-insensitive JSON); Email = başvuru kimliği (MCP arg);
+    // geri kalanı MerchantBusinessProfile secret config'ten (FR-002). Hiçbiri log/trace/dönüşe yazılmaz.
+    // Type = PG MerchantType enum değeri (sayısal; PG string converter'ı yok).
+    private sealed record RegisterBusiness(
+        int Type, string Name, string Email, string GsmNumber, string Address, string Iban,
+        string ContactName, string ContactSurname,
+        string? IdentityNumber, string? TaxOffice, string? TaxNumber, string? LegalCompanyTitle);
+    private sealed record RegisterRequest(Guid CorrelationId, string CallbackUrl, RegisterBusiness Business);
+    private sealed record ReissueRequest(Guid CorrelationId, string CallbackUrl, Guid MerchantId, string? Reason);
 
-    // PG 046 kontrat yanıtı: yeni key GÖVDEDE gelmez — yalnız tek gösterimlik reveal URL + expiry.
-    public sealed record ReissueResult(string RevealUrl, DateTimeOffset ExpiresAt);
+    // 087 register-request kontratı yanıtı (202): yalnız kabul makbuzu — credential DÖNMEZ (callback'le gelir).
+    public sealed record RegisterAccepted(bool Accepted, Guid CorrelationId, string Status);
 
-    // PG 046 — POST /api/v1/onboarding/reissue: merchant kaybettiği/sızdığından şüphelendiği key
-    // yerine taze key alır; eski key PG'de her temsilde anında ölür. null = PG erişilemedi.
-    public Task<ReissueResult?> ReissueAsync(Guid merchantId, string? reason, CancellationToken ct) =>
-        SendAsync<ReissueResult>(
-            () => new HttpRequestMessage(HttpMethod.Post, Url("/api/v1/onboarding/reissue"))
-            { Content = JsonContent.Create(new ReissueRequest(merchantId, reason)) },
+    // 087 Kontrat #1 — POST /api/v1/onboarding/register: store-başlatır kayıt. X-Registration-Key (bootstrap)
+    // başlığı + finansal payload gövdede + callbackUrl/correlationId. 202 kabul; 401/403 = bootstrap geçersiz
+    // → null (fail-closed, kayıt başlamaz); null = PG erişilemedi. Credential asenkron callback'le döner.
+    public Task<RegisterAccepted?> RegisterAsync(string contactEmail, Guid correlationId, CancellationToken ct) =>
+        SendAsync<RegisterAccepted>(
+            () => WithBootstrapKey(new HttpRequestMessage(HttpMethod.Post, Url("/api/v1/onboarding/register"))
+            {
+                Content = JsonContent.Create(new RegisterRequest(correlationId, option.CallbackUrl,
+                    new RegisterBusiness(
+                        businessProfile.Type, businessProfile.Name, contactEmail, businessProfile.GsmNumber,
+                        businessProfile.Address, businessProfile.Iban, businessProfile.ContactName,
+                        businessProfile.ContactSurname, businessProfile.IdentityNumber, businessProfile.TaxOffice,
+                        businessProfile.TaxNumber, businessProfile.LegalName)))
+            }),
+            "onboarding register", ct);
+
+    // 087 — POST /api/v1/onboarding/reissue: kayıtlı MerchantId için taze key tetikler; eski key PG'de anında
+    // ölür, YENİ key aynı HMAC-callback yoluyla (correlationId) store'a gelir (ekransız — reveal URL YOK).
+    public Task<RegisterAccepted?> ReissueAsync(Guid merchantId, string? reason, Guid correlationId, CancellationToken ct) =>
+        SendAsync<RegisterAccepted>(
+            () => WithBootstrapKey(new HttpRequestMessage(HttpMethod.Post, Url("/api/v1/onboarding/reissue"))
+            { Content = JsonContent.Create(new ReissueRequest(correlationId, option.CallbackUrl, merchantId, reason)) }),
             "onboarding reissue", ct);
-
-    // Kontrat #1 — POST /api/v1/onboarding/sessions: PG'de hosted form oturumu açar.
-    public Task<OnboardingSession?> CreateSessionAsync(string email, CancellationToken ct) =>
-        SendAsync<OnboardingSession>(
-            () => new HttpRequestMessage(HttpMethod.Post, Url("/api/v1/onboarding/sessions"))
-            { Content = JsonContent.Create(new CreateSessionRequest(email)) },
-            "onboarding session", ct);
 
     // Kontrat #2 — GET /api/v1/onboarding/applications/{email}: başvuru durumu.
     public Task<ApplicationStatus?> GetStatusAsync(string email, CancellationToken ct) =>
@@ -50,18 +63,15 @@ public sealed class PgOnboardingClient(
                 Url($"/api/v1/onboarding/applications/{Uri.EscapeDataString(email)}")),
             "onboarding status", ct);
 
-    // Kontrat #3 — POST /api/v1/onboarding/credentials/validate: ikili geçerli mi (FR-013).
-    // null = PG erişilemedi (çağıran kaydı CredentialsVerified:false ile saklar).
-    public async Task<bool?> ValidateCredentialsAsync(Guid merchantId, string merchantKey, CancellationToken ct)
-    {
-        var reply = await SendAsync<ValidateReply>(
-            () => new HttpRequestMessage(HttpMethod.Post, Url("/api/v1/onboarding/credentials/validate"))
-            { Content = JsonContent.Create(new ValidateRequest(merchantId, merchantKey)) },
-            "credential validate", ct);
-        return reply?.Valid;
-    }
-
     private string Url(string path) => $"{option.ApiBaseUrl.TrimEnd('/')}{path}";
+
+    // Kayıt-ucu yetkisi: m2m bearer (OnboardingGatewayTokenHandler) taşıma kimliği; bootstrap key kayıt-ucunu
+    // açar — iki kaygı ayrı başlıkta (FR-003). m2m token handler zinciri bearer'ı ayrıca takar.
+    private HttpRequestMessage WithBootstrapKey(HttpRequestMessage request)
+    {
+        request.Headers.Add("X-Registration-Key", option.BootstrapRegistrationKey);
+        return request;
+    }
 
     private async Task<T?> SendAsync<T>(Func<HttpRequestMessage> requestFactory, string operation, CancellationToken ct)
         where T : class

@@ -82,8 +82,9 @@ app.MapGrpcService<Customer.Api.Grpc.HostedPayment.AddressGrpcService>()
 app.MapGrpcService<Customer.Api.Grpc.HostedPayment.MerchantKeyGrpcService>()
     .RequireAuthorization(AuthorizationScopes.CustomerRead);
 
-// hosted credential-giriş ekranı — ANONİM (token = yetki; İlke V v1.11.1 capability-link istisnası).
-app.MapCredentialEntryEndpoints();
+// 087: PG→store credential callback ucu — HMAC imzalı (JWT değil; İlke V kanıt = imza). Raw body okur,
+// imza doğrular, geçerliyse ReceiveMerchantCredentials invoke eder. (078 elle-giriş ekranı SÖKÜLDÜ.)
+app.MapMerchantRegistrationCallbackEndpoint();
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
 // TEK uç — merchant admin tool'lar scope-budamalı aynı ucta (scope katmanı handler'larda). /mcp-admin öldü.

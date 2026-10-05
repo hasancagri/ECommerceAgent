@@ -48,16 +48,12 @@ public static class StockTools
 
 public static class StorefrontTools
 {
-    // tek serbest-sorgu kapısı — search_storefront_products + find_similar_books TAM İKAME silindi.
     public const string QueryStorefront = "query_storefront";
 }
 
 public static class CustomerTools
 {
-    // GÜVENLİK: get_default_card_bin + get_payment_context sabitleri KALDIRILDI (tool'lar söküldü —
-    // vault token + buyer PII sohbet bağlamına sızıyordu). Ödeme bağlamı yalnız S2S internal REST.
     public const string ListCards = "list_cards";
-    // adres defteri (dış agent yüzeyi; ChatAgent allowlist'inde değil).
     public const string ListAddresses = "list_addresses";
     public const string AddAddress = "add_address";
     public const string UpdateAddress = "update_address";
@@ -104,9 +100,7 @@ public static class CatalogAdminTools
     public const string CreateSpecificationAttribute = "admin_create_specification_attribute";
     public const string AddSpecificationAttributeOption = "admin_add_specification_attribute_option";
     public const string ListSpecificationAttributes = "admin_list_specification_attributes";
-    // backfill: yayındaki tüm ürünler için ProductChangedEvent'i yeniden yayınla (yeni downstream doldur).
     public const string RepublishProducts = "admin_republish_products";
-    // Excel katalog import — token-linkli yükleme başlat, import taslaklarını toplu yayınla, durum raporu.
     public const string ImportCatalog = "admin_import_catalog";
     public const string PublishImported = "admin_publish_imported";
     public const string GetImportStatus = "admin_get_import_status";
@@ -126,21 +120,17 @@ public static class StockAdminTools
 {
     public const string SetStock = "admin_set_stock";
     public const string AdjustStock = "admin_adjust_stock";
-    // admin stok genel görünüm (parite; GetAllStock REST'i söküldü).
     public const string ListAllStock = "admin_list_all_stock";
 }
 
 public static class CustomerAdminTools
 {
     public const string GetMerchantStatus = "admin_get_merchant_status";
-    // US4: SetMerchantCredentials + SubmitOnboarding SÖKÜLDÜ — PII/key sohbete girmez;
-    // giriş = hosted form (StartOnboarding), teslim = mail + store ekranı (RequestCredentialEntryLink).
+    // 087: elle credential giriş/teslim yüzeyi SÖKÜLDÜ — kayıt store-başlatır, credential HMAC-callback'le gelir.
     public const string OnboardingStatus = "admin_onboarding_status";
-    // PII'siz hosted onboarding — form oturumu açar, yalnız link döner.
+    // 087: makine-handoff kayıt başlatır (store→PG S2S, bootstrap key); yalnız durum döner, credential YOK.
     public const string StartOnboarding = "admin_start_onboarding";
-    // credential-giriş ekranına süreli + tek kullanımlık link üretir (key sohbete girmez).
-    public const string RequestCredentialEntryLink = "admin_request_credential_entry_link";
-    // PG'de merchant key yenileme tetikler; yanıt yalnız tek gösterimlik reveal URL (key sohbete girmez).
+    // 087: PG'de merchant key yenileme tetikler; yeni key aynı HMAC-callback yoluyla gelir (ekransız).
     public const string ReissueMerchantKey = "admin_reissue_merchant_key";
 }
 

@@ -15,13 +15,15 @@ public static class OptionsExt
         services.AddSingleton<Customer.Api.Onboarding.DropShopOnboardingOption>(sp =>
             sp.GetRequiredService<IOptions<Customer.Api.Onboarding.DropShopOnboardingOption>>().Value);
 
-        // hosted credential-giriş ekranı (link tabanı + ömür) — section "CredentialEntryOptions".
-        services.AddOptions<Customer.Api.Options.CredentialEntryOptions>()
-            .BindConfiguration(nameof(Customer.Api.Options.CredentialEntryOptions))
+        // 087: first-party merchant iş/finansal künyesi — register gövdesinde S2S gider (sunucu-tarafı okunur,
+        // MCP/sohbete girmez). Section "MerchantBusinessProfile".
+        services.AddOptions<Customer.Api.Onboarding.MerchantBusinessProfileOption>()
+            .BindConfiguration("MerchantBusinessProfile")
             .ValidateDataAnnotations().ValidateOnStart();
-        services.AddSingleton<Customer.Api.Options.CredentialEntryOptions>(sp =>
-            sp.GetRequiredService<IOptions<Customer.Api.Options.CredentialEntryOptions>>().Value);
+        services.AddSingleton<Customer.Api.Onboarding.MerchantBusinessProfileOption>(sp =>
+            sp.GetRequiredService<IOptions<Customer.Api.Onboarding.MerchantBusinessProfileOption>>().Value);
 
+        // 087: CredentialEntryOptions SÖKÜLDÜ (elle-giriş ekranı emekli; credential HMAC-callback'le gelir).
         return services;
     }
 }
