@@ -164,13 +164,6 @@ var reviewsApi = builder.AddProject<Projects.Reviews_Api>("reviews-api")
     // Tuketici kuyrugu yayincidan once baglansin (007 dersi): Storefront reviews'tan once ayakta.
     .WaitFor(storefrontApi);
 
-// Reviews moderasyon worker'i — DB'siz agent process (ChatAgent emsali). Reviews ile yalniz
-// RabbitMQ event'leriyle konusur (ReviewModerationRequested tuket → ReviewModerated yayinla).
-// OpenAI user-secret bu projede; Reviews'in OpenAI bagimliligi kalkti.
-builder.AddProject<Projects.Reviews_Moderation>("reviews-moderation-agent")
-    .WithReference(rabbit)
-    .WaitFor(rabbit);
-
 // Library BC — fiyat alarmı (yaşayan abonelik) + bildirim izi. Catalog'un product.changed
 // fanout'unu dinler, alarm başına PriceAlarmTriggered yayınlar, NotificationSent izini yazar.
 var libraryDb = postgres.AddDatabase("libraryDb");

@@ -78,28 +78,6 @@ public static class RabbitMqConstants
         }
     }
 
-    // Reviews yayınlar, Reviews.Moderation worker tüketir (worker kendi kuyruğunu bağlar).
-    public static class ReviewModerationRequested
-    {
-        public const string Exchange = "reviews.moderation-requested";
-
-        public static class Queues
-        {
-            public const string Worker = "reviews-moderation.requested";
-        }
-    }
-
-    // Reviews.Moderation worker yayınlar, Reviews tüketir (Reviews kendi kuyruğunu bağlar).
-    public static class ReviewModerated
-    {
-        public const string Exchange = "reviews.moderated";
-
-        public static class Queues
-        {
-            public const string Reviews = "reviews.moderated";
-        }
-    }
-
     // Order yayınlar (checkout başarı = Confirm pivotu). Reviews tüketir (satın-alma kanıtı projeksiyonu).
     // 086: Library tüketir (kişisel UserPurchase birikimi — Storefront'tan taşındı); Storefront artık DİNLEMEZ.
     public static class OrderCompleted

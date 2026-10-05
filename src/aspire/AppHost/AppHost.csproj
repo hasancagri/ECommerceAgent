@@ -23,7 +23,6 @@
            party — IdP'ye dış-servis (issuer URL, IdentityOption.Address) olarak bakar, proje-ref YOK. -->
       <ProjectReference Include="..\..\agents\Mail.Mcp\Mail.Mcp.csproj" />
       <ProjectReference Include="..\..\agents\NotificationAgent\NotificationAgent.csproj" />
-      <ProjectReference Include="..\..\agents\Reviews.Moderation\Reviews.Moderation.csproj" />
       <ProjectReference Include="..\..\services\reviews\Reviews.Api\Reviews.Api.csproj" />
       <ProjectReference Include="..\..\services\library\Library.Api\Library.Api.csproj" />
       <ProjectReference Include="..\..\services\discount\Discount.Api\Discount.Api.csproj" />

@@ -2,7 +2,7 @@ namespace Reviews.Api.Domains.Reviews.Features.Agents.Commands;
 
 // MCP yazma slice'ı — agent chat'ten yorum gönderir. İzole handler (SubmitReview'ın bilinçli
 // tekrarı; konvansiyon: Commands'i IMessageBus ile reuse etmez). ReviewerNameRaw token claim'inden
-// (MCP tool doldurur), istek gövdesinden ASLA. Satın-alma kanıtı + tek-yorum + moderasyon event.
+// (MCP tool doldurur), istek gövdesinden ASLA. Satın-alma kanıtı + tek-yorum kontrolü.
 public static class SubmitReview
 {
     [RequiredScope(AuthorizationScopes.ReviewsWrite)]
@@ -63,11 +63,6 @@ public static class SubmitReview
             var count = visibleCount + 1;
             var average = Math.Round((visibleSum + review.Rating) / (decimal)count, 2);
             await bus.PublishAsync(new IntegrationEvents.ReviewSummaryChanged(cmd.ProductId, average, count));
-
-            // Async moderasyon ayrı worker'a — yalnız metin varsa (PII yok; fail-open outbox).
-            if (!string.IsNullOrWhiteSpace(review.Text))
-                await bus.PublishAsync(new IntegrationEvents.ReviewModerationRequested(
-                    review.Id, review.Text, review.Rating));
 
             // Unique index son söz — yarış kaybedeni nazik hataya çevrilir.
             try

@@ -23,32 +23,3 @@ public record ReviewerName
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(word => word.Length == 1 ? word : $"{word[0]}**"));
 }
-
-// R5: moderasyon karari — agent yalniz KARAR verir, uygulama Review.ApplyModeration'da.
-// Guard: violation=true iken gercek bir kategori zorunlu ("none"/bos kabul edilmez).
-public record ModerationVerdict
-{
-    public bool Violation { get; private init; }
-    public string Category { get; private init; } = default!;
-    public string Reason { get; private init; } = default!;
-
-    private ModerationVerdict() { }
-
-    public static ResultDomain<ModerationVerdict> Create(bool violation, string category, string reason)
-    {
-        if (violation && (string.IsNullOrWhiteSpace(category)
-                          || string.Equals(category, "none", StringComparison.OrdinalIgnoreCase)))
-            return ResultDomain<ModerationVerdict>.Error(new MessageItem
-            {
-                Property = nameof(Category),
-                Code = ReviewsResourceConstants.REVIEW_MODERATION_VERDICT_INVALID
-            });
-
-        return ResultDomain<ModerationVerdict>.Ok(new ModerationVerdict
-        {
-            Violation = violation,
-            Category = violation ? category.Trim() : "none",
-            Reason = reason?.Trim() ?? string.Empty
-        });
-    }
-}

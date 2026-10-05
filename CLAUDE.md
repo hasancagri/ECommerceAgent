@@ -24,7 +24,7 @@ scripts/check-flow-links.sh                               # FLOW.md domain-süre
 - **Sistemi hep Aspire AppHost'tan başlat**, tek servis değil — servisler birbirini/DB/RabbitMQ'yu
   service discovery + conn-string enjeksiyonuyla bulur; tek API bağımsız açılmaz.
 - **Marten şeması otomatik kurulur** (`ApplyAllDatabaseChangesOnStartup`) — migration komutu yok.
-- **OpenAI kullanan servisler** (ModerationAgent, NotificationAgent, Storefront —
+- **OpenAI kullanan servisler** (NotificationAgent, Storefront —
   embedding, 067) açılışta fail-fast:
   `dotnet user-secrets set OpenAI:ApiKey <k> --project <proj>` (+ `OpenAI:Model`, ör. gpt-4o-mini).
 - **Paket sürümleri yalnız `Directory.Packages.props`'ta** (Central Package Management); `.csproj`
@@ -36,7 +36,7 @@ scripts/check-flow-links.sh                               # FLOW.md domain-süre
 non-public setter+ctor) · **Wolverine** (in-proc bus `IMessageBus` + RabbitMQ fanout; handler assembly
 taramasıyla) · **OpenIddict + ASP.NET Identity** (IdP) · **YARP** gateway · **MCP** (her API `/mcp`;
 müşteri yüzeyi platform MCP fasadı, AgentPlatform'a taşındı — dış AI istemcisi tüketir) · **Microsoft Agent Framework** +
-`Microsoft.Extensions.AI` (ModerationAgent, NotificationAgent) · **Scrutor** (DI) · **xUnit + Shouldly**.
+`Microsoft.Extensions.AI` (NotificationAgent) · **Scrutor** (DI) · **xUnit + Shouldly**.
 
 ## BC haritası
 
@@ -54,11 +54,10 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
 | `stock` | stockDb | `ProductStock` (OnHand); ilk stok `ProductLinked`'ten; checkout düşümü broker'dan (056); admin artır/azalt + mutlak set (058); admin yüzeyi TEK `/mcp`'de (085 — `/mcp-admin` söküldü; 070: set/adjust tool + iz; `Adjust` domain guard'lı) | `specs/014-supplier-stock-authority` |
 | `storefront` | storefrontDb (Marten event-log) + Elasticsearch | **086: CQRS+Event Sourcing** — Postgres artık read-model değil, ürün-stream event-log (gerçek-kaynak); dört kaynak event (Catalog/Stock/Reviews/Discount) stream'e append, **async projection** (`StorefrontProjection`) katlayıp **Elasticsearch** doc'u yazar/siler (satılabilirse; FR-008 projeksiyon-zamanı dışlama). Müşteri REST okuma SÖKÜLDÜ — okuma yolu asistan; asistan yüzeyi TEK tool `query_storefront` artık ham **ES Query DSL** (text+fuzzy+kNN+filtre tek sorguda; `{{EMBED}}`→knn vektör; minimal rail = sabit index+size≤50+`_source` whitelist+timeout; `AgentQueryLog` izi KALIR; embedding ES `dense_vector`, pgvector/`StorefrontView`/`storefront_sellable`/`AgentSqlGuard`/kısıtlı rol SÖKÜLDÜ). Açılışta index yoksa kurulur (`EnsureAsync`); soğuk başlangıç + reindex = dev full-reset+republish (elle reindex BACKLOG). `UserPurchase`→Library (086). 070 playbook kanonik evi tool Description'ı korunur | `specs/003-storefront-read-model` · `specs/086-storefront-elasticsearch-search` |
 | `customer` | customerDb | Wallet (tokenize kart, PAN yok; kart YAZMA yüzeyi yok — yalnız okuma + payment-context) + AddressBook; izole, event yok; merchant-admin yüzeyi TEK korumalı `/mcp`'de (085 — `/mcp-admin` söküldü; **087: makine-handoff onboarding** — kayıt store-başlatır S2S register (bootstrap key), credential PG→store HMAC-callback'le gelir (`CallbackSignatureValidator` 077 aynası), kullanım gRPC; elle-giriş ekranı `/merchant-credentials/{token}` + `CredentialEntrySession`/`SubmitMerchantCredentials` SÖKÜLDÜ — sır insan-yüzeyde hiç render edilmez) | `specs/022-wallet-address-book` · `specs/087-merchant-id-visibility` |
-| `reviews` | reviewsDb | Satın-alma şartlı yorum; AI moderasyon AYRI worker'da (broker); özet event → Storefront | `specs/044-product-reviews` |
+| `reviews` | reviewsDb | Satın-alma şartlı yorum; yorum HEMEN görünür (moderasyon söküldü 088); özet event → Storefront | `specs/044-product-reviews` |
 | `library` | libraryDb | Kullanıcı-ürün ilgi kayıtları; ilk dilim fiyat alarmı (yaşayan abonelik, email snapshot) + `NotificationRecord` izi; `ProductChangedEvent.OldPrice` tetiği → alarm başına `PriceAlarmTriggered`; **086: `UserPurchase` (kişisel satın-alma birikimi) Storefront'tan taşındı** — `OrderCompleted` tüketir (`OrderConsumers`, idempotent upsert) | `specs/060-price-alarm-mail` |
 | `gateway` | — | YARP reverse proxy; tek giriş | — |
 | `identity-server` | identityDb | **084: ECommerce'ten ÇIKTI — `AgentPlatform` repo'sunda platform IdP** (uygulama-nötr; ECommerce "app #1" olarak `AppRegistry` config'inde kayıtlı relying party). OpenIddict + ASP.NET Identity; OIDC/OAuth + RBAC; DCR + tek consent + revocation (061). Nötr auth kablosu (`IdentityOption`+`AddAuthenticationAndAuthorizationExtension`) = `Platform.Auth` NuGet paketi (yerel feed, namespace Common.* korunur). ECommerce IdP'ye dış-servis (issuer URL `IdentityOption.Address`) olarak bakar; AppHost proje-ref YOK | `../AgentPlatform` · `specs/084-platform-idp` |
-| `reviews-moderation-agent` | — | Reviews moderasyonu (DB'siz worker); `ReviewModerationRequested`→LLM→`ReviewModerated` | `specs/046-reviews-moderation-agent` |
 | `notification-agent` | — | Fiyat alarmı maili (DB'siz worker); `PriceAlarmTriggered`→LLM compose→Mail.Mcp `send_mail`→`NotificationSent` | `specs/060-price-alarm-mail` |
 | `mail-mcp` | — | İlk standalone MCP server; tek tool `send_mail` (MailKit→Mailpit); yalnız NotificationAgent tüketir, ChatAgent'a KAYITLI DEĞİL | `specs/060-price-alarm-mail` |
 | `file` | fileDb | Kapak **kayıt defteri** (082: DB'siz proxy → Marten BC); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2, byte DB'de değil); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base, full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **083: kapak akışı kablosu** — RabbitMQ transport (bugüne dek in-proc only); `ProductAdded` tüketir (`CatalogConsumers`, R2'de yoksa yerel staging'den yükle+kayıt) → `CoverIngested(isbn,url)` yayar → Catalog `Product.ImageUrl` doldurur | `specs/081-cover-image-store` |
@@ -107,9 +106,6 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
   (061 korumalı transport'lar için; `DiscoveryTokenSource` + `TokenInjectingHandler` HttpContext-yok
   fallback'i). Tool ÇAĞRISI her zaman o anki kullanıcı token'ıyla. Keşifte 401/403 KALICI sayılır (retry
   yok); dış MCP'ler (DropShop) tek deneme — retry bütçesi yalnız Aspire iç boot yarışına.
-- **ModerationAgent (ayrı `reviews-moderation-agent` worker'ı):** Singleton ChatClientAgent (Temp=0,
-  structured JSON, MCP'siz), retry→error queue. Moderasyon 046'da BC'den broker'lı worker'a taşındı
-  (Reviews'te agent-framework yok; iletişim `ReviewModerationRequested`/`ReviewModerated` event'leriyle).
 - **NotificationAgent (060):** TEK singleton `MailAgent` (workflow da compose/send ayrımı da YOK —
   kullanıcı kararları); tek LLM çağrısı maili yazar + `send_mail` tool'unu çağırır; her hata
   `NotificationException`→retry→error queue. Mailpit ham container (SMTP 1025/UI 8025); Mail.Mcp

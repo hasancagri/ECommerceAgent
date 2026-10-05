@@ -54,13 +54,6 @@ public static class IntegrationEvents
     // son-yazan-kazanır ile güvenli. Count=0 ⇒ tüketici özeti temizler (rozet çizilmez).
     public record ReviewSummaryChanged(Guid ProductId, decimal Average, int Count);
 
-    // Reviews → Reviews.Moderation worker. Moderasyon istegi; PII YOK (yalniz metin+yildiz+id).
-    public record ReviewModerationRequested(Guid ReviewId, string Text, int Rating);
-
-    // Reviews.Moderation worker → Reviews. Moderasyon karari; kategori kapali kume
-    // (profanity/insult/personal_attack/none). Reviews ApplyModeration ile uygular.
-    public record ReviewModerated(Guid ReviewId, bool Violation, string Category, string Reason);
-
     // Order → Reviews. YALNIZ odeme onayli tamamlanan siparis (Confirm pivotu) icin yayilir;
     // olusturulan/odenmemis DEGIL. Reviews satin-alma kanitini (yorum hakki) bu event'ten projeksiyonlar.
     // Category/Brand nullable: Order bunlari tutmuyorsa null (BC izolasyonu).
