@@ -1,3 +1,5 @@
+using Wolverine.ErrorHandling;
+
 namespace Payment.Api.Extensions;
 
 // Payment mesajlaşma kurulumu: Wolverine + RabbitMQ broker topolojisi (exchange/binding/publish/listen)
@@ -31,12 +33,16 @@ public static class MessagingExtensions
                 .ToRabbitExchange(Shared.RabbitMqConstants.PaymentFailed.Exchange);
 
             opts.Policies.UseDurableLocalQueues();
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
             opts.Policies.AddMiddleware(
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // Handler/Consumer son eki taşımayan süreç sınıfı taramada keşfedilmez → açık kayıt şart.
             opts.Discovery.IncludeType(typeof(Payment.Api.Process.PaymentIntentExpiry));
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

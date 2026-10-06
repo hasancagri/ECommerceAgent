@@ -1,4 +1,4 @@
-namespace Catalog.Api.Common;
+namespace Catalog.Api.Helpers;
 
 // Category/Brand teklik anahtarı üretimi (research R3). Fabrikalar ve get-or-create
 // sorguları AYNI fonksiyonu kullanır ki eşleşme iki tarafta da tutarlı olsun.

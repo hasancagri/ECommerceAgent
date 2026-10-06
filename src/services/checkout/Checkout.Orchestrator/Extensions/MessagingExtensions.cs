@@ -32,11 +32,15 @@ public static class MessagingExtensions
 
             // geçici hata retry saga'da DEĞİL — Wolverine policy'de (FR-024). Artan gecikmeyle 3 deneme;
             // tükenirse mesaj dead-letter'a. (Aynı politika hedef BC'lerde de step-komut tüketiminde geçerli.)
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
             opts.OnException<Exception>().RetryWithCooldown(
-                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15));
+                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15))
+                .Then.MoveToErrorQueue();
 
             opts.Policies.UseDurableLocalQueues();
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

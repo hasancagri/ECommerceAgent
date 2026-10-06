@@ -17,9 +17,10 @@ builder.Services.AddApiVersioning(options =>
 
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
-    AuthorizationScopes.ReviewsWrite);
+    AuthorizationScopes.ReviewsWrite,
+    AuthorizationScopes.OpsDeadletter);
 // RFC 9728 keşif (metadata + 401 challenge) — dış agent yorum MCP'si (get_reviews/eligibility/submit).
-builder.Services.AddMcpResourceMetadata(builder.Configuration, "reviews", AuthorizationScopes.ReviewsWrite);
+builder.Services.AddMcpResourceMetadata(builder.Configuration, "reviews", AuthorizationScopes.ReviewsWrite, AuthorizationScopes.OpsDeadletter);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
@@ -27,7 +28,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();

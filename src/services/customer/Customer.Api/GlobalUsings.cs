@@ -17,6 +17,7 @@ global using System;
 global using Wolverine.Attributes;
 global using Wolverine.Marten;
 global using Wolverine;
+global using Wolverine.ErrorHandling;
 global using Common.Utils.Constants;
 global using Customer.Api.Constants;
 global using Common.Auths;

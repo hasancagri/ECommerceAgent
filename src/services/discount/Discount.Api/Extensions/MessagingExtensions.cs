@@ -32,6 +32,8 @@ public static class MessagingExtensions
 
             // Süre yönetimi scheduled message (in-proc durable local queue).
             opts.Policies.UseDurableLocalQueues();
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
             opts.Policies.AddMiddleware(
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
@@ -39,6 +41,8 @@ public static class MessagingExtensions
             // "Consumers"/Process sınıfları taramada atlanabilir → açık kayıt garantili yol.
             opts.Discovery.IncludeType(typeof(Discount.Api.CatalogConsumers));
             opts.Discovery.IncludeType(typeof(Discount.Api.Process.CampaignScheduleHandler));
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

@@ -19,11 +19,13 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.PaymentRead,
-    AuthorizationScopes.PaymentWrite);
+    AuthorizationScopes.PaymentWrite,
+    AuthorizationScopes.OpsDeadletter);
 // RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
 // Dış-agent demeti yalnız payment.read (yazma demet dışı — data-model).
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "payment",
-    AuthorizationScopes.PaymentRead);
+    AuthorizationScopes.PaymentRead,
+    AuthorizationScopes.OpsDeadletter);
 // logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
@@ -67,7 +69,9 @@ builder.Services.AddGrpc();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);

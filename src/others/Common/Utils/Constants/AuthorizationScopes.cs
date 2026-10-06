@@ -49,6 +49,10 @@ public static class AuthorizationScopes
     public const string LibraryRead = "library.read";
     public const string LibraryWrite = "library.write";
 
+    // 088: ölü-mesaj (dead-letter) operatör yüzeyi — her BC'nin /mcp'sinde list/get/replay/discard
+    // tool'larını korur. Çapraz-kesen ops yetkisi (tek BC'ye ait değil); rol→scope map AgentPlatform'da.
+    public const string OpsDeadletter = "ops.deadletter";
+
     // identity: API anahtari (UserKey) issue/revoke yuzeyi — Identity.Server kendi Bearer
     // policy'siyle dogrular (audience'siz; m2m apikeys.admin istemcisi tasir).
     public const string ApiKeysManage = "apikeys.manage";

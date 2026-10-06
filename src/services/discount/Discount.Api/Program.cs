@@ -14,11 +14,13 @@ builder.AddDiscountMessaging();
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.DiscountRead,
-    AuthorizationScopes.AdminDiscountWrite);
+    AuthorizationScopes.AdminDiscountWrite,
+    AuthorizationScopes.OpsDeadletter);
 
 // R5: RFC 9728 keşfi (401 challenge + metadata) — /mcp slug'ında (admin scope'uyla). Anonim set YOK.
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "discount",
-    AuthorizationScopes.AdminDiscountWrite);
+    AuthorizationScopes.AdminDiscountWrite,
+    AuthorizationScopes.OpsDeadletter);
 
 builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityOption))
     .ValidateDataAnnotations().ValidateOnStart();
@@ -34,7 +36,9 @@ builder.Services.AddGrpc();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();

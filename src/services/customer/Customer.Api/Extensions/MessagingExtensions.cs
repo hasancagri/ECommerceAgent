@@ -19,11 +19,17 @@ public static class MessagingExtensions
             // Varsayılan NotAllowed → 500. Payment/Order.Api ile aynı politika.
             opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
 
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>().RetryWithCooldown(
+                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
+
             opts.Policies.UseDurableLocalQueues();
             opts.Policies.AddMiddleware(
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

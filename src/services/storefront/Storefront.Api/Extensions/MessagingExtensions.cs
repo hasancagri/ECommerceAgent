@@ -43,6 +43,10 @@ public static class MessagingExtensions
             // 086: ConcurrencyException retry SÖKÜLDÜ (C2) — eski StorefrontView doc optimistic-concurrency
             // içindi; artık event-log'a append (append-only, doc çakışması yok).
             opts.Policies.UseDurableLocalQueues();
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>()
+                .RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15))
+                .Then.MoveToErrorQueue();
             // Handler-level yetki: middleware SADECE [RequiredScope] tasiyan komut/sorgulara weave edilir.
             // REST + MCP ortak yetki noktasi.
             opts.Policies.AddMiddleware(
@@ -54,6 +58,8 @@ public static class MessagingExtensions
             opts.Discovery.IncludeType(typeof(ReviewsConsumers));
             opts.Discovery.IncludeType(typeof(StockConsumers));
             opts.Discovery.IncludeType(typeof(DiscountConsumers));
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

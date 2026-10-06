@@ -66,6 +66,8 @@ public static class MessagingExtensions
             // Konvansiyonel keşif *EventHandlers/*Consumers sınıfını atlayabiliyor → açık kayıt (Stock emsali).
             opts.Discovery.IncludeType(typeof(Order.Api.Saga.CheckoutConsumers));
             opts.Discovery.IncludeType(typeof(Order.Api.PaymentConsumers));
+            // 088: ölü-mesaj operatör handler'ları Common'da (assembly taraması dışı) — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;
