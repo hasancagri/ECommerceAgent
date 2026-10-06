@@ -4,7 +4,7 @@ namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 public static class SetDefaultAddress
 {
     [RequiredScope(AuthorizationScopes.CustomerWrite)]
-    [InvalidatesCache("addresses")]
+    [InvalidatesCache(CustomerCacheTags.Addresses)]
     public record SetDefaultAddressCommand(Guid UserId, Guid AddressId);
 
     public class SetDefaultAddressResponse

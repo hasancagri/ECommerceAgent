@@ -8,6 +8,7 @@ public static class AdminUpdateCategory
     // NOT: Category aggregate'i yalnız Rename + SetSeo mutasyonu sunar (Description Create'te sabitlenir,
     // mutator yok). Bu yüzden kısmi güncelleme yüzeyi ad + SEO ile sınırlı — dead param eklenmez.
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]
+    [InvalidatesCache(CatalogCacheTags.AgentLists)]
     public record AdminUpdateCategoryCommand(
         Guid UserId,
         Guid CategoryId,

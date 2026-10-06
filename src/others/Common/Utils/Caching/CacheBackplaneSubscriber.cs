@@ -19,7 +19,7 @@ public sealed class CacheBackplaneSubscriber(
         await redis.GetSubscriber()
             .SubscribeAsync(
                 RedisChannel.Literal(CacheInvalidator.ChannelFor(options.KeyPrefix)),
-                (channel, message) => { _ = cache.RemoveByTagAsync(message.ToString()).AsTask(); });
+                (channel, message) => { _ = cache.RemoveByTagAsync(message.ToString(), stoppingToken).AsTask(); });
 
         try
         {

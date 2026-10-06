@@ -7,7 +7,7 @@ public static class ListAuthors
     public const int DefaultMaxResults = 50;
     public const int MaxResultsLimit = 200;
 
-    [Cached("agent-lists", 60)]
+    [Cached(CatalogCacheTags.AgentLists, 1200)]
     public record ListAuthorsQuery(string? Search = null, int? MaxResults = null);
 
     public class AuthorItem

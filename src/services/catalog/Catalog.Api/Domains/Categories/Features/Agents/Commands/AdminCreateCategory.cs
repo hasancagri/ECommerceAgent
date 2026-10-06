@@ -6,6 +6,7 @@ namespace Catalog.Api.Domains.Categories.Features.Agents.Commands;
 public static class AdminCreateCategory
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]
+    [InvalidatesCache(CatalogCacheTags.AgentLists)]
     public record AdminCreateCategoryCommand(
         Guid UserId,
         string Name,

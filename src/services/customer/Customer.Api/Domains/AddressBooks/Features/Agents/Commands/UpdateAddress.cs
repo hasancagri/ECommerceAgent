@@ -7,7 +7,7 @@ namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 public static class UpdateAddress
 {
     [RequiredScope(AuthorizationScopes.CustomerWrite)]
-    [InvalidatesCache("addresses")]
+    [InvalidatesCache(CustomerCacheTags.Addresses)]
     public record UpdateAddressCommand(
         Guid UserId, Guid AddressId,
         string? Province, string? District, string? Street, string? ZipCode, string? Line);

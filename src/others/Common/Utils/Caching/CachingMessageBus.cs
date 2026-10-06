@@ -9,15 +9,16 @@ namespace Common.Utils.Caching;
 /// - [Cached] query: çağrı iki katmanlı (L1→L2→kaynak) HybridCache.GetOrCreateAsync ile sarılır;
 ///   stampede koruması + tag'leme native. Negatif sonuç (IsSuccess=false) önbeklenmez.
 /// - [InvalidatesCache] command: inner çağrı (yani yazma + commit) tamamlandıktan SONRA, sonuç
-///   başarılıysa RemoveByTagAsync ile ilgili girdiler iki katmandan boşalır (FR-006).
+///   başarılıysa <see cref="CacheInvalidationRequested"/> durable LOCAL queue'ya yayınlanır;
+///   boşaltmayı handler'ı at-least-once koşar (retry + ScheduleRetry merdiveni). Senkron boşaltma
+///   BİLEREK yok: Redis hatası commit edilmiş yazmanın sonucunu kirletmemeli.
 ///
 /// Diğer tüm IMessageBus üyeleri değişmeden inner'a forward edilir.
 /// </summary>
 public sealed class CachingMessageBus(
     IMessageBus inner,
     HybridCache cache,
-    CacheAspectOptions options,
-    CacheInvalidator invalidator)
+    CacheAspectOptions options)
     : IMessageBus
 {
     // ---- Cache/invalidation uygulanan tek nokta: InvokeAsync<T> ----
@@ -42,9 +43,10 @@ public sealed class CachingMessageBus(
         var invalidates = messageType.GetCustomAttribute<InvalidatesCacheAttribute>();
         // Boşaltma commit SONRASI: innerCall döndüyse Wolverine [Transactional] handler commit'i tamamdır.
         // Başarısız yazmada (IsSuccess=false) boşaltma yapılmaz.
-        // Boşaltma tek kapıdan (CacheInvalidator): BC-prefix'li tag + backplane yayını birlikte.
+        // Publish durable local queue'ya gider (envelope Postgres'e yazılır) — asıl boşaltmayı
+        // CacheInvalidationRequestedHandler koşar; Redis çökükse retry/DLQ orada işler, çağıran görmez.
         if (invalidates is not null && result is not BaseResultModel { IsSuccess: false })
-            await invalidator.InvalidateAsync(invalidates.Tag, ct);
+            await inner.PublishAsync(new CacheInvalidationRequested(invalidates.Tag));
 
         return result;
     }

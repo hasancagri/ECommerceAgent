@@ -7,7 +7,7 @@ public static class ListPublishers
     public const int DefaultMaxResults = 100;
     public const int MaxResultsLimit = 200;
 
-    [Cached("agent-lists", 60)]
+    [Cached(CatalogCacheTags.AgentLists, 1200)]
     public record ListPublishersQuery(string? Search = null, int? MaxResults = null);
 
     public class PublisherItem
