@@ -7,7 +7,8 @@ namespace Common.Utils.Caching;
 /// <see cref="InvalidatesCacheAttribute"/> ile sürülür.
 ///
 /// - [Cached] query: çağrı iki katmanlı (L1→L2→kaynak) HybridCache.GetOrCreateAsync ile sarılır;
-///   stampede koruması + tag'leme native. Negatif sonuç (IsSuccess=false) önbeklenmez.
+///   stampede koruması native. Negatif sonuç (IsSuccess=false) önbeklenmez. Anahtara tag'in epoch'u
+///   gömülür (…:e{N}) — boşaltma epoch artırımıdır (native tag KULLANILMAZ, bkz. CacheEpochs).
 /// - [InvalidatesCache] command: inner çağrı (yani yazma + commit) tamamlandıktan SONRA, sonuç
 ///   başarılıysa <see cref="CacheInvalidationRequested"/> durable LOCAL queue'ya yayınlanır;
 ///   boşaltmayı handler'ı at-least-once koşar (retry + ScheduleRetry merdiveni). Senkron boşaltma
@@ -18,7 +19,8 @@ namespace Common.Utils.Caching;
 public sealed class CachingMessageBus(
     IMessageBus inner,
     HybridCache cache,
-    CacheAspectOptions options)
+    CacheAspectOptions options,
+    CacheEpochs epochs)
     : IMessageBus
 {
     // ---- Cache/invalidation uygulanan tek nokta: InvokeAsync<T> ----
@@ -54,9 +56,16 @@ public sealed class CachingMessageBus(
     private async Task<T> GetOrCreateAsync<T>(object message, CachedAttribute cached,
         Func<CancellationToken, Task<T>> innerCall, CancellationToken ct)
     {
-        var key = CacheKeyFactory.Build(options.KeyPrefix, message);
-        var entryOptions = new HybridCacheEntryOptions { Expiration = TimeSpan.FromSeconds(cached.TtlSeconds) };
-        // L1 (LocalCacheExpiration ≤5sn) global ayardan gelir (bkz. AddCachingAspect) — burada set edilmez.
+        var epoch = await epochs.GetAsync(cached.Tag);
+        var key = $"{CacheKeyFactory.Build(options.KeyPrefix, message)}:e{epoch}";
+        var ttl = TimeSpan.FromSeconds(cached.TtlSeconds);
+        // TUZAK: per-call options verilince global DefaultEntryOptions.LocalCacheExpiration MİRAS
+        // ALINMAZ — L1 de Expiration'a (ör. 20dk) uzar. L1 burada AÇIKÇA kısılır (canlı doğrulama bulgusu).
+        var entryOptions = new HybridCacheEntryOptions
+        {
+            Expiration = ttl,
+            LocalCacheExpiration = options.L1Expiration < ttl ? options.L1Expiration : ttl
+        };
 
         try
         {
@@ -71,7 +80,6 @@ public sealed class CachingMessageBus(
                     return value;
                 },
                 entryOptions,
-                tags: [$"{options.KeyPrefix}:{cached.Tag}"],
                 cancellationToken: ct);
         }
         catch (NegativeResultException ex)

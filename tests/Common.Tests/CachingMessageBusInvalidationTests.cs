@@ -12,7 +12,26 @@ public class CachingMessageBusInvalidationTests
 
     private record UnmarkedCommand;
 
+    [Cached("epoch-tag", 1200)]
+    private record CachedQuery;
+
     private sealed class TestResult : BaseResultModel;
+
+    [Fact]
+    public async Task InvalidateAsync_BumpsEpoch_NextReadMissesCache()
+    {
+        var (bus, inner) = BuildBus(new TestResult { IsSuccess = true });
+
+        await bus.InvokeAsync<TestResult>(new CachedQuery());
+        await bus.InvokeAsync<TestResult>(new CachedQuery());
+        inner.InvokeCount.ShouldBe(1); // ikinci çağrı cache hit
+
+        // Redis'siz mod: epoch lokal artar; uzun TTL'e (1200sn) rağmen sonraki okuma yeni anahtara düşer.
+        await inner.Provider!.GetRequiredService<CacheInvalidator>().InvalidateAsync("epoch-tag");
+
+        await bus.InvokeAsync<TestResult>(new CachedQuery());
+        inner.InvokeCount.ShouldBe(2); // epoch bump → miss → kaynak yeniden
+    }
 
     [Fact]
     public async Task SuccessfulMarkedCommand_PublishesInvalidationMessage()
@@ -53,22 +72,33 @@ public class CachingMessageBusInvalidationTests
         services.AddSingleton<IMessageBus>(inner);
         services.AddCachingAspect("test");
         var provider = services.BuildServiceProvider();
+        inner.Provider = provider;
         return (provider.GetRequiredService<IMessageBus>(), inner);
     }
 
-    // InvokeAsync<T> sabit sonuç döner, PublishAsync yayınları biriktirir; kalanı kullanılmaz.
+    // InvokeAsync<T> sabit sonuç döner + çağrı sayar, PublishAsync yayınları biriktirir; kalanı kullanılmaz.
     private sealed class RecordingMessageBus : IMessageBus
     {
         public required object InvokeResult { get; init; }
         public List<object> Published { get; } = [];
+        public int InvokeCount { get; private set; }
+        public ServiceProvider? Provider { get; set; }
 
         public string? TenantId { get; set; }
 
         public Task<T> InvokeAsync<T>(object message, CancellationToken cancellation = default,
-            TimeSpan? timeout = null) => Task.FromResult((T)InvokeResult);
+            TimeSpan? timeout = null)
+        {
+            InvokeCount++;
+            return Task.FromResult((T)InvokeResult);
+        }
 
         public Task<T> InvokeAsync<T>(object message, DeliveryOptions deliveryOptions,
-            CancellationToken cancellation = default, TimeSpan? timeout = null) => Task.FromResult((T)InvokeResult);
+            CancellationToken cancellation = default, TimeSpan? timeout = null)
+        {
+            InvokeCount++;
+            return Task.FromResult((T)InvokeResult);
+        }
 
         public ValueTask PublishAsync<T>(T message, DeliveryOptions? deliveryOptions = null)
         {
