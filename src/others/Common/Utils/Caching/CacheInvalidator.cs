@@ -1,14 +1,15 @@
 namespace Common.Utils.Caching;
 
 /// <summary>
-/// Tag boşaltmanın TEK kapısı: yerel L1 + L2'yi temizler, Redis backplane kanalına yayınlar ki
-/// diğer instance'ların L1'i de düşsün. Pub/sub at-most-once'tır — kopuk abone mesajı kaçırabilir;
-/// bu yüzden kısa L1 TTL (≤5sn) güvenlik ağı olarak kalır. Redis kayıtlı değilse yalnız yerel çalışır.
-/// Decorator dışı elle boşaltmalar (event handler/saga) da BUNU kullanmalı — doğrudan
-/// HybridCache.RemoveByTagAsync diğer instance'lara yayılmaz.
+/// Tag boşaltmanın TEK kapısı: epoch'u artırır (<see cref="CacheEpochs"/>) ve yeni epoch'u Redis
+/// backplane kanalına yayınlar ki diğer instance'lar lokal epoch map'ini güncellesin. Girdi silme
+/// YOK (epoch deseni — eski anahtarlar erişilmez kalır, TTL temizler); HybridCache.RemoveByTagAsync
+/// bilinçli KULLANILMAZ (dotnet/extensions#7771). Pub/sub at-most-once'tır — kopuk abone mesajı
+/// kaçırabilir; kısa L1 TTL + ilk-kullanımda Redis'ten epoch yükleme güvenlik ağıdır.
+/// Decorator dışı elle boşaltmalar (event handler/process) da BUNU kullanmalı.
 /// </summary>
 public sealed class CacheInvalidator(
-    HybridCache cache,
+    CacheEpochs epochs,
     CacheAspectOptions options,
     IConnectionMultiplexer? redis = null)
 {
@@ -16,11 +17,10 @@ public sealed class CacheInvalidator(
 
     public async Task InvalidateAsync(string tag, CancellationToken ct = default)
     {
-        var prefixedTag = $"{options.KeyPrefix}:{tag}";
-        await cache.RemoveByTagAsync(prefixedTag, ct);
+        var epoch = await epochs.BumpAsync(tag);
 
         if (redis is not null)
             await redis.GetSubscriber()
-                .PublishAsync(RedisChannel.Literal(ChannelFor(options.KeyPrefix)), prefixedTag);
+                .PublishAsync(RedisChannel.Literal(ChannelFor(options.KeyPrefix)), $"{tag}|{epoch}");
     }
 }

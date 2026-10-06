@@ -16,19 +16,19 @@ public static class CacheAspectServiceCollectionExtensions
     public static IServiceCollection AddCachingAspect(this IServiceCollection services, string keyPrefix,
         TimeSpan? l1Expiration = null)
     {
-        services.AddSingleton(new CacheAspectOptions { KeyPrefix = keyPrefix });
-
-        services.AddHybridCache(o =>
+        services.AddSingleton(new CacheAspectOptions
         {
-            // L1 global sabiti (FR-005/SC-004). L2 Expiration attribute başına (ttlSeconds) verilir;
-            // per-call'da belirtilmeyen alanlar bu default'lara düşer.
-            o.DefaultEntryOptions = new HybridCacheEntryOptions
-            {
-                LocalCacheExpiration = l1Expiration ?? TimeSpan.FromSeconds(5)
-            };
+            KeyPrefix = keyPrefix,
+            L1Expiration = l1Expiration ?? TimeSpan.FromSeconds(5)
         });
 
-        // Boşaltmanın tek kapısı + backplane dinleyicisi. Redis kayıtlı değilse ikisi de yerel/no-op moddadır.
+        // L1 TTL'i decorator per-call AÇIKÇA uygular (CacheAspectOptions.L1Expiration) — global
+        // DefaultEntryOptions per-call options verilince miras alınmıyor (tuzak, canlı doğrulama bulgusu).
+        services.AddHybridCache();
+
+        // Epoch sayacı + boşaltmanın tek kapısı + backplane dinleyicisi. Redis kayıtlı değilse
+        // üçü de yerel/no-op moddadır.
+        services.AddSingleton<CacheEpochs>();
         services.AddSingleton<CacheInvalidator>();
         services.AddHostedService<CacheBackplaneSubscriber>();
 

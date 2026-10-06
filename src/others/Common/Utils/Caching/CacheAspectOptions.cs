@@ -7,4 +7,8 @@ namespace Common.Utils.Caching;
 public sealed class CacheAspectOptions
 {
     public required string KeyPrefix { get; init; }
+
+    /// <summary>L1 (yerel) TTL — cross-instance bayatlık tavanı. Decorator her girdiye AÇIKÇA uygular
+    /// (per-call HybridCacheEntryOptions global default'u miras almaz — tuzak).</summary>
+    public TimeSpan L1Expiration { get; init; } = TimeSpan.FromSeconds(5);
 }
