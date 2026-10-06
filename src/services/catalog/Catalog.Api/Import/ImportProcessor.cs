@@ -66,6 +66,9 @@ public static class ProcessImportRow
     [Transactional]
     public class ProcessImportRowCommandHandler
     {
+        // Get-or-create helper'ları YENİ referans (yazar/yayınevi/kategori) yazınca işaretler.
+        private bool _createdReference;
+
         public async Task Handle(
             ProcessImportRowCommand cmd,
             IDocumentSession session,
@@ -112,6 +115,12 @@ public static class ProcessImportRow
             // ProductChangedEvent YAYILMAZ (draft; vitrine publish_imported ya da CoverIngested sokar).
             await bus.PublishAsync(new IntegrationEvents.ProductAdded(row.Isbn, product.Id, row.Stock));
 
+            // Decorator-dışı yazma yolu: [InvalidatesCache] burada İŞLEMEZ (attribute yalnız InvokeAsync<T>
+            // sarmalında okunur). Yeni referans doğduysa agent-lists elle boşaltılır — [Transactional]
+            // handler içinden publish = gerçek outbox atomikliği.
+            if (_createdReference)
+                await bus.PublishAsync(new CacheInvalidationRequested(CatalogCacheTags.AgentLists));
+
             row.MarkProcessed(product.Id);
             session.Store(row);
         }
@@ -127,7 +136,7 @@ public static class ProcessImportRow
         }
 
         // Aşağıdakiler ImportBook'un get-or-create yardımcılarının ikizi (051 seeder söküldü — bilinçli tekrar).
-        private static async Task<List<Author>> GetOrCreateAuthorsAsync(
+        private async Task<List<Author>> GetOrCreateAuthorsAsync(
             IDocumentSession session, string[] names, CancellationToken ct)
         {
             var result = new List<Author>();
@@ -143,13 +152,14 @@ public static class ProcessImportRow
                 {
                     author = Author.Create(name).Data!;
                     session.Store(author);
+                    _createdReference = true;
                 }
                 result.Add(author);
             }
             return result;
         }
 
-        private static async Task<Publisher> GetOrCreatePublisherAsync(
+        private async Task<Publisher> GetOrCreatePublisherAsync(
             IDocumentSession session, string name, CancellationToken ct)
         {
             var normalized = NameNormalization.Normalize(name);
@@ -159,10 +169,11 @@ public static class ProcessImportRow
 
             var publisher = Publisher.Create(name).Data!;
             session.Store(publisher);
+            _createdReference = true;
             return publisher;
         }
 
-        private static async Task<Category> GetOrCreateCategoryAsync(
+        private async Task<Category> GetOrCreateCategoryAsync(
             IDocumentSession session, string name, Guid? parentId, CancellationToken ct)
         {
             var normalized = NameNormalization.Normalize(name);
@@ -173,6 +184,7 @@ public static class ProcessImportRow
             var category = Category.Create(name, parentCategoryId: parentId).Data!;
             category.SetPublished(true);
             session.Store(category);
+            _createdReference = true;
             return category;
         }
     }

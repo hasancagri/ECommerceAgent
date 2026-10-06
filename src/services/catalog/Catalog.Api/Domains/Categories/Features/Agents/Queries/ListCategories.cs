@@ -6,7 +6,7 @@ namespace Catalog.Api.Domains.Categories.Features.Agents.Queries;
 // Catalog bilir (ParentCategoryId) — Storefront düz ad taşıyordu.
 public static class ListCategories
 {
-    [Cached("agent-lists", 60)]
+    [Cached(CatalogCacheTags.AgentLists, 1200)]
     public record ListCategoriesQuery();
 
     public class CategoryItem

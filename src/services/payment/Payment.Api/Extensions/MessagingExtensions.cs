@@ -43,6 +43,8 @@ public static class MessagingExtensions
             opts.Discovery.IncludeType(typeof(Payment.Api.Process.PaymentIntentExpiry));
             // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
+            // Durable cache boşaltma handler'ı Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
         });
 
         return builder;
