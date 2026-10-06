@@ -172,9 +172,18 @@ Domains/<Aggregate>/
 - **MCP yalnız agent tüketir.** Agent olmayan kod (WebApp/servis) imperatif `CallToolAsync` süremez →
   REST/gRPC. Chat akışında MCP DOLAYLI: agent tool'u LLM prompt'uyla seçer, elle `CallToolAsync` YOK.
   MCP tool YALNIZ `Features/Agents/<X>ForAgent` slice'ını çağırır (ince sarmalayıcı).
-- **Cache (AOP decorator).** Query'ye `[Cached("tag", ttl)]`, command'a `[InvalidatesCache("tag")]` —
-  `IMessageBus` decorator'ı. Yalnız BC'nin KENDİ verisi + herkese-aynı + bayat-toleranslı;
-  yazma-yolunu besleyen query cache'LENMEZ.
+- **Cache (AOP decorator).** Query'ye `[Cached(tag, ttl)]`, command'a `[InvalidatesCache(tag)]` —
+  `IMessageBus` decorator'ı. Tag = `<Bc>CacheTags` const'u (literal YAZMA — typo çifti sessiz koparır).
+  Yalnız BC'nin KENDİ verisi + herkese-aynı + bayat-toleranslı; yazma-yolunu besleyen query cache'LENMEZ.
+- **Cache boşaltma durable + epoch-key.** Decorator commit sonrası `CacheInvalidationRequested` yayınlar
+  (durable LOCAL queue; RabbitMQ'ya çıkmaz — BC-içi iş); handler epoch artırır (anahtar `…:e{N}`,
+  Redis INCR) + backplane `tag|epoch`. Retry merdiveni ≈ TTL; sonu error-queue = yalnız olay kaydı.
+- **Decorator-dışı yazma yolu attribute GÖRMEZ.** `[InvalidatesCache]` yalnız `InvokeAsync<T>` sarmalında
+  okunur; event consumer / `Process/` / seeder doğrudan yazıyorsa boşaltmayı elle
+  `PublishAsync(CacheInvalidationRequested(tag))` ile yapar (ImportProcessor emsali).
+- **HybridCache tuzakları.** `RemoveByTagAsync` KULLANMA — 10.0.0 L1'i temizlemiyor
+  (dotnet/extensions#7771; epoch deseni bu yüzden). Per-call `HybridCacheEntryOptions{Expiration}`
+  global `LocalCacheExpiration`'ı miras ALMAZ — L1 per-call açık set edilir (`CacheAspectOptions.L1Expiration`).
 
 ## Bilinçli tekrar (tek gerekçe)
 
