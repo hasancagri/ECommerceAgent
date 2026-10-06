@@ -7,7 +7,7 @@ global using Catalog.Api.Domains.Products;
 global using Catalog.Api.Domains.Products.ValueObjects;
 global using Catalog.Api.Domains.ProductTags;
 global using Catalog.Api.Domains;
-global using Catalog.Api.Common;
+global using Catalog.Api.Helpers;
 global using Common.Utils.Caching;
 global using Common;
 global using Shouldly;
