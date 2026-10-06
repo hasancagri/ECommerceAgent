@@ -20,7 +20,8 @@ builder.Services.AddApiVersioning(options =>
 
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
-    AuthorizationScopes.StorefrontRead);
+    AuthorizationScopes.StorefrontRead,
+    AuthorizationScopes.OpsDeadletter);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -46,7 +47,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);

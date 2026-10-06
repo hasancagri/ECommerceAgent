@@ -134,6 +134,16 @@ public static class CustomerAdminTools
     public const string ReissueMerchantKey = "admin_reissue_merchant_key";
 }
 
+// 088: ölü-mesaj (dead-letter) operatör tool'ları — her BC'nin /mcp'sinde (scope ops.deadletter).
+// Admin kendi AI istemcisinden "hata var mı / tekrar dene" akışını bu tool'larla yürütür.
+public static class DeadLetterAdminTools
+{
+    public const string ListDeadLetters = "admin_list_dead_letters";
+    public const string GetDeadLetter = "admin_get_dead_letter";
+    public const string ReplayDeadLetter = "admin_replay_dead_letter";
+    public const string DiscardDeadLetter = "admin_discard_dead_letter";
+}
+
 // korumalı MCP'lerdeki ortak oturum-kapatma tool'u (basket/order/payment/customer).
 public static class AuthTools
 {

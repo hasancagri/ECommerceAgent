@@ -43,7 +43,9 @@ public static class MessagingExtensions
             // 049/074: checkout sağası step-komut tüketiminde altyapı hatası retry (Checkout.Orchestrator'daki
             // policyle aynı — FR-024). İş hatası (Result.Permanent) bunu tetiklemez, yalnız fırlayan exception.
             opts.OnException<Exception>().RetryWithCooldown(
-                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15));
+                    TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15))
+                // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+                .Then.MoveToErrorQueue();
 
             opts.Policies.UseDurableLocalQueues();
             // Handler-level yetki: middleware SADECE [RequiredScope] tasiyan komut/sorgulara weave edilir.
@@ -55,6 +57,8 @@ public static class MessagingExtensions
             // Konvansiyonel keşif event-handler sınıfını atlayabiliyor (Storefront emsali) — açık kayıt garantili yol.
             opts.Discovery.IncludeType(typeof(Stock.Api.CatalogConsumers));
             opts.Discovery.IncludeType(typeof(Stock.Api.Saga.CheckoutConsumers));
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

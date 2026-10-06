@@ -19,7 +19,7 @@ builder.Services.AddApiVersioning(options =>
 // Admin yüzeyi (TEK /mcp'de, scope-budamalı) scope demeti = Catalog.Api.Mcp.CatalogAdminSurface.Scopes (okuma + yazma).
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
-    Catalog.Api.Mcp.CatalogAdminSurface.SCOPES);
+    [.. Catalog.Api.Mcp.CatalogAdminSurface.SCOPES, AuthorizationScopes.OpsDeadletter]);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -48,7 +48,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);

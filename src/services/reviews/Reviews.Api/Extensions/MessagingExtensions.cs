@@ -1,3 +1,5 @@
+using Wolverine.ErrorHandling;
+
 namespace Reviews.Api.Extensions;
 
 // Reviews mesajlaşma kurulumu: Wolverine + RabbitMQ broker topolojisi (exchange/binding/publish/listen)
@@ -35,12 +37,16 @@ public static class MessagingExtensions
             opts.ListenToRabbitQueue(RabbitMqConstants.OrderCompleted.Queues.Reviews);
 
             opts.Policies.UseDurableLocalQueues();
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
             opts.Policies.AddMiddleware(
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // *Consumers Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et (Stock/Catalog emsali).
             opts.Discovery.IncludeType(typeof(Reviews.Api.OrderConsumers));
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

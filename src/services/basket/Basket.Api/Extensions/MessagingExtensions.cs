@@ -26,7 +26,7 @@ public static class MessagingExtensions
             // 049/074: checkout sağası step-komut tüketiminde altyapı hatası retry (Checkout.Orchestrator'daki
             // policyle aynı — FR-024). İş hatası (Result.Permanent) bunu tetiklemez, yalnız fırlayan exception.
             opts.OnException<Exception>().RetryWithCooldown(
-                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15));
+                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
 
             opts.Policies.UseDurableLocalQueues();
             opts.Policies.AddMiddleware(
@@ -36,6 +36,8 @@ public static class MessagingExtensions
             // *EventHandlers static sinifi ad konvansiyonuyla otomatik kesfedilmiyor (Storefront deseni);
             // acikca dahil et — yoksa ClearBasketCommand (049) calismaz.
             opts.Discovery.IncludeType(typeof(Saga.CheckoutConsumers));
+            // 088: ölü-mesaj operatör handler'ları Common'da (assembly taraması dışı) — açık kayıt.
+            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

@@ -34,6 +34,10 @@ public static class MessagingExtensions
                 .ToRabbitExchange(RabbitMqConstants.CoverIngested.Exchange);
 
             opts.Policies.UseDurableLocalQueues();
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>()
+                .RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15))
+                .Then.MoveToErrorQueue();
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // Wolverine keşfi çoğul *Consumers sınıfını taramaz → açıkça ekle (ZORUNLU; yoksa mesaj yutulur).
             opts.Discovery.IncludeType(typeof(FileApi.CatalogConsumers));

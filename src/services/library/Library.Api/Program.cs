@@ -18,10 +18,11 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.LibraryRead,
-    AuthorizationScopes.LibraryWrite);
+    AuthorizationScopes.LibraryWrite,
+    AuthorizationScopes.OpsDeadletter);
 // RFC 9728 keşif (metadata + 401 challenge) — dış agent fiyat alarmı MCP'si.
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "library",
-    AuthorizationScopes.LibraryRead, AuthorizationScopes.LibraryWrite);
+    AuthorizationScopes.LibraryRead, AuthorizationScopes.LibraryWrite, AuthorizationScopes.OpsDeadletter);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
@@ -29,7 +30,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();

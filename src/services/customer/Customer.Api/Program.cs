@@ -19,13 +19,16 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.CustomerRead,
     AuthorizationScopes.CustomerWrite,
     // Vault merchant kimliği yönetimi (admin-only capability).
-    AuthorizationScopes.MerchantCredentialsWrite);
+    AuthorizationScopes.MerchantCredentialsWrite,
+    // 088: ölü-mesaj operatör tool'ları (admin_list/get/replay/discard_dead_letter).
+    AuthorizationScopes.OpsDeadletter);
 // RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
 // fix: 062 adres YAZMA tool'ları açıldığında bu liste bayat kalmıştı — scope'unu PRM'den türeten
 // istemciler (mcp-remote köprüsü) customer.write'sız token alıp add_address'te düşüyordu.
 // /mcp TEK uç — PRM TAM demeti ilan eder (merchant.credentials.write dahil, contracts/mcp-surface.md).
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "customer",
-    AuthorizationScopes.CustomerRead, AuthorizationScopes.CustomerWrite, AuthorizationScopes.MerchantCredentialsWrite);
+    AuthorizationScopes.CustomerRead, AuthorizationScopes.CustomerWrite, AuthorizationScopes.MerchantCredentialsWrite,
+    AuthorizationScopes.OpsDeadletter);
 // logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
@@ -58,7 +61,9 @@ builder.Services.AddGrpc();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).

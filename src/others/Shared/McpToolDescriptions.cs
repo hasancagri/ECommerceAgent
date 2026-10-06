@@ -373,4 +373,27 @@ public static class McpToolDescriptions
             "\"Çıkış yap\", \"bağlantıyı kes\", \"oturumu kapat\" gibi istekler için. Sonrasında işlem yapmak için yeniden " +
             "bağlantı ve onay gerekir. Yanıttaki 'message' alanını kullanıcıya olduğu gibi ilet.";
     }
+
+    public static class DeadLetterAdminTools
+    {
+        public const string ListDeadLetters =
+            "Bu serviste işlenemeyip ölü-mesaj kuyruğuna düşen mesajları (tip, hata özeti, zaman) listeler. " +
+            "\"Takılan/başarısız mesaj var mı\", \"ölü kuyruğa ne düştü\" gibi istekler için. messageType ile tipe göre " +
+            "daraltılır; limit sonuç sayısını sınırlar. Ham mesaj gövdesi DÖNMEZ (yalnız metadata + hata).";
+
+        public const string GetDeadLetter =
+            "Tek bir ölü mesajın ayrıntısını (hata tipi, hata mesajı, zaman damgaları, kaynak) döndürür. " +
+            "\"Şu mesaj neden öldü\", \"hata detayına bak\" gibi istekler için. id = admin_list_dead_letters'tan dönen " +
+            "mesaj kimliği. Ham mesaj gövdesi DÖNMEZ.";
+
+        public const string ReplayDeadLetter =
+            "Verilen ölü mesajı yeniden işleme sokar (kök neden giderildikten sonra). " +
+            "\"Şunu tekrar dene\", \"bu mesajı yeniden işle\" gibi istekler için. id = admin_list_dead_letters'tan dönen " +
+            "mesaj kimliği. Başarılı işlenirse mesaj kuyruktan düşer; yine başarısızsa tekrar ölü kuyruğa döner.";
+
+        public const string DiscardDeadLetter =
+            "Verilen ölü mesajı kalıcı olarak atar (artık geçersiz/çöp mesaj). " +
+            "\"Şunu sil\", \"bu ölü mesajı at\" gibi istekler için. id = admin_list_dead_letters'tan dönen mesaj kimliği. " +
+            "Geri alınamaz — yalnız replay edilmeyecek mesajlar için.";
+    }
 }

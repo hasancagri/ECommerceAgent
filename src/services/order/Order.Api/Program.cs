@@ -22,10 +22,12 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.OrderRead,
     AuthorizationScopes.OrderWrite,
     // satin-alma kaniti gRPC ucu reviews.write ister (R4 — ayri scope acilmaz).
-    AuthorizationScopes.ReviewsWrite);
+    AuthorizationScopes.ReviewsWrite,
+    // 088: ölü-mesaj operatör tool'ları (admin_list/get/replay/discard_dead_letter).
+    AuthorizationScopes.OpsDeadletter);
 // RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "order",
-    AuthorizationScopes.OrderRead, AuthorizationScopes.OrderWrite);
+    AuthorizationScopes.OrderRead, AuthorizationScopes.OrderWrite, AuthorizationScopes.OpsDeadletter);
 // logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
@@ -90,7 +92,9 @@ builder.Services.AddScoped<DiscountClient>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da (assembly taraması dışı) — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);

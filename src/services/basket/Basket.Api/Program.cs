@@ -19,12 +19,14 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.BasketRead,
-    AuthorizationScopes.BasketWrite);
+    AuthorizationScopes.BasketWrite,
+    // 088: ölü-mesaj operatör tool'ları (admin_list/get/replay/discard_dead_letter).
+    AuthorizationScopes.OpsDeadletter);
 // Dış tüketiciler icin opak UserKey (X-User-Key) custom auth semasi. JWT'ye dokunmaz.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
 // RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "basket",
-    AuthorizationScopes.BasketRead, AuthorizationScopes.BasketWrite);
+    AuthorizationScopes.BasketRead, AuthorizationScopes.BasketWrite, AuthorizationScopes.OpsDeadletter);
 // logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
@@ -45,7 +47,9 @@ builder.Services.AddGrpc();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly()
+    // 088: ölü-mesaj operatör tool'ları Common'da (assembly taraması dışı) — açık kayıt.
+    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
 
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).

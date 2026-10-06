@@ -20,8 +20,17 @@
         <PackageReference Include="Scrutor" />
         <PackageReference Include="StackExchange.Redis" />
         <PackageReference Include="WolverineFx" />
+        <!-- 088: ölü-mesaj operatör tool'u ([McpServerTool]) Common'da (çapraz-kesen infra). -->
+        <PackageReference Include="ModelContextProtocol.Core" />
         <!-- 084: nötr auth kablosu (IdentityOption + AddAuthenticationAndAuthorizationExtension) buradan
              ayrıldı → Platform.Auth paketi. Namespace Common.* korunur → tüketicilerde using değişmez. -->
         <PackageReference Include="Platform.Auth" />
+    </ItemGroup>
+    <ItemGroup>
+        <!-- İŞARET (088, GÖZDEN GEÇİR): Common→Shared bağı — portable-infra katmanı proje sözleşmesine
+             bağlanıyor (DLQ tool'u Shared.McpToolNames/Descriptions okur). Bilinçli/pragmatik: Shared yaprak
+             (cycle yok) + Common zaten proje sözlüğü taşıyor (AuthorizationScopes). İleride tool'u Shared'a
+             taşıyıp Common'ı saf tutma seçeneği tartışılacak. memory: common-shared-coupling-revisit. -->
+        <ProjectReference Include="..\Shared\Shared.csproj" />
     </ItemGroup>
 </Project>

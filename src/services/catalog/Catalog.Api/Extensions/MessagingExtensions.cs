@@ -1,3 +1,5 @@
+using Wolverine.ErrorHandling;
+
 namespace Catalog.Api.Extensions;
 
 // Catalog mesajlaşma kurulumu: Wolverine + RabbitMQ broker topolojisi (exchange/binding/publish/listen)
@@ -45,6 +47,8 @@ public static class MessagingExtensions
             opts.ListenToRabbitQueue(RabbitMqConstants.CoverIngested.Queues.Catalog);
 
             opts.Policies.UseDurableLocalQueues();
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
             opts.Policies.AddMiddleware(
                 typeof(ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<RequiredScopeAttribute>() is not null);
@@ -52,6 +56,8 @@ public static class MessagingExtensions
             // TUZAK: Wolverine keşfi çoğul *Consumers sınıfını taramaz → yeni consumer/handler ekleyince
             // buraya IncludeType ile EKLE (ZORUNLU; yoksa mesaj sessizce yutulur — dead-letter da yok).
             opts.Discovery.IncludeType(typeof(Catalog.Api.FileConsumers));
+            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
+            opts.Discovery.IncludeType(typeof(global::Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;
