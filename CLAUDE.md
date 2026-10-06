@@ -34,7 +34,9 @@ scripts/check-flow-links.sh                               # FLOW.md domain-süre
 
 .NET 10 (`Nullable`+`ImplicitUsings` açık) · **Marten** (Postgres = document/event store, Newtonsoft,
 non-public setter+ctor) · **Wolverine** (in-proc bus `IMessageBus` + RabbitMQ fanout; handler assembly
-taramasıyla) · **OpenIddict + ASP.NET Identity** (IdP) · **YARP** gateway · **MCP** (her API `/mcp`;
+taramasıyla) · **Elasticsearch** (storefront arama — turkish analyzer + dense_vector kNN, 086) ·
+**HybridCache + Redis** (AOP cache L1/L2; boşaltma epoch-key + durable event — native tag KULLANILMAZ,
+bkz. conventions) · **OpenIddict + ASP.NET Identity** (IdP) · **YARP** gateway · **MCP** (her API `/mcp`;
 müşteri yüzeyi platform MCP fasadı, AgentPlatform'a taşındı — dış AI istemcisi tüketir) · **Microsoft Agent Framework** +
 `Microsoft.Extensions.AI` (NotificationAgent) · **Scrutor** (DI) · **xUnit + Shouldly**.
 
@@ -42,7 +44,7 @@ müşteri yüzeyi platform MCP fasadı, AgentPlatform'a taşındı — dış AI 
 
 Her BC = kendi DB'si + şeması. Origin sütunu = BC'yi tanımlayan spec'in tam yolu (guard'lı); sonraki
 feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `src/others`
-(`Common`/`Shared`/`Identity.Server`), `src/aspire` (`AppHost`/`ServiceDefaults`), `src/agents`, `src/ui`.
+(`Common`/`Shared`), `src/aspire` (`AppHost`/`ServiceDefaults`), `src/agents`.
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
@@ -55,6 +57,7 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
 | `storefront` | storefrontDb (Marten event-log) + Elasticsearch | **086: CQRS+Event Sourcing** — Postgres artık read-model değil, ürün-stream event-log (gerçek-kaynak); dört kaynak event (Catalog/Stock/Reviews/Discount) stream'e append, **async projection** (`StorefrontProjection`) katlayıp **Elasticsearch** doc'u yazar/siler (satılabilirse; FR-008 projeksiyon-zamanı dışlama). Müşteri REST okuma SÖKÜLDÜ — okuma yolu asistan; asistan yüzeyi TEK tool `query_storefront` artık ham **ES Query DSL** (text+fuzzy+kNN+filtre tek sorguda; `{{EMBED}}`→knn vektör; minimal rail = sabit index+size≤50+`_source` whitelist+timeout; `AgentQueryLog` izi KALIR; embedding ES `dense_vector`, pgvector/`StorefrontView`/`storefront_sellable`/`AgentSqlGuard`/kısıtlı rol SÖKÜLDÜ). Açılışta index yoksa kurulur (`EnsureAsync`); soğuk başlangıç + reindex = dev full-reset+republish (elle reindex BACKLOG). `UserPurchase`→Library (086). 070 playbook kanonik evi tool Description'ı korunur | `specs/003-storefront-read-model` · `specs/086-storefront-elasticsearch-search` |
 | `customer` | customerDb | Wallet (tokenize kart, PAN yok; kart YAZMA yüzeyi yok — yalnız okuma + payment-context) + AddressBook; izole, event yok; merchant-admin yüzeyi TEK korumalı `/mcp`'de (085 — `/mcp-admin` söküldü; **087: makine-handoff onboarding** — kayıt store-başlatır S2S register (bootstrap key), credential PG→store HMAC-callback'le gelir (`CallbackSignatureValidator` 077 aynası), kullanım gRPC; elle-giriş ekranı `/merchant-credentials/{token}` + `CredentialEntrySession`/`SubmitMerchantCredentials` SÖKÜLDÜ — sır insan-yüzeyde hiç render edilmez) | `specs/022-wallet-address-book` · `specs/087-merchant-id-visibility` |
 | `reviews` | reviewsDb | Satın-alma şartlı yorum; yorum HEMEN görünür (moderasyon söküldü 088); özet event → Storefront | `specs/044-product-reviews` |
+| `discount` | discountDb | Admin kampanya indirimi (079): süzgeç (kategori/yazar/yayınevi/tek-kitap) → yüzde; kitap-başına TEK indirim, vitrine event'le iter, süre dolunca temizler; fiyat TUTMAZ (yüzde otoritesi — etkin fiyatı tüketici hesaplar); Order'a gRPC aktif-yüzde; tek yüzey korumalı `/mcp` (085) | `specs/079-discount-campaigns` |
 | `library` | libraryDb | Kullanıcı-ürün ilgi kayıtları; ilk dilim fiyat alarmı (yaşayan abonelik, email snapshot) + `NotificationRecord` izi; `ProductChangedEvent.OldPrice` tetiği → alarm başına `PriceAlarmTriggered`; **086: `UserPurchase` (kişisel satın-alma birikimi) Storefront'tan taşındı** — `OrderCompleted` tüketir (`OrderConsumers`, idempotent upsert) | `specs/060-price-alarm-mail` |
 | `gateway` | — | YARP reverse proxy; tek giriş | — |
 | `identity-server` | identityDb | **084: ECommerce'ten ÇIKTI — `AgentPlatform` repo'sunda platform IdP** (uygulama-nötr; ECommerce "app #1" olarak `AppRegistry` config'inde kayıtlı relying party). OpenIddict + ASP.NET Identity; OIDC/OAuth + RBAC; DCR + tek consent + revocation (061). Nötr auth kablosu (`IdentityOption`+`AddAuthenticationAndAuthorizationExtension`) = `Platform.Auth` NuGet paketi (yerel feed, namespace Common.* korunur). ECommerce IdP'ye dış-servis (issuer URL `IdentityOption.Address`) olarak bakar; AppHost proje-ref YOK | `../AgentPlatform` · `specs/084-platform-idp` |
