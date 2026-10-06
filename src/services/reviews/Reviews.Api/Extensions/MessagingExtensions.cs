@@ -25,24 +25,6 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ReviewSummaryChanged>()
                 .ToRabbitExchange(RabbitMqConstants.ReviewSummaryChanged.Exchange);
 
-            // moderasyon istegi ayri worker'a (RabbitMQ). Yayinci yalniz exchange deklare eder;
-            // [Transactional] SubmitReview + transactional outbox → broker down olsa submit reviewsDb'ye
-            // commit olur, mesaj outbox'ta bekler (fail-open, submit broker'a senkron baglanmaz).
-            rabbit.DeclareExchange(RabbitMqConstants.ReviewModerationRequested.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-            });
-            opts.PublishMessage<Shared.IntegrationEvents.ReviewModerationRequested>()
-                .ToRabbitExchange(RabbitMqConstants.ReviewModerationRequested.Exchange);
-
-            // worker'in karari — tuketici kendi kuyrugunu deklare edilen exchange'e baglar (007) + dinler.
-            rabbit.DeclareExchange(RabbitMqConstants.ReviewModerated.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-                e.BindQueue(RabbitMqConstants.ReviewModerated.Queues.Reviews);
-            });
-            opts.ListenToRabbitQueue(RabbitMqConstants.ReviewModerated.Queues.Reviews);
-
             // Order 'OrderCompleted' tüketilir → satın-alma kanıtı read-model. Tüketici kendi kuyruğunu
             // deklare edilen exchange'e bağlar (007) + dinler. Durable → Reviews kapalıyken kaybolmaz.
             rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
@@ -58,7 +40,6 @@ public static class MessagingExtensions
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // *Consumers Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et (Stock/Catalog emsali).
-            opts.Discovery.IncludeType(typeof(Reviews.Api.ModerationAgentConsumers));
             opts.Discovery.IncludeType(typeof(Reviews.Api.OrderConsumers));
         });
 

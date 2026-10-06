@@ -1,7 +1,7 @@
 namespace Reviews.Api.Domains.Reviews;
 
-// satin-alma sartli urun yorumu. Yayin HEMEN (Visible dogar, FR-010); moderasyon async
-// kosar ve ihlalde ApplyModeration gizler (FR-011). Teklik: Marten UniqueIndex(UserId, ProductId).
+// satin-alma sartli urun yorumu. Yayin HEMEN (Visible dogar); moderasyon yok (kullanici serbest
+// yazar). Teklik: Marten UniqueIndex(UserId, ProductId).
 public class Review : AggregateRoot
 {
     // Kontrat siniri (contracts/reviews-rest-api.md): metin en fazla 2000 karakter.
@@ -16,13 +16,6 @@ public class Review : AggregateRoot
     public string ReviewerName { get; private set; } = null!;
 
     public ReviewStatus Status { get; private set; }
-
-    // Hidden ise ihlal kategorisi + kisa gerekce (iz; yuzeye cikmaz).
-    public string? ModerationCategory { get; private set; }
-    public string? ModerationReason { get; private set; }
-
-    // Denetim tamamlanma ani; null = denetim bekliyor (yorum yine gorunur — fail-open, FR-012).
-    public DateTimeOffset? ModeratedAtUtc { get; private set; }
 
     private Review()
     {
@@ -61,27 +54,10 @@ public class Review : AggregateRoot
             CreatedTime = now.UtcDateTime,
         });
     }
-
-    /// <summary>Moderasyon kararini uygular: ihlalde gizler (Hidden), temizde yalniz damgalar; tekrar no-op.</summary>
-    public ResultDomain ApplyModeration(ValueObjects.ModerationVerdict verdict, DateTimeOffset now)
-    {
-        // At-least-once teslimat: denetim tamamlanmissa ikinci karar durumu degistirmez (idempotent).
-        if (ModeratedAtUtc is not null)
-            return ResultDomain.Ok();
-
-        if (verdict.Violation)
-        {
-            Status = ReviewStatus.Hidden;
-            ModerationCategory = verdict.Category;
-            ModerationReason = verdict.Reason;
-        }
-
-        ModeratedAtUtc = now;
-        return ResultDomain.Ok();
-    }
 }
 
-// yorum durumu — Hidden terminaldir (itiraz/geri alma v1 disi).
+// yorum gorunurluk durumu. Hidden su an yazilmaz (moderasyon soküldü); gelecekteki
+// spam/kullanici-silme yuzeyleri icin gorunurluk kavrami korunur.
 public enum ReviewStatus
 {
     Visible = 1,

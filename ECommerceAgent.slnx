@@ -3,7 +3,6 @@
   <Folder Name="/src/agents/">
     <Project Path="src/agents/Mail.Mcp/Mail.Mcp.csproj" />
     <Project Path="src/agents/NotificationAgent/NotificationAgent.csproj" />
-    <Project Path="src/agents/Reviews.Moderation/Reviews.Moderation.csproj" />
   </Folder>
   <Folder Name="/src/aspire/">
     <Project Path="src/aspire/AppHost/AppHost.csproj" />

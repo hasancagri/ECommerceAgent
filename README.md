@@ -20,9 +20,8 @@
 
 Her servisin kendi veritabanına sahip, izole bir **bounded context** olduğu tam bir **mikroservis e-ticaret backend'i**. Context'ler arası iletişim yalnızca **integration event**, **Model Context Protocol (MCP)** ve — bir adımın anlık evet/hayır ya da context'ler arası devir gerektirdiği yerde — sanksiyonlu **tipli gRPC** (stok rezervi), **broker command/reply** (checkout sağası) ve **servisten-servise (S2S) çağrı** (Order → Payment hosted ödeme linki) üzerindendir.
 
-Bu proje **agent-only / BYO-agent** duruşundadır: mağaza **ne görsel ekran ne de kendi sohbet agent'ını** host eder. Müşteri **kendi AI istemcisiyle** (Claude Desktop vb.) tek MCP fasadına bağlanır; işlemler alt bounded context'lerin MCP tool'larına, çağıran kullanıcının token'ıyla proxy'lenir. İki AI agent worker'ı çekirdeğin çevresinde durur, ikisi de **Microsoft Agent Framework** üzerinde:
+Bu proje **agent-only / BYO-agent** duruşundadır: mağaza **ne görsel ekran ne de kendi sohbet agent'ını** host eder. Müşteri **kendi AI istemcisiyle** (Claude Desktop vb.) tek MCP fasadına bağlanır; işlemler alt bounded context'lerin MCP tool'larına, çağıran kullanıcının token'ıyla proxy'lenir. Bir AI agent worker'ı çekirdeğin çevresinde durur, **Microsoft Agent Framework** üzerinde:
 
-- **Reviews Moderation Agent** — ürün yorumlarını LLM ile moderasyon eden **durumsuz broker worker'ı** (structured JSON, sıcaklık 0, MCP yok). `ReviewModerationRequested` event'ini tüketir, metni sınıflar, `ReviewModerated` ile yanıtlar — Reviews context'i sıfır agent-framework kodu taşır, moderasyon modeli bir olay sınırının ardında kalır.
 - **Notification Agent** — fiyat alarmı e-postası yazan **durumsuz worker** (DB yok). `PriceAlarmTriggered`'ı tüketir, tek LLM çağrısıyla maili yazar ve **Mail.Mcp**'nin `send_mail` tool'unu çağırır, `NotificationSent` yayınlar.
 
 Katalog **first-party**'dir: mağaza envanterin sahibidir, ürün girişi düz ürün-CRUD'dur (eski çok-tedarikçili besleme hattı bilinçli olarak söküldü). Yeni ürünler `Catalog → Stock` (ilk stok) ve `Catalog → Storefront` (read-model) yönünde integration event akar.
@@ -41,7 +40,7 @@ DDD, CQRS ve olay-güdümlü tasarımın gerçek .NET kodunda ne kadar ileri ta�
 - **MCP'de admin yüzeyi (070)** — `catalog/stock/customer` ikinci korumalı `/mcp-admin` ucu açar (anonim keşif seti değişmez; tool seti oturum açılışında açık allowlist ile budanır). Her admin yazma BC'sinde salt-append `AdminActionLog` izi.
 - **Push-only read model + asistan sorgu yüzeyi** — `storefront` servisi katalog + stok + yorum özetini birleştiren ürün-merkezli görünümü **tek sıralı kuyruk**ta tüketilen integration event'lerle kurar (dışa çağrı/backfill yok). Müşteri okuma yüzeyi tek tool: `query_storefront` (069) — salt-okur `storefront_sellable` view + `AgentSqlGuard` bekçisi + kısıtlı DB rolü + `{{EMBED}}` semantik yerleştirme + `AgentQueryLog` izi.
 - **Semantik arama (pgvector)** — `text-embedding-3-small` embedding'leri yalnız arama metninin hash'i değiştiğinde `ProductChangedEvent`'te üretilir, `storefrontDb`'de yan doküman olarak saklanır, ham kosinüs-mesafe SQL join ile sorgulanır. Embedding kesintisi view yazımını ya da filtre-only aramayı bloklamaz.
-- **Satın-alma şartlı yorum + sınır-ardı moderasyon** — `reviews` context'i yalnız ürünü gerçekten satın alan kullanıcıdan 1–5★ yorum kabul eder; hak, `OrderCompleted` event'inden yerel projeksiyonla belirlenir (senkron çağrı değil). AI moderasyon ayrı broker worker'da çalışır; puan özeti Storefront'a akar.
+- **Satın-alma şartlı yorum** — `reviews` context'i yalnız ürünü gerçekten satın alan kullanıcıdan 1–5★ yorum kabul eder; hak, `OrderCompleted` event'inden yerel projeksiyonla belirlenir (senkron çağrı değil). Yorum hemen görünür (moderasyon yok); puan özeti Storefront'a akar.
 - **Hosted-CF ödeme (077)** — kart alanı sistemden geçmez. Payment BC bir **hosted ödeme linki** üretir (PG hosted sayfası), müşteri orada öder, PG **HMAC-imzalı callback** ile döner → `PaymentSucceeded`/`PaymentFailed` fanout. Terk-timer (`ScheduleAsync`) callback gelmezse Expire eder; `TxRef` unique olduğu için idempotent.
 - **Dayanıklı checkout orkestrasyonu (broker-only saga)** — checkout, kendi `Checkout.Orchestrator` servisinde Wolverine dayanıklı sağası olarak çalışır (durum Marten'de, `CheckoutId` anahtarlı). 077'de ödeme öncedendir → saga yalnız `CommitStock → Confirm → ClearBasket` sürer (Charge adımı söküldü). `CommittingStock`'ta stok başarısızsa LIFO telafi + takılan koşu için watchdog.
 - **Fiyat alarmı + bildirim** — `library` context'i kullanıcı-ürün ilgi kayıtlarını ve yaşayan fiyat alarmı aboneliklerini tutar; `ProductChangedEvent.OldPrice` tetiğiyle alarm başına `PriceAlarmTriggered` yayınlar; Notification Agent maili üretir.
@@ -83,10 +82,6 @@ flowchart TB
     MQ -->|tek sıralı kuyruk| Storefront
     MQ -->|command / reply| Checkout["checkout-orchestrator"]
     Checkout -->|"CommitStock / Confirm / ClearBasket"| MQ
-
-    Reviews -->|ReviewModerationRequested| MQ
-    MQ -->|LLM moderate| ReviewsMod["reviews-moderation-agent<br/>(durumsuz broker worker)"]
-    ReviewsMod -->|ReviewModerated| MQ
 
     Library -->|PriceAlarmTriggered| MQ
     MQ -->|LLM compose| Notif["notification-agent<br/>(durumsuz worker)"]
@@ -160,13 +155,12 @@ Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bi
 | `payment-api` | Hosted-CF ödeme (077): `PaymentIntent` (kart alanı yok); PG hosted link + HMAC callback → `PaymentSucceeded`/`PaymentFailed`; terk-timer; `TxRef` unique idempotent |
 | `storefront-api` | Push-only birleşik read model (katalog + stok + yorum özeti); tek asistan tool `query_storefront` (`AgentSqlGuard` + kısıtlı DB rolü + pgvector semantik + `AgentQueryLog`) |
 | `customer-api` | Wallet (tokenize kart, PAN yok; kart YAZMA yüzeyi yok — salt okuma + payment-context) + AddressBook + `MerchantInformation`; korumalı `/mcp-admin` (merchant kimlik + PG onboarding) |
-| `reviews-api` | Satın-alma şartlı yorum (1–5★); hak `OrderCompleted` event'inden; AI moderasyon ayrı worker'a; puan özeti Storefront'a |
+| `reviews-api` | Satın-alma şartlı yorum (1–5★); hak `OrderCompleted` event'inden; yorum hemen görünür (moderasyon yok); puan özeti Storefront'a |
 | `library-api` | Kullanıcı-ürün ilgi kayıtları + yaşayan fiyat alarmı aboneliği (email snapshot) + `NotificationRecord`; `ProductChangedEvent.OldPrice` tetiği → `PriceAlarmTriggered` |
 | `checkout-orchestrator` | Standalone broker-only checkout sağası (`checkoutDb`): `CommitStock → Confirm → ClearBasket`; LIFO telafi + watchdog (ödeme öncedendir) |
 | `gateway` | YARP reverse proxy / tek giriş (MCP + PRM rotaları) |
 | `identity-server` | OpenIddict + ASP.NET Identity — OIDC/OAuth authority + RBAC (rol = scope demeti) + RFC 7591 DCR + consent + revocation |
 | _(MCP fasadı)_ | **TAŞINDI → AgentPlatform** (001): tek MCP fasadı artık bu repoda değil; AgentPlatform'ın Aspire host'unda koşar, EC `/mcp` uçlarını sabit URL'lerle downstream toplar. EC ürün `/mcp` uçları KORUNUR |
-| `reviews-moderation-agent` | Durumsuz broker worker — `ReviewModerationRequested → LLM (structured JSON) → ReviewModerated`; DB yok, MCP yok |
 | `notification-agent` | Durumsuz worker — `PriceAlarmTriggered → LLM compose → Mail.Mcp send_mail → NotificationSent`; DB yok |
 | `mail-mcp` | İlk standalone MCP server; tek tool `send_mail` (MailKit → Mailpit); yalnız Notification Agent tüketir |
 
@@ -184,7 +178,6 @@ Paylaşılan temeller `src/others` altında: `Common` (domain yapı taşları, r
 - **Servisler arası anlık evet/hayır gereken yerde senkron RPC.** Stok rezervi (basket/order → stock) sanksiyonlu senkron kanaldır: tipli gRPC, scope-korumalı, fail-closed. DB izolasyonu korunur — çağıran Stock'un API'sine erişir, veritabanına değil.
 - **Servisler arası transaction yerine idempotency.** Context'ler arası yazımlar transaction paylaşamaz; saga bunun yerine yakınsar: deterministik anahtarlar (`CheckoutId`/`TxRef`), en-az-bir-kez teslim, iş hataları sonsuz retry yerine telafiye yönlendirilir.
 - **Eventual-consistency akışları event kullanır, gRPC değil.** Satın-alma sonrası yazılan yorum anlık yanıt gerektirmez, o yüzden hak `OrderCompleted` projeksiyonudur — gRPC yalnız anlık-tutarlılığa (stok) ayrılmıştır.
-- **Moderasyon modeli bir olay sınırının ardında.** Reviews sıfır agent-framework kodu taşır; moderasyon ayrı broker worker'dır, LLM bağımlılığı yorum-yazma context'ine sızmaz.
 - **Rol downstream'e sızmaz — yalnız scope.** Identity rol verir (rol = scope demeti); servisler saf scope'a göre yetkilendirir. Okumalar (stok, storefront) anonim; token alışveriş yazma yolunda önemlidir.
 
 ## Başlangıç
@@ -207,12 +200,11 @@ Bu; her servisi, YARP gateway'i, Identity.Server'ı ve agent worker'larını, ar
 
 > Identity.Server **HTTPS** üzerinde çalışmalıdır (`SameSite=None; Secure` çerezleri düz HTTP'de sonsuz döner).
 
-OpenAI kullanan servisler (**Reviews Moderation Agent**, **Notification Agent**, ve embedding için **Storefront**) kimlik bilgisi olmadan açılışta fail-fast eder:
+OpenAI kullanan servisler (**Notification Agent**, ve embedding için **Storefront**) kimlik bilgisi olmadan açılışta fail-fast eder:
 
 ```bash
-dotnet user-secrets set "OpenAI:ApiKey" "<key>" --project src/agents/Reviews.Moderation/Reviews.Moderation.csproj
-dotnet user-secrets set "OpenAI:Model"  "gpt-4o-mini" --project src/agents/Reviews.Moderation/Reviews.Moderation.csproj
 dotnet user-secrets set "OpenAI:ApiKey" "<key>" --project src/agents/NotificationAgent/NotificationAgent.csproj
+dotnet user-secrets set "OpenAI:Model"  "gpt-4o-mini" --project src/agents/NotificationAgent/NotificationAgent.csproj
 dotnet user-secrets set "OpenAI:ApiKey" "<key>" --project src/services/storefront/Storefront.Api/Storefront.Api.csproj
 ```
 
@@ -241,8 +233,8 @@ src/
   services/      basket, catalog, checkout, customer, gateway, library,
                  order, payment, reviews, stock, storefront
   others/        Common, Shared (kontratlar + protolar), Identity.Server
-  agents/        Mail.Mcp (send_mail), NotificationAgent (fiyat alarmı),
-                 Reviews.Moderation (moderasyon)   # MCP fasadı → AgentPlatform'a taşındı (001)
+  agents/        Mail.Mcp (send_mail), NotificationAgent (fiyat alarmı)
+                 # MCP fasadı → AgentPlatform'a taşındı (001)
 tests/           Servis başına domain birim testleri (xUnit + Shouldly)
 .specify/        Spec-driven development kurulumu (spec-kit)
 specs/           Feature spec / plan / task'ları

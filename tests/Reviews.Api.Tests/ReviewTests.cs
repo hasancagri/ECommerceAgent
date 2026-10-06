@@ -21,7 +21,6 @@ public class ReviewTests
         review.Rating.ShouldBe(4);
         review.Text.ShouldBe("Gayet iyi ürün.");
         review.Status.ShouldBe(ReviewStatus.Visible);
-        review.ModeratedAtUtc.ShouldBeNull();
     }
 
     [Fact]

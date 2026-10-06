@@ -20,7 +20,4 @@ public static class ReviewsResourceConstants
 
     // Token'da gorunen ad bos (beklenmez; guard).
     public const string REVIEW_NAME_REQUIRED = "REVIEW_NAME_REQUIRED";
-
-    // Moderasyon karari gecersiz (violation=true iken kategori bos/none).
-    public const string REVIEW_MODERATION_VERDICT_INVALID = "REVIEW_MODERATION_VERDICT_INVALID";
 }
