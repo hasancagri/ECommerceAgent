@@ -35,3 +35,4 @@ global using Shared.Grpc.Customer;
 global using Customer.Api;
 global using Customer.Api.Domains.MerchantInformations.Features.Commands;
 global using Customer.Api.Infrastructure;
+global using Platform.Auth;

@@ -34,3 +34,5 @@ global using Common.Dependencies;
 global using Common.Utils.Authorization;
 global using Common.Auths;
 global using Stock.Api.Extensions;
+
+global using Platform.Auth;

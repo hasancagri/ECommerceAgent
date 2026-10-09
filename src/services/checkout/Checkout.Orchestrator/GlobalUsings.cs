@@ -19,3 +19,5 @@ global using Checkout.Orchestrator.Constants;
 global using Checkout.Orchestrator.Dependencies;
 global using Checkout.Orchestrator.Extensions;
 global using static Shared.CheckoutMessages;
+
+global using Platform.Auth;

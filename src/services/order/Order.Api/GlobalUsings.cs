@@ -32,7 +32,7 @@ global using Shared.Grpc.Customer;
 global using Shared.Grpc.Payment;
 global using Shared.Grpc.Discount;
 global using System.ComponentModel;
-global using Common.Options;
+global using Platform.Auth;
 global using Order.Api.Options;
 global using Microsoft.Extensions.Options;
 global using Common.Utils.Authorization;

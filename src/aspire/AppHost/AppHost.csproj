@@ -6,6 +6,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UserSecretsId>dd72660d-cbeb-46b3-858a-a6717a0cfa4f</UserSecretsId>
+        <!-- Aspire container-registry/compute API'leri önizleme (experimental) → diagnostic'i bastır. -->
+        <NoWarn>$(NoWarn);ASPIRECOMPUTE003</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -31,6 +33,7 @@
 
     <ItemGroup>
       <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+        <PackageReference Include="Aspire.Hosting.Docker" />
         <PackageReference Include="Aspire.Hosting.RabbitMQ" />
         <PackageReference Include="Aspire.Hosting.Redis" />
         <PackageReference Include="Aspire.Hosting.Elasticsearch" />

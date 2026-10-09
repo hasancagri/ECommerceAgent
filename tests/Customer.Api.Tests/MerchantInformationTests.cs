@@ -90,14 +90,18 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void StartRegistration_WhenPendingWithDifferentCorrelation_ReturnsError()
+    public void StartRegistration_WhenPendingWithDifferentCorrelation_OverwritesPending()
     {
+        // 087 reissue yarış fix'i: Pending bir kayıt yeni correlation'la ÜZERİNE yazılabilir (overwrite-safe).
+        // PG başarısızken kilitlenmeyi önler; tek first-party merchant → eşzamanlı çift-kayıt riski yok.
         var info = MerchantInformation.NewUnregistered();
         info.StartRegistration(Guid.NewGuid());
+        var newCorrelation = Guid.NewGuid();
 
-        var result = info.StartRegistration(Guid.NewGuid());
+        var result = info.StartRegistration(newCorrelation);
 
-        result.IsSuccess.ShouldBeFalse(); // tek-aktif kayıt guard
+        result.IsSuccess.ShouldBeTrue();
+        info.PendingCorrelationId.ShouldBe(newCorrelation); // yeni correlation bayat pending'i ezer
     }
 
     [Fact]

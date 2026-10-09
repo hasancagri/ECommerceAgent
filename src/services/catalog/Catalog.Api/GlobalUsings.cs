@@ -36,3 +36,5 @@ global using Common.Auths;
 global using Catalog.Api.Helpers;
 global using Catalog.Api.Extensions;
 global using Wolverine.ErrorHandling;
+
+global using Platform.Auth;

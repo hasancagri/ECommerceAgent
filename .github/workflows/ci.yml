@@ -1,0 +1,57 @@
+name: CI
+
+# TETİK: master'a push VEYA herhangi bir PR açıl/güncellenince koş.
+# feature push'u yalnız pull_request'i tetikler (push master'a kısıtlı) — çift koşu yok.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  # ───────────── KAPI: her PR + her master push'ta derle + test ─────────────
+  # restore GitHub Packages'tan Platform.Auth çeker → GH_PACKAGES_TOKEN şart (NuGet.config'teki
+  # %GH_PACKAGES_TOKEN%'ı doldurur). GITHUB_TOKEN repo-scoped; Platform.Auth paketine ERİŞİM VERİLMELİ
+  # (paket ayarları → Actions access → bu repo) VEYA paket public/internal. Yoksa restore 401.
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read              # GitHub Packages'tan Platform.Auth okumak için
+    env:
+      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet build
+      - run: dotnet test --no-build
+
+  # ───────────── ÜRETİM: yalnız master merge'inde image bas + ghcr'a it ─────────────
+  # needs: build-test (kapı) · if: yalnız master push · aspire do push → 15 servis image → ghcr.
+  image:
+    needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write             # ghcr'a image yaz + Platform.Auth oku
+    env:
+      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # aspire build restore'u da Platform.Auth çeker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Aspire CLI kur
+        run: |
+          dotnet tool install -g Aspire.Cli
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: ghcr login
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/ecommerce/<servis> (15 image).
+      - name: Image bas + ghcr'a it
+        run: aspire do push --apphost src/aspire/AppHost/AppHost.csproj --non-interactive

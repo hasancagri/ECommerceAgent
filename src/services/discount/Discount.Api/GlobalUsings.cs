@@ -5,7 +5,7 @@ global using Common.Dependencies;
 global using Common.Domains;
 global using Common.Exceptions;
 global using Common.Extensions;
-global using Common.Options;
+global using Platform.Auth;
 global using Common.Results;
 global using Common.Utils.Authorization;
 global using Common.Utils.Constants;
