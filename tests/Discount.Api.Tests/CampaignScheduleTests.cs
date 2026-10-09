@@ -8,7 +8,7 @@ public class CampaignScheduleTests
     private static readonly DateTime Now = new(2026, 9, 21, 12, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void Cancelled_campaign_is_not_effective_activate_noop_guard()
+    public void IsEffectiveAt_Cancelled_ReturnsFalse()
     {
         var c = Campaign.Create("X", ScopeType.Category, Guid.NewGuid(), 20, Now, Now.AddDays(7), Now).Data!;
         c.Cancel();

@@ -27,7 +27,7 @@ public class StorefrontDocumentSellabilityTests
     }
 
     [Fact]
-    public void Price_yok_ise_satilamaz_yalniz_stok_geldi()
+    public void IsSellable_PriceAbsentWhenOnlyStockArrived_NotSellable()
     {
         // Catalog hiç raporlamadı → Price null → satılamaz (index'te hiç bulunmaz).
         var doc = new StorefrontDocument();

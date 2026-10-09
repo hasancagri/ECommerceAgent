@@ -138,6 +138,10 @@ Domains/<Aggregate>/
   İSTİSNA: guard/invariant kontrolü helper'a çıkarılabilir (aynı guard'ın 3. kopyası tutarsızlık üretir). **VO muaf.**
 - **Aggregate metodu yalnız handler'dan çağrılır** — başka aggregate metodundan (factory dahil) değil. **VO muaf.**
 - **Aggregate public metodu:** `/// <summary>` metodun ne yaptığını yazar (handler-listesi remarks kuralı YOK).
+- **Test adı = `Method_Condition_Outcome`** (üç segment, İngilizce PascalCase, `_` ayraç). İlk segment =
+  test edilen aggregate metodu BİREBİR (`Create`/`StartRegistration`/`Adjust`…); orta = koşul
+  (`EmptyName`/`WhenPendingWithDifferentCorrelation`); son = beklenen sonuç (`ReturnsError`/`SetsConfirmed`).
+  Türkçe/`snake_case`/metodla-başlamayan ad YAZMA. Filtre/projeksiyon testinde ilk segment = test edilen davranış.
 
 ## Konvansiyonlar
 
