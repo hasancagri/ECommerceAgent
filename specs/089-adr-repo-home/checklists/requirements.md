@@ -1,8 +1,8 @@
-# Specification Quality Checklist: Checkout Orchestrator (standalone orchestration-based saga)
+# Specification Quality Checklist: ADR'leri Repo İçine Taşı
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-08-25
-**Feature**: [Link to spec.md](../spec.md)
+**Created**: 2026-10-08
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -31,10 +31,6 @@
 
 ## Notes
 
-- Tasarım öğrenme/keşif odaklı; "full replace" + broker-only + iki-fazlı payment kararları
-  brainstorm'da kilitlendi (bkz. [`docs/adr/adr-checkout-saga-orchestration.md`](../../../docs/adr/adr-checkout-saga-orchestration.md)).
-- Spec bilinçli olarak bazı teknoloji adlarını (Wolverine/RabbitMQ/Marten) yalnızca
-  Assumptions'ta mevcut altyapıya referansla anar; FR'ler teknoloji-agnostik yazıldı.
-- Anayasa İlke I sapması (checkout adımları broker, gRPC değil) plan aşamasında
-  Constitution Check'te gerekçelenecek.
-- Sıradaki: `/speckit-clarify` (ops) veya doğrudan `/speckit-plan`.
+- `docs/adr/` + `docs/conventions.md` dosya yolları feature'ın özünü tanımlıyor (konumun kendisi
+  gereksinimin parçası); saf implementasyon detayı değil → kabul edildi.
+- `specs/049` ölü slug atfı tek bilinen risk; edge-case + FR-001 istisnası olarak planda çözülecek.

@@ -2,7 +2,8 @@
 
 Bu dosya proje-bağımsızdır: DDD/VSA mimarisi + kod disiplini. Yeni projeye AYNEN kopyalanabilir.
 Proje-özel bilgi (komutlar, servis listesi, feature'lar) `CLAUDE.md`'dedir. **İLKE N** = projenin
-`.specify/memory/constitution.md` ilkesi (her projenin kendi anayasası olur).
+`.specify/memory/constitution.md` ilkesi (her projenin kendi anayasası olur). Bir kuralın *neden*
+böyle olduğunun gerekçesi (karar kaydı) repo içinde [`adr/`](adr/README.md) — kural burada, gerekçe orada (ADR link verir, kopyalamaz).
 
 ## Spec-Driven Development (spec-kit)
 
@@ -168,7 +169,7 @@ Domains/<Aggregate>/
   ile aynen REST client'lardaki gibi takılır (.NET gRPC client'ı HttpClient temelli).
 - **Sır/kimlik değeri insan-yüzeyde render EDİLMEZ.** Credential/finansal/PII değeri ekran/chat/MCP-dönüşüne
   ve log/trace'e girmez (kontrol-düzlemi ≠ veri-düzlemi). Teslim S2S/HMAC-callback, kullanım gRPC; LLM yalnız
-  sır-olmayan opak tutamaç görür, sunucu değere çözer. ADR `adr-mcp-control-plane-no-secret-return`.
+  sır-olmayan opak tutamaç görür, sunucu değere çözer. ADR [`adr/adr-mcp-control-plane-no-secret-return.md`](adr/adr-mcp-control-plane-no-secret-return.md).
 - **MCP yalnız agent tüketir.** Agent olmayan kod (WebApp/servis) imperatif `CallToolAsync` süremez →
   REST/gRPC. Chat akışında MCP DOLAYLI: agent tool'u LLM prompt'uyla seçer, elle `CallToolAsync` YOK.
   MCP tool YALNIZ `Features/Agents/<X>ForAgent` slice'ını çağırır (ince sarmalayıcı).
