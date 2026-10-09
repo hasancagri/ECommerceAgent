@@ -6,7 +6,7 @@ public class MerchantInformationTests
     private const string ValidKey = "mk_abc123";
 
     [Fact]
-    public void Create_gecerli_Ok_ve_Active()
+    public void Create_ValidInput_ReturnsOk_AndActive()
     {
         var result = MerchantInformation.Create(ValidMerchant, ValidKey);
 
@@ -17,7 +17,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void Create_bosluklu_key_trimlenir()
+    public void Create_WhitespacePaddedKey_TrimsKey()
     {
         var result = MerchantInformation.Create(ValidMerchant, "  mk_x  ");
 
@@ -26,7 +26,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void Create_bos_merchantId_Error()
+    public void Create_EmptyMerchantId_ReturnsError()
     {
         var result = MerchantInformation.Create(Guid.Empty, ValidKey);
 
@@ -34,7 +34,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void Create_bos_key_Error()
+    public void Create_EmptyKey_ReturnsError()
     {
         var result = MerchantInformation.Create(ValidMerchant, "   ");
 
@@ -42,7 +42,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void UpdateKey_gecerli_key_gunceller()
+    public void UpdateKey_ValidKey_UpdatesKey()
     {
         var info = MerchantInformation.Create(ValidMerchant, ValidKey).Data!;
 
@@ -54,7 +54,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void UpdateKey_bos_Error_ve_eski_key_korunur()
+    public void UpdateKey_EmptyKey_ReturnsError_AndPreservesOldKey()
     {
         var info = MerchantInformation.Create(ValidMerchant, ValidKey).Data!;
 
@@ -80,7 +80,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void StartRegistration_bos_correlation_Error()
+    public void StartRegistration_EmptyCorrelation_ReturnsError()
     {
         var info = MerchantInformation.NewUnregistered();
 
@@ -90,7 +90,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void StartRegistration_zaten_Pending_farkli_correlation_Error()
+    public void StartRegistration_WhenPendingWithDifferentCorrelation_ReturnsError()
     {
         var info = MerchantInformation.NewUnregistered();
         info.StartRegistration(Guid.NewGuid());
@@ -101,7 +101,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void StartRegistration_zaten_Pending_ayni_correlation_idempotent_Ok()
+    public void StartRegistration_WhenPendingWithSameCorrelation_IsIdempotentOk()
     {
         var correlation = Guid.NewGuid();
         var info = MerchantInformation.NewUnregistered();
@@ -114,7 +114,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void ApplyCredentialsFromCallback_eslesen_correlation_Active_ve_key_set()
+    public void ApplyCredentialsFromCallback_MatchingCorrelation_SetsActive_AndKey()
     {
         var correlation = Guid.NewGuid();
         var info = MerchantInformation.NewUnregistered();
@@ -130,7 +130,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void ApplyCredentialsFromCallback_eslesmeyen_correlation_notr_Error_persist_yok()
+    public void ApplyCredentialsFromCallback_NonMatchingCorrelation_ReturnsError_AndDoesNotPersist()
     {
         var info = MerchantInformation.NewUnregistered();
         info.StartRegistration(Guid.NewGuid());
@@ -143,7 +143,7 @@ public class MerchantInformationTests
     }
 
     [Fact]
-    public void ApplyCredentialsFromCallback_cift_callback_ayni_correlation_idempotent_noop()
+    public void ApplyCredentialsFromCallback_DoubleCallbackSameCorrelation_IsIdempotentNoOp()
     {
         var correlation = Guid.NewGuid();
         var info = MerchantInformation.NewUnregistered();

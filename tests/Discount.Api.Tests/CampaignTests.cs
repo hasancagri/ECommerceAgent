@@ -20,7 +20,7 @@ public class CampaignTests
     }
 
     [Fact]
-    public void Create_future_start_is_scheduled_and_not_effective()
+    public void Create_FutureStart_IsScheduledAndNotEffective()
     {
         var r = Campaign.Create("İleri", ScopeType.Category, Ref, 15, Now.AddDays(1), Now.AddDays(3), Now);
 
@@ -34,7 +34,7 @@ public class CampaignTests
     [InlineData(100)]
     [InlineData(150)]
     [InlineData(-5)]
-    public void Create_rejects_percentage_out_of_range(int pct)
+    public void Create_PercentageOutOfRange_ReturnsError(int pct)
     {
         var r = Campaign.Create("X", ScopeType.Category, Ref, pct, Now, Now.AddDays(1), Now);
 
@@ -43,7 +43,7 @@ public class CampaignTests
     }
 
     [Fact]
-    public void Create_rejects_end_before_start()
+    public void Create_EndBeforeStart_ReturnsError()
     {
         var r = Campaign.Create("X", ScopeType.Category, Ref, 20, Now, Now.AddDays(-1), Now);
 
@@ -54,7 +54,7 @@ public class CampaignTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void Create_rejects_empty_name(string name)
+    public void Create_EmptyName_ReturnsError(string name)
     {
         var r = Campaign.Create(name, ScopeType.Category, Ref, 20, Now, Now.AddDays(1), Now);
 
@@ -63,7 +63,7 @@ public class CampaignTests
     }
 
     [Fact]
-    public void Create_rejects_empty_scope_ref()
+    public void Create_EmptyScopeRef_ReturnsError()
     {
         var r = Campaign.Create("X", ScopeType.Category, Guid.Empty, 20, Now, Now.AddDays(1), Now);
 
@@ -72,7 +72,7 @@ public class CampaignTests
     }
 
     [Fact]
-    public void Create_rejects_undefined_scope_type()
+    public void Create_UndefinedScopeType_ReturnsError()
     {
         var r = Campaign.Create("X", (ScopeType)99, Ref, 20, Now, Now.AddDays(1), Now);
 
@@ -81,7 +81,7 @@ public class CampaignTests
     }
 
     [Fact]
-    public void Create_allows_null_end_open_ended()
+    public void Create_NullEnd_OpenEnded()
     {
         var r = Campaign.Create("Süresiz", ScopeType.Author, Ref, 10, Now, null, Now);
 
@@ -90,7 +90,7 @@ public class CampaignTests
     }
 
     [Fact]
-    public void Cancel_makes_ineffective()
+    public void Cancel_FromActive_MakesIneffective()
     {
         var campaign = Campaign.Create("X", ScopeType.Category, Ref, 20, Now, Now.AddDays(7), Now).Data!;
 

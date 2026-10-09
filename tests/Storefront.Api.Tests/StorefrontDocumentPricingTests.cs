@@ -18,7 +18,7 @@ public class StorefrontDocumentPricingTests
     }
 
     [Fact]
-    public void Indirim_yoksa_etkin_fiyat_liste_fiyatidir()
+    public void EffectivePrice_WhenNoDiscount_EqualsListPrice()
     {
         var doc = new StorefrontDocument();
         doc.ApplyCatalog(new IntegrationEvents.ProductChangedEvent(

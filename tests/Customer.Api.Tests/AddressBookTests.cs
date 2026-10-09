@@ -29,7 +29,7 @@ public class AddressBookTests
     }
 
     [Fact]
-    public void Address_Create_Rejects_EmptyRequiredFields()
+    public void Create_EmptyRequiredField_ReturnsError()
     {
         var result = Address.Create("Istanbul", "", "Bagdat Cad.", "34710", "No 12");
 

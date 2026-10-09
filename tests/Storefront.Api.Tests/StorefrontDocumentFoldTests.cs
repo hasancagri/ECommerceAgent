@@ -38,7 +38,7 @@ public class StorefrontDocumentFoldTests
     }
 
     [Fact]
-    public void Kismi_satir_gecerli_yalniz_stok_gelirse()
+    public void ApplyStock_PartialRowWhenOnlyStockArrives_IsValid()
     {
         // Catalog henüz raporlamadı — yalnız stok event'i geldi. Doc kurulur, Name null kalır.
         var doc = new StorefrontDocument();
@@ -51,7 +51,7 @@ public class StorefrontDocumentFoldTests
     }
 
     [Fact]
-    public void Mutlak_deger_son_yazan_kazanir_stok()
+    public void ApplyStock_AbsoluteValueLastWriterWins()
     {
         var doc = new StorefrontDocument();
         doc.ApplyStock(new IntegrationEvents.StockChangedEvent(Pid, 5));
@@ -61,7 +61,7 @@ public class StorefrontDocumentFoldTests
     }
 
     [Fact]
-    public void Catalog_tekrari_tum_alan_grubunu_son_event_ile_yazar()
+    public void ApplyCatalog_RepeatWritesWholeFieldGroupWithLatestEvent()
     {
         var doc = new StorefrontDocument();
         doc.ApplyCatalog(Catalog(name: "Eski", price: 100m));
@@ -98,7 +98,7 @@ public class StorefrontDocumentFoldTests
     }
 
     [Fact]
-    public void FamilyCode_bos_gelince_aileden_cikar()
+    public void FamilyCode_WhenArrivesEmpty_LeavesTheFamily()
     {
         var doc = new StorefrontDocument();
         doc.ApplyCatalog(Catalog(familyCode: "FAM-1"));

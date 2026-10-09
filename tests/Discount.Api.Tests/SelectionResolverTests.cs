@@ -12,7 +12,7 @@ public class SelectionResolverTests
     }
 
     [Fact]
-    public void Category_filter_returns_published_matches()
+    public void CategoryFilter_Matches_ReturnsPublished()
     {
         var cat = Guid.NewGuid();
         var pub = Guid.NewGuid();
@@ -48,7 +48,7 @@ public class SelectionResolverTests
     }
 
     [Fact]
-    public void Author_filter_matches_membership()
+    public void AuthorFilter_Matches_Membership()
     {
         var author = Guid.NewGuid();
         var p1 = Guid.NewGuid();
@@ -64,7 +64,7 @@ public class SelectionResolverTests
     }
 
     [Fact]
-    public void Publisher_filter_matches()
+    public void PublisherFilter_Matches_Membership()
     {
         var pub = Guid.NewGuid();
         var p1 = Guid.NewGuid();
