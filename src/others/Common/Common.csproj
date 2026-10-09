@@ -23,7 +23,8 @@
         <!-- 088: ölü-mesaj operatör tool'u ([McpServerTool]) Common'da (çapraz-kesen infra). -->
         <PackageReference Include="ModelContextProtocol.Core" />
         <!-- 084: nötr auth kablosu (IdentityOption + AddAuthenticationAndAuthorizationExtension) buradan
-             ayrıldı → Platform.Auth paketi. Namespace Common.* korunur → tüketicilerde using değişmez. -->
+             ayrıldı → Platform.Auth paketi. Namespace artık Platform.Auth (eski Common.* bırakıldı);
+             tüketiciler `using Platform.Auth` kullanır (AgentPlatform Mcp.Gateway ile hizalı). -->
         <PackageReference Include="Platform.Auth" />
     </ItemGroup>
     <ItemGroup>

@@ -8,7 +8,7 @@ global using Wolverine;
 global using Common.Results.BaseClasses;
 
 // --- hoisted (2+ dosyada tekrar; using consolidation) ---
-global using Common.Options;
+global using Platform.Auth;
 global using Common.Utils.Constants;
 global using Microsoft.AspNetCore.Authentication.JwtBearer;
 global using Microsoft.AspNetCore.Builder;

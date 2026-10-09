@@ -29,7 +29,7 @@ global using Payment.Api.Domains.Payments.Features.Agents;
 global using Shared.Utils.Constants;
 
 // hosted-CF ödeme — options + S2S + auth.
-global using Common.Options;
+global using Platform.Auth;
 global using Common.Utils.Authorization;
 global using Payment.Api.Options;
 global using Microsoft.Extensions.Options;
