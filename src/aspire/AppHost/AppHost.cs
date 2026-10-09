@@ -1,5 +1,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// Yayın hedefi (publish/push-only): `aspire do push` her AddProject'i container image'ine çevirip ghcr'a iter.
+// Yalnız publish/push'ta devreye girer — yerel `aspire run` dev akışı değişmez.
+builder.AddDockerComposeEnvironment("compose");
+
+// Otopark (registry) = ghcr.io/hasancagri/ecommerce. PREFIX "ecommerce" ZORUNLU: payment-api/gateway gibi
+// isimler AgentPlatform + PaymentGateway ile çakışır; repo-başına ayrı namespace → çakışma yok.
+var ghcr = builder.AddContainerRegistry("ghcr", "ghcr.io", "hasancagri/ecommerce");
+
 // pgvector'lu resmi imaj. pg17 = Aspire default'u (postgres:17.x) ile ayni veri yolu; mevcut
 // volume uyumlu. pg18 tag'i KULLANMA (WithDataVolume tag'i parse edemez, 17-yolunu mount eder).
 // WithImage, WithDataVolume'dan ONCE: veri yolu o andaki imaj annotation'indan cozulur.
@@ -259,5 +267,18 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
 // platform MCP fasadına bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).
+
+// Tüm deploy edilebilir servisleri (15) ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
+// bunların image'ini basıp ghcr.io/hasancagri/ecommerce/<servis>'e iter. Altyapı (postgres/rabbit/
+// redis/es/kibana/mailpit) public image → girmez.
+foreach (var svc in new[]
+{
+    catalogApi, stockApi, basketApi, orderApi, storefrontApi, paymentApi, customerApi,
+    checkoutOrchestrator, reviewsApi, libraryApi, discountApi, mailMcp, notificationAgent,
+    fileApi, gateway
+})
+{
+    svc.WithContainerRegistry(ghcr);
+}
 
 await builder.Build().RunAsync();
