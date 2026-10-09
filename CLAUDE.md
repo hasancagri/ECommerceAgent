@@ -2,6 +2,9 @@
 
 Claude Code'a bu repo'da rehberlik eder. **Gerçek-kaynak sırası:** kod + bu dosya >
 Claude memory > Obsidian vault. Feature detayı BC haritasındaki `specs/*` yollarında.
+**Mimari karar gerekçesi (ADR) repo içinde: [`docs/adr/`](docs/adr/README.md)** — "neden böyle
+karar verildi?" sorularında (BC-per-service, saga, cache vs read-model, sır-dönüş yasağı…) dev-anında
+oradan grep'le; vault bağlayıcı değil.
 
 **Mimari + kod konvansiyonları (taşınabilir katman): @docs/conventions.md** — DDD/VSA kuralları,
 kod standartları, servisler-arası desenler orada. Bu dosya yalnız BU projeye özel bilgidir.
@@ -136,7 +139,7 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
 - **`IConfiguration`'dan doğrudan okuma** (Options pattern istisnaları hariç).
 - **MCP'yi agent-dışı koddan** imperatif çağırma.
 - **Hassas kimlik/sır değeri (MerchantId/Key, finansal/PII) insan-yüzeyde render etme (087, ADR
-  `adr-mcp-control-plane-no-secret-return`):** ekran/chat/MCP-dönüşüne ve log/trace'e yazma. Kayıt S2S
+  [`docs/adr/adr-mcp-control-plane-no-secret-return.md`](docs/adr/adr-mcp-control-plane-no-secret-return.md)):** ekran/chat/MCP-dönüşüne ve log/trace'e yazma. Kayıt S2S
   (bootstrap key), dönüş PG→store HMAC-callback, kullanım gRPC/S2S; LLM yalnız sır-olmayan opak tutamaç görür.
 - **Tool description'ı standart-dışı yazma:** expose edilen her MCP tool description'ı [MCP Tool Description Standardı](../AgentPlatform/docs/mcp-tool-description-standard.md)'na uyar (eylem-önce, Türkçe tetikleyici ifade "'...' gibi istekler için", kısıt/PII sonda, prose prefix yok) ve `src/others/Shared/McpToolDescriptions.cs` const'ından referanslanır — inline `[Description("...")]` string bırakma (003).
 - **Yeni saga için ayrı orchestration servisi** açma (god-service) — saga sürecin sahibi BC'de host edilir.
