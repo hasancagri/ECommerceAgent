@@ -1,0 +1,22 @@
+name: CI
+
+# TETİK: master'a push VEYA herhangi bir PR açıl/güncellenince koş.
+# feature push'u yalnız pull_request'i tetikler (push master'a kısıtlı) — çift koşu yok.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest          # her koşuda boş Ubuntu makine kiralanır, iş bitince atılır
+    steps:
+      # --- KURULUM: boş makineyi kullanılır hale getir ---
+      - uses: actions/checkout@v4            # repoyu makineye indir
+      - uses: actions/setup-dotnet@v4        # .NET SDK kur
+        with:
+          dotnet-version: '10.0.x'
+
+      # --- ASIL İŞ: kurulu makinede derle + test et ---
+      - run: dotnet build
+      - run: dotnet test --no-build          # build çıktısını tekrar kullan (iki kez derleme yok)
