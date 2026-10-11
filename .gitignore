@@ -23,3 +23,9 @@ src/services/personalization/models/
 src/services/personalization/__pycache__/
 src/services/personalization/**/__pycache__/
 src/services/personalization/*.egg-info/
+
+# Aspire publish k8s çıktısı — üretilen Helm chart, lokal, her publish'te yeniden doğar (bkz. CI-CD Notları 04).
+# deploy/helm/ overlay COMMIT'li (ignore DEĞİL) — registry prefix'i o dosyada yaşar.
+k8s-artifacts/
+aspire-manifest.json
+src/aspire/AppHost/aspire-manifest.json
