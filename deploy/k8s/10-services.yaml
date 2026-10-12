@@ -1,0 +1,410 @@
+# 15 ECommerce servisi — image :latest + imagePullPolicy Always (CD rollout'ta yeni image çeker).
+# Sırlar: OpenAI __ApiKey = secretKeyRef(openai). ghcr-pull + openai secret'ları cluster'da BİR KEZ kurulur
+# (CD'de değil; bkz. deploy/k8s/README). DEV config (SagaAuth/Payment/R2/SMTP/IdentityOption) = placeholder;
+# gerçek auth/ödeme/mail için prod değerleri gerekir.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: catalog-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: catalog-api } }
+  template:
+    metadata: { labels: { app: catalog-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: catalog-api
+          image: ghcr.io/hasancagri/ecommerce/catalog-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__catalogDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=catalogDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "ImportOptions__PublicBaseUrl", value: "http://catalog-api:8080" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: catalog-api, namespace: ecommerce }
+spec: { selector: { app: catalog-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: stock-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: stock-api } }
+  template:
+    metadata: { labels: { app: stock-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: stock-api
+          image: ghcr.io/hasancagri/ecommerce/stock-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__stockDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=stockDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: stock-api, namespace: ecommerce }
+spec: { selector: { app: stock-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: basket-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: basket-api } }
+  template:
+    metadata: { labels: { app: basket-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: basket-api
+          image: ghcr.io/hasancagri/ecommerce/basket-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__basketDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=basketDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: basket-api, namespace: ecommerce }
+spec: { selector: { app: basket-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: library-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: library-api } }
+  template:
+    metadata: { labels: { app: library-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: library-api
+          image: ghcr.io/hasancagri/ecommerce/library-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__libraryDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=libraryDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: library-api, namespace: ecommerce }
+spec: { selector: { app: library-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: reviews-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: reviews-api } }
+  template:
+    metadata: { labels: { app: reviews-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: reviews-api
+          image: ghcr.io/hasancagri/ecommerce/reviews-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__reviewsDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=reviewsDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: reviews-api, namespace: ecommerce }
+spec: { selector: { app: reviews-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: checkout-orchestrator, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: checkout-orchestrator } }
+  template:
+    metadata: { labels: { app: checkout-orchestrator } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: checkout-orchestrator
+          image: ghcr.io/hasancagri/ecommerce/checkout-orchestrator:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__checkoutDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=checkoutDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: checkout-orchestrator, namespace: ecommerce }
+spec: { selector: { app: checkout-orchestrator }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: discount-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: discount-api } }
+  template:
+    metadata: { labels: { app: discount-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: discount-api
+          image: ghcr.io/hasancagri/ecommerce/discount-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__discountDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=discountDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: discount-api, namespace: ecommerce }
+spec: { selector: { app: discount-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: customer-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: customer-api } }
+  template:
+    metadata: { labels: { app: customer-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: customer-api
+          image: ghcr.io/hasancagri/ecommerce/customer-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__customerDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=customerDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: customer-api, namespace: ecommerce }
+spec: { selector: { app: customer-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: file-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: file-api } }
+  template:
+    metadata: { labels: { app: file-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: file-api
+          image: ghcr.io/hasancagri/ecommerce/file-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__fileDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=fileDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "CoverStore__RootPath", value: "/tmp/covers" }
+            - { name: "R2__AccountId", value: "dummy" }
+            - { name: "R2__AccessKeyId", value: "x" }
+            - { name: "R2__SecretAccessKey", value: "x" }
+          volumeMounts: [ { name: covers, mountPath: /tmp/covers } ]
+      volumes: [ { name: covers, emptyDir: {} } ]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: file-api, namespace: ecommerce }
+spec: { selector: { app: file-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: order-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: order-api } }
+  template:
+    metadata: { labels: { app: order-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: order-api
+          image: ghcr.io/hasancagri/ecommerce/order-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__orderDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=orderDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+            - { name: "SagaAuth__ClientId", value: "order-saga" }
+            - { name: "SagaAuth__ClientSecret", value: "dummy-saga-secret" }
+            - { name: "services__basket-api__http__0", value: "http://basket-api:8080" }
+            - { name: "services__payment-api__http__0", value: "http://payment-api:8080" }
+            - { name: "services__customer-api__http__0", value: "http://customer-api:8080" }
+            - { name: "services__discount-api__http__0", value: "http://discount-api:8080" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: order-api, namespace: ecommerce }
+spec: { selector: { app: order-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: payment-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: payment-api } }
+  template:
+    metadata: { labels: { app: payment-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: payment-api
+          image: ghcr.io/hasancagri/ecommerce/payment-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__paymentDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=paymentDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+            - { name: "SagaAuth__ClientId", value: "payment-s2s" }
+            - { name: "SagaAuth__ClientSecret", value: "dummy-saga-secret" }
+            - { name: "PaymentOptions__CallbackSecret", value: "dummy-callback-secret" }
+            - { name: "PaymentOptions__PgBaseUrl", value: "http://pg-placeholder:8080" }
+            - { name: "services__customer-api__http__0", value: "http://customer-api:8080" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: payment-api, namespace: ecommerce }
+spec: { selector: { app: payment-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: mail-mcp, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: mail-mcp } }
+  template:
+    metadata: { labels: { app: mail-mcp } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: mail-mcp
+          image: ghcr.io/hasancagri/ecommerce/mail-mcp:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "Smtp__Host", value: "mailpit" }
+            - { name: "Smtp__Port", value: "1025" }
+            - { name: "Smtp__From", value: "noreply@ecommerce.local" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: mail-mcp, namespace: ecommerce }
+spec: { selector: { app: mail-mcp }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: gateway, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: gateway } }
+  template:
+    metadata: { labels: { app: gateway } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: gateway
+          image: ghcr.io/hasancagri/ecommerce/gateway:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: gateway, namespace: ecommerce }
+spec: { selector: { app: gateway }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: storefront-api, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: storefront-api } }
+  template:
+    metadata: { labels: { app: storefront-api } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: storefront-api
+          image: ghcr.io/hasancagri/ecommerce/storefront-api:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__storefrontDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=storefrontDb" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "ConnectionStrings__elasticsearch", value: "http://elasticsearch:9200" }
+            - { name: "IdentityOption__Address", value: "http://id-placeholder:5001" }
+            - name: "OpenAI__ApiKey"
+              valueFrom: { secretKeyRef: { name: openai, key: apikey } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: storefront-api, namespace: ecommerce }
+spec: { selector: { app: storefront-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: notification-agent, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: notification-agent } }
+  template:
+    metadata: { labels: { app: notification-agent } }
+    spec:
+      imagePullSecrets: [ { name: ghcr-pull } ]
+      containers:
+        - name: notification-agent
+          image: ghcr.io/hasancagri/ecommerce/notification-agent:latest
+          imagePullPolicy: Always
+          ports: [ { containerPort: 8080 } ]
+          env:
+            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
+            - { name: "OpenAI__Model", value: "gpt-4o-mini" }
+            - { name: "services__mail-mcp__http__0", value: "http://mail-mcp:8080" }
+            - name: "OpenAI__ApiKey"
+              valueFrom: { secretKeyRef: { name: openai, key: apikey } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: notification-agent, namespace: ecommerce }
+spec: { selector: { app: notification-agent }, ports: [ { port: 8080, targetPort: 8080 } ] }
