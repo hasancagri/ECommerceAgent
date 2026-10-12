@@ -55,5 +55,44 @@ jobs:
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/ecommerce/<servis> (15 image).
+      # aspire tag'i = aspire-deploy-<zaman damgası> (değişken); CD kararlı tag ister.
       - name: Image bas + ghcr'a it
         run: aspire do push --apphost src/aspire/AppHost/AppHost.csproj --non-interactive
+
+      # CD kararlı tag: runner'ın local docker'ındaki aspire-tag'li image'ları :latest'e retag + push.
+      # CD (deploy job) :latest + imagePullPolicy Always + rollout restart ile yeni kodu çeker.
+      - name: ':latest' tag + push
+        run: |
+          for svc in catalog-api stock-api basket-api order-api payment-api customer-api \
+                     checkout-orchestrator reviews-api library-api discount-api mail-mcp \
+                     notification-agent file-api gateway storefront-api; do
+            repo="ghcr.io/hasancagri/ecommerce/$svc"
+            src=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${repo}:aspire-deploy-" | head -1)
+            if [ -n "$src" ]; then docker tag "$src" "$repo:latest" && docker push "$repo:latest"; fi
+          done
+
+  # ───────────── CD: yalnız master merge'inde cluster'a deploy (SSH → kubectl) ─────────────
+  # needs: image · k3s API 6443 internete KAPALI → runner port 22'den SSH eder, kubectl'i SUNUCUDA koşar.
+  # DEPLOY_SSH_KEY secret'ı = dehost_vds private key (runner bağlanır). ghcr-pull + openai secret'ları
+  # cluster'da BİR KEZ elle kurulur (CD'de değil, bkz. deploy/k8s/README.md).
+  deploy:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH deploy key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -H 91.132.49.70 >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Manifest kopyala + uygula + app rollout
+        run: |
+          scp -i ~/.ssh/deploy -r deploy/k8s root@91.132.49.70:/tmp/deploy-k8s
+          ssh -i ~/.ssh/deploy root@91.132.49.70 '
+            kubectl apply -f /tmp/deploy-k8s/
+            # app deployment'larını yeniden başlat (yeni :latest çekilsin); altyapı (pg/rabbit/es) HARİÇ
+            apps=$(kubectl -n ecommerce get deploy -o name | grep -vE "postgres|rabbitmq|elasticsearch")
+            kubectl -n ecommerce rollout restart $apps
+            kubectl -n ecommerce rollout status $apps --timeout=300s
+          '
