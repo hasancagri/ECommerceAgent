@@ -190,6 +190,25 @@ Domains/<Aggregate>/
   (dotnet/extensions#7771; epoch deseni bu yüzden). Per-call `HybridCacheEntryOptions{Expiration}`
   global `LocalCacheExpiration`'ı miras ALMAZ — L1 per-call açık set edilir (`CacheAspectOptions.L1Expiration`).
 
+## Dağıtım / reverse-proxy arkası (taşınabilir infra)
+
+Servisler k8s ingress / reverse-proxy arkasında koşunca iki kural ZORUNLU — yoksa sessiz kırılır. Gerekçe +
+as-built: repo ADR [`adr/adr-k3s-push-cd-deployment.md`](adr/adr-k3s-push-cd-deployment.md).
+
+- **ForwardedHeaders ŞART.** Ingress/proxy TLS'i kenarda sonlandırıp backend'e **http** konuşur → .NET app
+  isteği http sanar → `SameSite=None;Secure` cookie + antiforgery + OIDC redirect/issuer bozulur (belirti:
+  OAuth login **400**; OpenIddict "validated" dese bile). Pipeline'ın EN BAŞINA `UseForwardedHeaders`
+  (`XForwardedFor|XForwardedProto`, `KnownNetworks/KnownProxies` TEMİZLE — k8s'te proxy IP dinamik,
+  loopback değil). `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` env'i YETMEZ (varsayılan yalnız loopback'e
+  güvenir). İdeali: `ServiceDefaults`'ta tek yerde (tüm servisler).
+- **Health endpoint prod'da açık olmalı.** k8s liveness/readiness probe'ları `/health`'i yoklar; prod'da
+  kapalıysa (ör. `IsDevelopment` guard) probe fail → CrashLoop. Prod'da aç ya da probe'u bilinçli atla.
+- **Marten/EF `ApplyAllDatabaseChangesOnStartup` + rolling update** → migration'lar geriye-uyumlu
+  (expand-contract); eski+yeni pod aynı anda yaşar.
+- **Sır manifest'e gömülmez.** Credential/key `secretKeyRef`, registry `imagePullSecrets` ile cluster'daki
+  Secret'a işaret eder (değer git'e girmez). CD `apply` ile canlı `set env` çakışırsa `kubectl apply
+  --server-side --force-conflicts` (manifest = kesin gerçek).
+
 ## Bilinçli tekrar (tek gerekçe)
 
 Bazı yerlerde kod/veri BİLEREK tekrarlanır — kırılgan bağımlılık yerine BC izolasyonu tercih edilir.
