@@ -1,8 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Yayın hedefi (publish/push-only): `aspire do push` her AddProject'i container image'ine çevirip ghcr'a iter.
-// Yalnız publish/push'ta devreye girer — yerel `aspire run` dev akışı değişmez.
-builder.AddDockerComposeEnvironment("compose");
+// Yayın hedefi (k8s): `aspire publish -o k8s-artifacts` AddProject'leri Deployment/Service/ConfigMap/Secret
+// + Helm chart'a çevirir; `aspire do push` image'leri ghcr'a iter. Yalnız publish/push'ta devreye girer —
+// yerel `aspire run` dev akışı değişmez. (compose publisher kaldırıldı — tek hedef k8s.)
+builder.AddKubernetesEnvironment("k8s");
 
 // Otopark (registry) = ghcr.io/hasancagri/ecommerce. PREFIX "ecommerce" ZORUNLU: payment-api/gateway gibi
 // isimler AgentPlatform + PaymentGateway ile çakışır; repo-başına ayrı namespace → çakışma yok.
