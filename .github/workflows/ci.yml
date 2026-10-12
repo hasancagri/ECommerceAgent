@@ -61,7 +61,7 @@ jobs:
 
       # CD kararlı tag: runner'ın local docker'ındaki aspire-tag'li image'ları :latest'e retag + push.
       # CD (deploy job) :latest + imagePullPolicy Always + rollout restart ile yeni kodu çeker.
-      - name: ':latest' tag + push
+      - name: latest tag retag + push
         run: |
           for svc in catalog-api stock-api basket-api order-api payment-api customer-api \
                      checkout-orchestrator reviews-api library-api discount-api mail-mcp \
