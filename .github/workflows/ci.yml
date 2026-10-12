@@ -49,8 +49,10 @@ jobs:
           dotnet tool install -g Aspire.Cli
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
+      # ghcr login: GITHUB_TOKEN kişisel (user) namespace'inde yeni paket OLUŞTURAMAZ
+      # (denied: permission_denied: write_package) → write:packages'li PAT (GHCR_PAT secret) şart.
       - name: ghcr login
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/ecommerce/<servis> (15 image).
       - name: Image bas + ghcr'a it
