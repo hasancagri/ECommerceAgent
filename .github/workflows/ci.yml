@@ -89,9 +89,10 @@ jobs:
       - name: Manifest kopyala + uygula + app rollout
         run: |
           scp -i ~/.ssh/deploy -r deploy/k8s root@91.132.49.70:/tmp/deploy-k8s
+          # NOT: remote script tek-tirnakli; icine Turkce kesme isareti (apostrof) KOYMA (tirnagi kapatir).
           ssh -i ~/.ssh/deploy root@91.132.49.70 '
+            set -e
             kubectl apply -f /tmp/deploy-k8s/
-            # app deployment'larını yeniden başlat (yeni :latest çekilsin); altyapı (pg/rabbit/es) HARİÇ
             apps=$(kubectl -n ecommerce get deploy -o name | grep -vE "postgres|rabbitmq|elasticsearch")
             kubectl -n ecommerce rollout restart $apps
             kubectl -n ecommerce rollout status $apps --timeout=300s
