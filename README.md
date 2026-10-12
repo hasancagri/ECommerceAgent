@@ -15,6 +15,9 @@
   <img alt="Microsoft Agent Framework" src="https://img.shields.io/badge/Microsoft_Agent_Framework-AI_worker-2563eb">
   <img alt="Elasticsearch" src="https://img.shields.io/badge/Elasticsearch-arama_%2B_kNN-f59e0b?logo=elasticsearch&logoColor=white">
   <img alt="Redis" src="https://img.shields.io/badge/Redis-L2_cache_%2B_backplane-DC382D?logo=redis&logoColor=white">
+  <img alt="k3s" src="https://img.shields.io/badge/k3s-canlı_deploy-FFC61C?logo=k3s&logoColor=black">
+  <img alt="GitHub Actions" src="https://img.shields.io/badge/GitHub_Actions-push_CD-2088FF?logo=githubactions&logoColor=white">
+  <img alt="Claude Desktop" src="https://img.shields.io/badge/Claude_Desktop-connector_canlı-d97757">
 </p>
 
 ## Genel Bakış
@@ -192,6 +195,34 @@ Paylaşılan temeller `src/others` altında: `Common` (domain yapı taşları, r
 - **Eventual-consistency akışları event kullanır, gRPC değil.** Satın-alma sonrası yazılan yorum anlık yanıt gerektirmez, o yüzden hak `OrderCompleted` projeksiyonudur — gRPC yalnız anlık-tutarlılığa (stok) ayrılmıştır.
 - **Rol downstream'e sızmaz — yalnız scope.** Identity rol verir (rol = scope demeti); servisler saf scope'a göre yetkilendirir. Okumalar (stok, storefront) anonim; token alışveriş yazma yolunda önemlidir.
 
+## Dağıtım (CI/CD + k3s)
+
+Sistem canlıya alınmıştır: üç repo (**ECommerceAgent** + **AgentPlatform** + **PaymentGateway**) tek bir
+**k3s** cluster'ına (ayrı namespace), **GitHub Actions push-tabanlı CD** ile deploy edilir. Dış AI istemcisi
+(Claude Desktop connector, **telefon dahil**) tek `/mcp` ucuna OAuth'la bağlanır — mağaza sohbetten yönetilir.
+
+```
+git push master
+  → build-test (derle + test)
+  → image      (Aspire `aspire do push` → GHCR, + kararlı :latest tag)
+  → deploy     (DEPLOY_SSH_KEY ile VDS'e SSH → kubectl apply + app rollout)
+→ k3s: traefik ingress ──Let's Encrypt TLS── mcp./id.<sslip.io>
+       ns ecommerce (15 svc) · ns agentplatform (IdP + MCP facade) · ns pg (6 svc)
+       her ns'de kendi Postgres/RabbitMQ (+ Elasticsearch / Mailpit)
+```
+
+- **k3s tek-node** — tam k8s yerine hafif, pilleri-dahil (containerd + traefik + coredns).
+- **Push-CD, SSH yolu** — k3s API (6443) internete kapalı; runner port 22'den SSH edip `kubectl`'i sunucuda
+  koşar (GitOps/ArgoCD ileri yol olarak açık).
+- **Image:** `aspire do push` (Dockerfile'sız) → GHCR; CD kararlı `:latest` + `imagePullPolicy: Always`.
+- **DNS/TLS:** sslip.io sihirli DNS (domain'siz) + cert-manager/Let's Encrypt trusted sertifika.
+- **Reverse-proxy kuralı:** ingress TLS arkasındaki servisler `ForwardedHeaders` yapılandırır (yoksa
+  https-bağımlı OAuth/cookie kırılır) — bkz. [`docs/conventions.md`](docs/conventions.md) + ADR.
+
+Kararların gerekçesi: **[`docs/adr/adr-k3s-push-cd-deployment.md`](docs/adr/adr-k3s-push-cd-deployment.md)**
+(k3s, in-cluster dev-sapması, push-CD-SSH, sslip, sonuç-tuzakları). Dev seviyesi (ephemeral depo, placeholder
+sırlar); prod cilası: managed DB + PVC + gerçek domain + GitOps.
+
 ## Başlangıç
 
 ### Ön koşullar
@@ -223,6 +254,11 @@ dotnet user-secrets set "OpenAI:ApiKey" "<key>" --project src/services/storefron
 ### Kendi AI istemcini bağla
 
 Müşteri yüzeyi bir MCP fasadıdır. Kendi MCP istemcin (Claude Desktop vb.) fasadın `/mcp` ucuna bağlanır; ilk bağlantıda tarayıcıda bir kez OAuth login + consent yapılır (RFC 7591 DCR ile istemci kendini kaydeder), sonrası refresh token'la ekransız sürer.
+
+> **Canlı dağıtımda** (bkz. [Dağıtım](#dağıtım-cicd--k3s)) fasad internetten erişilebilir: connector URL'i
+> deploy edilen ingress host'u (`https://mcp.<host>/mcp`), login deploy edilen IdP (`https://id.<host>`).
+> DCR bazı istemcilerde takılırsa connector ayarında hazır bir OAuth Client ID verilir (seed public istemci).
+> Herhangi cihazdan (telefon dahil) aynı connector çalışır — tek koşul: trusted TLS (Let's Encrypt sağlar).
 
 ### Derle & test et
 
