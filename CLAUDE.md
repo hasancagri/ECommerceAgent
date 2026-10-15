@@ -38,7 +38,7 @@ scripts/check-flow-links.sh                               # FLOW.md domain-süre
 .NET 10 (`Nullable`+`ImplicitUsings` açık) · **Marten** (Postgres = document/event store, Newtonsoft,
 non-public setter+ctor) · **Wolverine** (in-proc bus `IMessageBus` + RabbitMQ fanout; handler assembly
 taramasıyla) · **Elasticsearch** (storefront arama — turkish analyzer + dense_vector kNN, 086) ·
-**HybridCache + Redis** (AOP cache L1/L2; boşaltma epoch-key + durable event — native tag KULLANILMAZ,
+**HybridCache + Redis** (AOP cache L1/L2 yalnız okuma; boşaltma handler-içi atomik publish + epoch-key, 090 — native tag KULLANILMAZ,
 bkz. conventions) · **OpenIddict + ASP.NET Identity** (IdP) · **YARP** gateway · **MCP** (her API `/mcp`;
 müşteri yüzeyi platform MCP fasadı, AgentPlatform'a taşındı — dış AI istemcisi tüketir) · **Microsoft Agent Framework** +
 `Microsoft.Extensions.AI` (NotificationAgent) · **Scrutor** (DI) · **xUnit + Shouldly**.

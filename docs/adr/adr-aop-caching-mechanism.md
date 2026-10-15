@@ -15,6 +15,8 @@ status: Kabul
 Caching **declarative bir cross-cutting aspect** olmalı: query/command **handler gövdesine 0 satır**
 cache kodu (FR-007 / anayasa III / SC-005). Etkinleştirme tek bir bildirimsel işaretle: query
 record'unun üstünde `[Cached("tag", ttl)]`, yazma record'unda `[InvalidatesCache("tag")]`.
+*(090 evrimi: kısıt artık yalnız OKUMA yolu için geçerli — boşaltma bilinçli olarak handler-içi
+publish'e taşındı, bkz. aşağıda "Boşaltma publish'i handler-içine taşındı".)*
 
 ## Değerlendirilen yollar
 
@@ -86,13 +88,24 @@ kendi L1'ini düşürür. Çok-instance L1 tutarlılığı böylece ~ms'e iner; 
 için **≤5sn L1 TTL güvenlik ağı olarak kalır** (kaldırma!). Elle boşaltma HER ZAMAN
 `CacheInvalidator` üzerinden — doğrudan `RemoveByTagAsync` backplane'e yayılmaz.
 
+### Boşaltma publish'i handler-içine taşındı (090) — `[InvalidatesCache]` emekli
+Decorator'ın commit-SONRASI publish'i atomik DEĞİLDİ: commit ile publish arası crash'te boşaltma
+kaybolur, bayatlık TTL'e dek sürerdi; ayrıca sonuç-tipi koklaması (`BaseResultModel.IsSuccess`)
+kırılgandı ve decorator-dışı yollar zaten elle publish yapıyordu (iki idiom). 090: yazma handler'ı
+`CacheInvalidationRequested`'ı KENDİ içinden yayınlar — Wolverine handler'a enjekte edilen
+`IMessageBus` mesaj context'idir, zarf `[Transactional]` commit'iyle AYNI outbox'ta kalıcılaşır
+(atomik; rollback zarfı da öldürür). Decorator yalnız `[Cached]` okuma yolunu işler; boşaltmada
+TEK idiom kaldı. Bedel: boşaltan her handler'da bir publish satırı (attribute bildirimselliği
+gitti) — atomiklik + idiom sadeliği karşılığında kabul edildi.
+
 ### Kapsam bugünkü hali
 Altyapı 8 serviste. (Tarihsel: "Supplier.Gateway hariç" kaydı — Supplier.Gateway 041'de söküldü.) Tüketiciler:
-**Customer** (addresses/cards, `[InvalidatesCache]`) + **Storefront** (`filters`; boşaltma
-ProductChangedEvent handler'ında `CacheInvalidator` ile — projeksiyon-BC kuralının ilk örneği).
-Catalog'un `[Cached]`/`[InvalidatesCache]`'leri REST GET yüzeyiyle birlikte silindi (ürün okuma
-tek kapı: Storefront). Karar kuralları `../conventions.md` "Cache" bölümünde (kim boşaltır,
-yazma-yolu yasağı, kardinalite, kaba-tag tercihi).
+**Customer** (addresses — boşaltma handler-içi publish, 090) + **Catalog** (agent-lists; aynı desen,
+ImportProcessor dahil) + **Storefront** (`filters`; boşaltma ProductChangedEvent handler'ında
+`CacheInvalidator` ile — projeksiyon-BC kuralının ilk örneği). Catalog'un REST-dönemi
+`[Cached]`'leri GET yüzeyiyle birlikte silinmişti (ürün okuma tek kapı: Storefront). Karar
+kuralları `../conventions.md` "Cache" bölümünde (kim boşaltır, yazma-yolu yasağı, kardinalite,
+kaba-tag tercihi).
 
 ### MediatR paraleli (öğrenme)
 `CachingMessageBus` ≈ MediatR `IPipelineBehavior` (around-interceptor; `innerCall` ≈ `next`).

@@ -6,7 +6,6 @@ namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 public static class AddAddress
 {
     [RequiredScope(AuthorizationScopes.CustomerWrite)]
-    [InvalidatesCache(CustomerCacheTags.Addresses)]
     public record AddAddressCommand(
         Guid UserId, string Province, string District, string Street, string ZipCode, string Line);
 

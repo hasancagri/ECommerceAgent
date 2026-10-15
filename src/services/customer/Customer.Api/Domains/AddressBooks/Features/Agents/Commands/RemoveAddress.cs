@@ -4,7 +4,6 @@ namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 public static class RemoveAddress
 {
     [RequiredScope(AuthorizationScopes.CustomerWrite)]
-    [InvalidatesCache(CustomerCacheTags.Addresses)]
     public record RemoveAddressCommand(Guid UserId, Guid AddressId);
 
     public class RemoveAddressResponse

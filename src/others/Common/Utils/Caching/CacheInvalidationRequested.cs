@@ -4,10 +4,11 @@ using Wolverine.Runtime.Handlers;
 namespace Common.Utils.Caching;
 
 /// <summary>
-/// BC-İÇİ durable boşaltma isteği: <see cref="CachingMessageBus"/> başarılı [InvalidatesCache]
-/// command'i sonrası yayınlar, handler'ı Redis'i temizler. Durable LOCAL queue'da taşınır —
-/// RabbitMQ'ya BİLEREK çıkmaz (tag adları BC-içi detay; pod-yayılımını backplane yapar;
-/// broker bağımlılığı eklemek garantiyi artırmaz).
+/// BC-İÇİ durable boşaltma isteği: yazma handler'ı başarılı yazmada KENDİ içinden yayınlar (090) —
+/// zarf [Transactional] commit'iyle AYNI outbox'ta kalıcılaşır (atomik; rollback zarfı da öldürür).
+/// Event consumer / Process / seeder gibi decorator-dışı yollar da AYNI deseni kullanır (tek idiom).
+/// Durable LOCAL queue'da taşınır — RabbitMQ'ya BİLEREK çıkmaz (tag adları BC-içi detay;
+/// pod-yayılımını backplane yapar; broker bağımlılığı eklemek garantiyi artırmaz).
 /// </summary>
 public record CacheInvalidationRequested(string Tag);
 

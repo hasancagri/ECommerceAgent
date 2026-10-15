@@ -2,15 +2,13 @@ using Common.Results.BaseClasses;
 
 namespace Common.Tests;
 
-// Durable invalidation sözleşmesini kilitler: [InvalidatesCache] command başarılıysa decorator
-// CacheInvalidationRequested YAYINLAR (senkron RemoveByTag değil); başarısız yazmada ve işaretsiz
-// mesajda yayın YOK. Asıl boşaltma handler'da — burada yalnız publish kapısı test edilir.
+// Cache aspect sözleşmesini kilitler (090 sonrası): decorator YALNIZ [Cached] okuma yolunu işler —
+// epoch bump sonraki okumayı yeni anahtara düşürür (miss). Boşaltma publish'i decorator'ın işi
+// DEĞİL: hiçbir command için CacheInvalidationRequested yayınlaMAZ (yayın yazma handler'ının
+// içinden, commit'le atomik outbox üzerinden yapılır — orası Wolverine entegrasyonu, burada değil).
 public class CachingMessageBusInvalidationTests
 {
-    [InvalidatesCache("test-tag")]
-    private record MarkedCommand;
-
-    private record UnmarkedCommand;
+    private record SomeCommand;
 
     [Cached("epoch-tag", 1200)]
     private record CachedQuery;
@@ -34,35 +32,13 @@ public class CachingMessageBusInvalidationTests
     }
 
     [Fact]
-    public async Task SuccessfulMarkedCommand_PublishesInvalidationMessage()
+    public async Task InvokeAsync_Command_NeverPublishesFromDecorator()
     {
         var (bus, inner) = BuildBus(new TestResult { IsSuccess = true });
 
-        await bus.InvokeAsync<TestResult>(new MarkedCommand());
+        await bus.InvokeAsync<TestResult>(new SomeCommand());
 
-        var published = inner.Published.ShouldHaveSingleItem()
-            .ShouldBeOfType<CacheInvalidationRequested>();
-        published.Tag.ShouldBe("test-tag");
-    }
-
-    [Fact]
-    public async Task FailedMarkedCommand_DoesNotPublish()
-    {
-        var (bus, inner) = BuildBus(new TestResult { IsSuccess = false });
-
-        await bus.InvokeAsync<TestResult>(new MarkedCommand());
-
-        inner.Published.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public async Task UnmarkedCommand_DoesNotPublish()
-    {
-        var (bus, inner) = BuildBus(new TestResult { IsSuccess = true });
-
-        await bus.InvokeAsync<TestResult>(new UnmarkedCommand());
-
-        inner.Published.ShouldBeEmpty();
+        inner.Published.ShouldBeEmpty(); // boşaltma handler-içi (090) — decorator publish etmez
     }
 
     private static (IMessageBus Bus, RecordingMessageBus Inner) BuildBus(object invokeResult)

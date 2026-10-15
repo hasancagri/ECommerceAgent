@@ -6,7 +6,6 @@ namespace Catalog.Api.Domains.Authors.Features.Agents.Commands;
 public static class AdminCreateAuthor
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]
-    [InvalidatesCache(CatalogCacheTags.AgentLists)]
     public record AdminCreateAuthorCommand(Guid UserId, string Name);
 
     public class AdminCreateAuthorResponse
