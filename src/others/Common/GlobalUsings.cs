@@ -6,8 +6,6 @@ global using Microsoft.Extensions.Caching.Hybrid;
 global using Microsoft.Extensions.DependencyInjection;
 global using Wolverine;
 global using Common.Results.BaseClasses;
-
-// --- hoisted (2+ dosyada tekrar; using consolidation) ---
 global using Platform.Auth;
 global using Common.Utils.Constants;
 global using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,3 +15,8 @@ global using Microsoft.Extensions.Logging;
 global using PagedList.Core;
 global using StackExchange.Redis;
 global using Common.Utils.Caching;
+global using System.ComponentModel;
+global using Common.Utils.Authorization;
+global using ModelContextProtocol.Server;
+global using Wolverine.Persistence.Durability;
+global using Wolverine.Persistence.Durability.DeadLetterManagement;
