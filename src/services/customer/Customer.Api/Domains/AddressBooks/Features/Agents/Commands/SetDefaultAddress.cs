@@ -16,7 +16,7 @@ public static class SetDefaultAddress
     public class SetDefaultAddressCommandHandler
     {
         public async Task<FeatureObjectResultModel<SetDefaultAddressResponse>> Handle(
-            SetDefaultAddressCommand cmd, IDocumentSession session, CancellationToken ct)
+            SetDefaultAddressCommand cmd, IDocumentSession session, IMessageBus bus, CancellationToken ct)
         {
             var book = await session.Query<AddressBook>()
                 .FirstOrDefaultAsync(x => x.UserId == cmd.UserId, ct);
@@ -28,6 +28,8 @@ public static class SetDefaultAddress
                 return FeatureObjectResultModel<SetDefaultAddressResponse>.Error(result.Messages);
 
             session.Store(book);
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            await bus.PublishAsync(new CacheInvalidationRequested(CustomerCacheTags.Addresses));
             return FeatureObjectResultModel<SetDefaultAddressResponse>.Ok(
                 new SetDefaultAddressResponse { Message = "Varsayılan adres güncellendi." });
         }

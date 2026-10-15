@@ -20,7 +20,7 @@ public static class AddAddress
     public class AddAddressCommandHandler
     {
         public async Task<FeatureObjectResultModel<AddAddressResponse>> Handle(
-            AddAddressCommand cmd, IDocumentSession session, CancellationToken ct)
+            AddAddressCommand cmd, IDocumentSession session, IMessageBus bus, CancellationToken ct)
         {
             var address = Address.Create(cmd.Province, cmd.District, cmd.Street, cmd.ZipCode, cmd.Line);
             if (!address.IsSuccess)
@@ -35,6 +35,8 @@ public static class AddAddress
                 return FeatureObjectResultModel<AddAddressResponse>.Error(saved.Messages);
 
             session.Store(book);
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            await bus.PublishAsync(new CacheInvalidationRequested(CustomerCacheTags.Addresses));
             return FeatureObjectResultModel<AddAddressResponse>.Ok(
                 new AddAddressResponse { Id = saved.Data!.Id, Message = "Adres eklendi." });
         }

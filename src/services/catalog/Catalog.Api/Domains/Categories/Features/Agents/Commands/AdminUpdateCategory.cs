@@ -30,6 +30,7 @@ public static class AdminUpdateCategory
         public async Task<FeatureObjectResultModel<AdminUpdateCategoryResponse>> Handle(
             AdminUpdateCategoryCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var category = await session.LoadAsync<Category>(cmd.CategoryId, ct);
@@ -59,6 +60,9 @@ public static class AdminUpdateCategory
             }
 
             session.Store(category);
+
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            await bus.PublishAsync(new CacheInvalidationRequested(CatalogCacheTags.AgentLists));
 
             return FeatureObjectResultModel<AdminUpdateCategoryResponse>.Ok(new AdminUpdateCategoryResponse
             {

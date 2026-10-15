@@ -29,6 +29,7 @@ public static class AdminCreateCategory
         public async Task<FeatureObjectResultModel<AdminCreateCategoryResponse>> Handle(
             AdminCreateCategoryCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var normalized = NameNormalization.Normalize(cmd.Name ?? string.Empty);
@@ -75,6 +76,9 @@ public static class AdminCreateCategory
             }
 
             session.Store(category);
+
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            await bus.PublishAsync(new CacheInvalidationRequested(CatalogCacheTags.AgentLists));
 
             return FeatureObjectResultModel<AdminCreateCategoryResponse>.Ok(new AdminCreateCategoryResponse
             {
