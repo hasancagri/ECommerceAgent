@@ -1,18 +1,15 @@
-
 namespace Common.Utils.Caching;
 
 /// <summary>
-/// IMessageBus'ı şeffaf saran declarative caching aspect'i (AOP). Endpoint'ler ve handler'lar
-/// AYNEN kalır; davranış yalnız query/command tipindeki <see cref="CachedAttribute"/> /
-/// <see cref="InvalidatesCacheAttribute"/> ile sürülür.
+/// IMessageBus'ı şeffaf saran declarative caching aspect'i (AOP) — yalnız OKUMA yolu. Endpoint'ler
+/// ve handler'lar AYNEN kalır; davranış yalnız query tipindeki <see cref="CachedAttribute"/> ile sürülür.
 ///
 /// - [Cached] query: çağrı iki katmanlı (L1→L2→kaynak) HybridCache.GetOrCreateAsync ile sarılır;
 ///   stampede koruması native. Negatif sonuç (IsSuccess=false) önbeklenmez. Anahtara tag'in epoch'u
 ///   gömülür (…:e{N}) — boşaltma epoch artırımıdır (native tag KULLANILMAZ, bkz. CacheEpochs).
-/// - [InvalidatesCache] command: inner çağrı (yani yazma + commit) tamamlandıktan SONRA, sonuç
-///   başarılıysa <see cref="CacheInvalidationRequested"/> durable LOCAL queue'ya yayınlanır;
-///   boşaltmayı handler'ı at-least-once koşar (retry + ScheduleRetry merdiveni). Senkron boşaltma
-///   BİLEREK yok: Redis hatası commit edilmiş yazmanın sonucunu kirletmemeli.
+/// - Boşaltma bu sınıfın işi DEĞİL (090): yazma handler'ı <see cref="CacheInvalidationRequested"/>'ı
+///   KENDİ içinden yayınlar — zarf [Transactional] commit'iyle AYNI outbox'ta kalıcılaşır (atomik;
+///   decorator'ın eski commit-SONRASI publish'indeki kayıp penceresi yok).
 ///
 /// Diğer tüm IMessageBus üyeleri değişmeden inner'a forward edilir.
 /// </summary>
@@ -23,7 +20,7 @@ public sealed class CachingMessageBus(
     CacheEpochs epochs)
     : IMessageBus
 {
-    // ---- Cache/invalidation uygulanan tek nokta: InvokeAsync<T> ----
+    // ---- Cache uygulanan tek nokta: InvokeAsync<T> ----
 
     public Task<T> InvokeAsync<T>(object message, CancellationToken cancellation = default, TimeSpan? timeout = null)
         => InvokeCoreAsync(message, token => inner.InvokeAsync<T>(message, token, timeout), cancellation);
@@ -35,22 +32,10 @@ public sealed class CachingMessageBus(
     private async Task<T> InvokeCoreAsync<T>(object message, Func<CancellationToken, Task<T>> innerCall,
         CancellationToken ct)
     {
-        var messageType = message.GetType();
-        var cached = messageType.GetCustomAttribute<CachedAttribute>();
-        if (cached is not null)
-            return await GetOrCreateAsync(message, cached, innerCall, ct);
-
-        var result = await innerCall(ct);
-
-        var invalidates = messageType.GetCustomAttribute<InvalidatesCacheAttribute>();
-        // Boşaltma commit SONRASI: innerCall döndüyse Wolverine [Transactional] handler commit'i tamamdır.
-        // Başarısız yazmada (IsSuccess=false) boşaltma yapılmaz.
-        // Publish durable local queue'ya gider (envelope Postgres'e yazılır) — asıl boşaltmayı
-        // CacheInvalidationRequestedHandler koşar; Redis çökükse retry/DLQ orada işler, çağıran görmez.
-        if (invalidates is not null && result is not BaseResultModel { IsSuccess: false })
-            await inner.PublishAsync(new CacheInvalidationRequested(invalidates.Tag));
-
-        return result;
+        var cached = message.GetType().GetCustomAttribute<CachedAttribute>();
+        return cached is null
+            ? await innerCall(ct)
+            : await GetOrCreateAsync(message, cached, innerCall, ct);
     }
 
     private async Task<T> GetOrCreateAsync<T>(object message, CachedAttribute cached,

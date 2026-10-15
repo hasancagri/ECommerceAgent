@@ -8,7 +8,6 @@ public static class AdminUpdateCategory
     // NOT: Category aggregate'i yalnız Rename + SetSeo mutasyonu sunar (Description Create'te sabitlenir,
     // mutator yok). Bu yüzden kısmi güncelleme yüzeyi ad + SEO ile sınırlı — dead param eklenmez.
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]
-    [InvalidatesCache(CatalogCacheTags.AgentLists)]
     public record AdminUpdateCategoryCommand(
         Guid UserId,
         Guid CategoryId,
@@ -30,6 +29,7 @@ public static class AdminUpdateCategory
         public async Task<FeatureObjectResultModel<AdminUpdateCategoryResponse>> Handle(
             AdminUpdateCategoryCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var category = await session.LoadAsync<Category>(cmd.CategoryId, ct);
@@ -59,6 +59,9 @@ public static class AdminUpdateCategory
             }
 
             session.Store(category);
+
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            await bus.PublishAsync(new CacheInvalidationRequested(CatalogCacheTags.AgentLists));
 
             return FeatureObjectResultModel<AdminUpdateCategoryResponse>.Ok(new AdminUpdateCategoryResponse
             {

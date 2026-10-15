@@ -1,5 +1,3 @@
-using Common.Utils.Caching;
-
 // ReSharper disable once CheckNamespace — DI uzantıları keşfedilebilir olsun diye MS namespace'inde.
 namespace Microsoft.Extensions.DependencyInjection;
 

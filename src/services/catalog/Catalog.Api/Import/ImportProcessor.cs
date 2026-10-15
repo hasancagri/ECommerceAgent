@@ -115,9 +115,8 @@ public static class ProcessImportRow
             // ProductChangedEvent YAYILMAZ (draft; vitrine publish_imported ya da CoverIngested sokar).
             await bus.PublishAsync(new IntegrationEvents.ProductAdded(row.Isbn, product.Id, row.Stock));
 
-            // Decorator-dışı yazma yolu: [InvalidatesCache] burada İŞLEMEZ (attribute yalnız InvokeAsync<T>
-            // sarmalında okunur). Yeni referans doğduysa agent-lists elle boşaltılır — [Transactional]
-            // handler içinden publish = gerçek outbox atomikliği.
+            // Tek idiom (090): boşaltma HER yazma yolunda handler-içi publish — yeni referans
+            // doğduysa agent-lists boşaltılır; [Transactional] içinden publish = outbox atomikliği.
             if (_createdReference)
                 await bus.PublishAsync(new CacheInvalidationRequested(CatalogCacheTags.AgentLists));
 

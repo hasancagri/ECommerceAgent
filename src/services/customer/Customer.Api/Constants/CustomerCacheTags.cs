@@ -1,8 +1,8 @@
 namespace Customer.Api.Constants;
 
 /// <summary>
-/// Customer'ın cache tag sabitleri — [Cached] ile [InvalidatesCache] AYNI const'u kullanır ki
-/// typo'yla çift sessizce kopmasın (yanlış tag = boşaltma hiçbir şey bulamaz, hata da vermez).
+/// Customer'ın cache tag sabitleri — [Cached] query ile boşaltan handler publish'i AYNI const'u
+/// kullanır ki typo'yla çift sessizce kopmasın (yanlış tag = boşaltma hiçbir şey bulamaz, hata da vermez).
 /// Tag BC-İÇİ detaydır (Shared'a taşıma); DEĞERİ değiştirme — eski değerle yazılmış girdiler
 /// TTL dolana dek yetim kalır.
 /// </summary>

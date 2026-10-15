@@ -16,3 +16,4 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.Logging;
 global using PagedList.Core;
 global using StackExchange.Redis;
+global using Common.Utils.Caching;

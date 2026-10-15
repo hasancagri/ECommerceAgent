@@ -7,7 +7,6 @@ namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 public static class UpdateAddress
 {
     [RequiredScope(AuthorizationScopes.CustomerWrite)]
-    [InvalidatesCache(CustomerCacheTags.Addresses)]
     public record UpdateAddressCommand(
         Guid UserId, Guid AddressId,
         string? Province, string? District, string? Street, string? ZipCode, string? Line);
@@ -26,7 +25,7 @@ public static class UpdateAddress
     public class UpdateAddressCommandHandler
     {
         public async Task<FeatureObjectResultModel<UpdateAddressResponse>> Handle(
-            UpdateAddressCommand cmd, IDocumentSession session, CancellationToken ct)
+            UpdateAddressCommand cmd, IDocumentSession session, IMessageBus bus, CancellationToken ct)
         {
             var book = await session.Query<AddressBook>()
                 .FirstOrDefaultAsync(x => x.UserId == cmd.UserId, ct);
@@ -52,6 +51,8 @@ public static class UpdateAddress
                 return FeatureObjectResultModel<UpdateAddressResponse>.Error(result.Messages);
 
             session.Store(book);
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            await bus.PublishAsync(new CacheInvalidationRequested(CustomerCacheTags.Addresses));
             // FR-003 deseni: yanıt kaydın GÜNCEL hâli — agent ek okuma çağrısı yapmadan gösterebilir.
             return FeatureObjectResultModel<UpdateAddressResponse>.Ok(new UpdateAddressResponse
             {

@@ -4,7 +4,6 @@ namespace Customer.Api.Domains.AddressBooks.Features.Agents.Commands;
 public static class RemoveAddress
 {
     [RequiredScope(AuthorizationScopes.CustomerWrite)]
-    [InvalidatesCache(CustomerCacheTags.Addresses)]
     public record RemoveAddressCommand(Guid UserId, Guid AddressId);
 
     public class RemoveAddressResponse
@@ -16,7 +15,7 @@ public static class RemoveAddress
     public class RemoveAddressCommandHandler
     {
         public async Task<FeatureObjectResultModel<RemoveAddressResponse>> Handle(
-            RemoveAddressCommand cmd, IDocumentSession session, CancellationToken ct)
+            RemoveAddressCommand cmd, IDocumentSession session, IMessageBus bus, CancellationToken ct)
         {
             var book = await session.Query<AddressBook>()
                 .FirstOrDefaultAsync(x => x.UserId == cmd.UserId, ct);
@@ -28,6 +27,8 @@ public static class RemoveAddress
                 return FeatureObjectResultModel<RemoveAddressResponse>.Error(result.Messages);
 
             session.Store(book);
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            await bus.PublishAsync(new CacheInvalidationRequested(CustomerCacheTags.Addresses));
             return FeatureObjectResultModel<RemoveAddressResponse>.Ok(
                 new RemoveAddressResponse { Message = "Adres silindi." });
         }

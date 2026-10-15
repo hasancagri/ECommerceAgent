@@ -6,7 +6,6 @@ namespace Catalog.Api.Domains.Authors.Features.Agents.Commands;
 public static class AdminCreateAuthor
 {
     [RequiredScope(AuthorizationScopes.AdminCatalogWrite)]
-    [InvalidatesCache(CatalogCacheTags.AgentLists)]
     public record AdminCreateAuthorCommand(Guid UserId, string Name);
 
     public class AdminCreateAuthorResponse
@@ -21,6 +20,7 @@ public static class AdminCreateAuthor
         public async Task<FeatureObjectResultModel<AdminCreateAuthorResponse>> Handle(
             AdminCreateAuthorCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(cmd.Name))
@@ -49,6 +49,10 @@ public static class AdminCreateAuthor
 
             var author = created.Data!;
             session.Store(author);
+
+            // Boşaltma yazmayla ATOMİK: handler-içi publish [Transactional] outbox'una girer (090).
+            // get-or-create hit yolunda yazma yok → publish de yok.
+            await bus.PublishAsync(new CacheInvalidationRequested(CatalogCacheTags.AgentLists));
 
             return FeatureObjectResultModel<AdminCreateAuthorResponse>.Ok(new AdminCreateAuthorResponse
             {
