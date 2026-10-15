@@ -23,8 +23,10 @@ bir not kod/CLAUDE.md ile çelişiyorsa **not yanlıştır**, kod değil.
 
 ## Adımlar
 
-1. **Envanter.** Vault kökünden (`~/dev/EcommerceNotes/`) tüm `.md` notlarını
-   **özyinelemeli** bul ve oku. Notlar alt klasöre taşınmış olabilir — sabit yola güvenme,
+1. **Envanter.** Vault kökünden (`~/dev/DevNotes/`) tüm `.md` notlarını
+   **özyinelemeli** bul ve oku. DDD gerekçe katmanı `ECommerceAgent/` altında
+   (reference/todos/questions/sessions); teknoloji öğrenme klasörleri (Wolverine/MCP/ES/Marten/Aspire…)
+   kök seviyesinde — ikisi de taranır. Notlar alt klasöre taşınmış olabilir — sabit yola güvenme,
    kökten `find` ile tara. `.obsidian/` yapılandırma klasörünü atla.
    - Vault yoksa/erişilemezse net hata ver ("vault bulunamadı: <yol>"), sessizce boş rapor dönme.
    - Argüman verildiyse yalnızca eşleşen notu/konuyu değerlendir.
