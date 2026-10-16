@@ -27,8 +27,8 @@ yapısal S2S REST (merchant-key). **Kart-saklama (Wallet/cüzdan) 076'da SÖKÜL
    HMAC-imzalı POST eder; store imzayı (deserialize ÖNCESİ) + correlation'ı            ` MerchantInformation.ApplyCredentialsFromCallback)`
    doğrular → Active'e çeker. İmza geçersiz=400; eşleşmeyen/çift correlation
    idempotent nötr yutulur.
-5. 🟩 **Merchant kimliği kaydı ödeme akışını besler** — yapısal S2S merchant-key      `(MerchantKeyGrpcService)`
-   ucu (Payment.Api gRPC ile çeker, 077). Değer sohbete/loga girmez.
+5. 🟩 **Merchant kimliği kaydı ödeme akışını besler** ⇦ Payment — yapısal S2S         `(MerchantKeyGrpcService)`
+   merchant-key ucu (Payment.Api gRPC ile çeker, 077). Değer sohbete/loga girmez.
 6. 👤 **Admin** → 🟦 **Key'i yenile — EKRANSIZ (087)** → 🩷 **PG'de reissue** —       `(AdminReissueMerchantKey →`
    key kaybolursa/sızarsa admin agent kayıtlı MerchantId ile tetikler (yeni            ` PgOnboardingClient)`
    correlation); eski key PG'de anında ölür, YENİ key aynı HMAC-callback yoluyla

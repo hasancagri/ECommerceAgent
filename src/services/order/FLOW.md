@@ -12,7 +12,7 @@ başarılı callback'i (Payment fanout) siparişi checkout'a sokar. Stok/telafi/
 
 ## Süreç
 
-1. 👤 **Müşteri** → 🟦 **Ödeme başlat** → 🟨 **Sipariş Pending doğar** ⇨ Payment —          `(StartPayment →`
+1. 👤 **Müşteri** → 🟦 **Ödeme başlat** → 🟨 **Sipariş Pending doğar** ⇨ Payment, Discount — `(StartPayment →`
    sepet (gRPC, sunucu-otoritesi) + varsayılan adres okunur; ödenecek tutar                   ` Order.Create;`
    sepet kalemlerine O AN aktif indirim yüzdeleri uygulanarak bulunur (canlı,                 ` DiscountClient; PaymentIntentClient)`
    vitrin snapshot'ına güvenmez; erişilemez→liste fiyatı); Payment'tan hosted
@@ -26,7 +26,7 @@ başarılı callback'i (Payment fanout) siparişi checkout'a sokar. Stok/telafi/
    🟦 **Siparişi iptal et** — `PaymentFailed` → `Order.Cancel` (stok hiç                     ` Order.Cancel)`
    düşmedi; saga'ya girmez).
 4. 🟦 **Onayla / İptal et** ⇦ Checkout → 🟧⭐ **Sipariş tamamlandı**                        `(CheckoutConsumers →`
-   ⇨ Reviews, Storefront, Library — checkout orkestratörü Order                              ` OrderConfirmed/OrderCompleted)`
+   ⇨ Reviews, Library — checkout orkestratörü Order                                          ` OrderConfirmed/OrderCompleted)`
    `Confirm/Cancel`'ı sürer; Confirm pivotunda `OrderCompleted` fanout'u
    yayılır. Idempotent.
 5. 👤 **Müşteri** → 🟩 **Sipariş geçmişi** — kişi kendi geçmişini listeler.                 `(GetOrders)`

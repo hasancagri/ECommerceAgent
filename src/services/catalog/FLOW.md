@@ -50,9 +50,9 @@ ve değişimi Storefront'a bildirir. Ürünler **first-party**: mağaza sahibi e
    fiyatsız yayına alma reddedilir; yayından kaldırma vitrini gizler               ` Product.Publish, Product.Unpublish)`
    (silmez). Düzenleme yayın durumunu DEĞİŞTİRMEZ (koruma). Import taslakları
    toplu yayın: `publish_imported` yalnız import-kökenli + fiyat>0 taslakları canlıya çıkarır (083).
-8. 🟧⭐ **Ürün değişti** ⇨ Storefront, Library — değişim KANONİK yayınlanır:        `(ProductChangedEvent)`
-   fiyat decimal, kategori = primary; yazarlar (Id+ad çifti) + yayınevi ADLA
-   taşınır (fat event; tüketici lookup yapmaz — özellik/spec taşınmaz). Yalnız
+8. 🟧⭐ **Ürün değişti** ⇨ Storefront, Library, Discount — değişim KANONİK          `(ProductChangedEvent)`
+   yayınlanır: fiyat decimal, kategori = primary; yazarlar (Id+ad çifti) + yayınevi
+   ADLA taşınır (fat event; tüketici lookup yapmaz — özellik/spec taşınmaz). Yalnız
    YAYINDAKİ ürün yayar; yayından kaldırma `IsDeleted:true` ile gizletir (058).
 9. 🟧⭐ **Ürün doğdu** ⇨ Stock, File — Stock'a bağ ürün DOĞARKEN kurulur:           `(ProductAdded)`
    barkod→ürün eşlemesi + ilk OnHand yazılır — taslak dahil ürün doğar doğmaz.
