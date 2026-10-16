@@ -1,36 +1,40 @@
-# Customer — Domain Süreci
+# Customer — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Kullanıcının **adres defterini** tutar (+ merchant kimliği admin kaydı). Checkout yolunun
 okuduğu kayıtlı teslimat kaynağıdır. İzole BC: integration event yayınlamaz/tüketmez; kanalı MCP (chat) +
 yapısal S2S REST (merchant-key). **Kart-saklama (Wallet/cüzdan) 076'da SÖKÜLDÜ** (kart yönünden vazgeçildi;
 ödeme hosted-CF'e taşınacak — [[hosted-cf-checkout-pivot]]).
 
-> Domain-önce anlatı. Sağdaki `(…)` = koda köprü. Süreç değişince güncellenir; guard rename'i yakalar.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
+> 🟩 read-model · 🩷 dış sistem · 👤 aktör · ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu
+> backtick `(…)` = koda köprü, süreç değil.
+> Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Adres eklenir/güncellenir/silinir + varsayılan seçilir.**       `(AddressBook.AddAddress`
-   ≤1 varsayılan invariant'ı defterde tek yazmada korunur;           ` / SetDefaultAddress)`
-   yüzey chat/MCP (add_address/update/remove/set_default/list).
-2. **Kayıt store-başlatır (makine-handoff, 087).** Admin MCP aksiyonu  `(AdminStartOnboarding →`
-   tetikler; store correlationId üretir, kaydı Pending'e alır, PG'ye    ` MerchantInformation.StartRegistration`
-   S2S register atar (bootstrap key başlıkta + callbackUrl/correlation  ` → PgOnboardingClient)`
-   gövdede). Credential/finans/sır MCP arg'ına ve sohbete HİÇ girmez.
-   Tek-aktif kayıt invariant'ı farklı correlation'lı ikinci başlatmayı reddeder.
-3. **PG onayı asenkron (PG admin MCP).** Onaysız aktivasyon yok; store Pending'de bekler.
+1. 🟦 **Adres ekle/güncelle/sil + varsayılan seç** → 🟨 **Adres defteri** — ≤1        `(AddressBook.AddAddress`
+   varsayılan invariant'ı defterde tek yazmada korunur; yüzey chat/MCP                ` / SetDefaultAddress)`
+   (add_address/update/remove/set_default/list).
+2. 👤 **Admin** → 🟦 **Kaydı store-başlat (makine-handoff, 087)** → 🟨 **Merchant     `(AdminStartOnboarding →`
+   kaydı Pending doğar** → 🩷 **PG'ye S2S register** — store correlationId üretir      ` MerchantInformation.StartRegistration`
+   (bootstrap key başlıkta + callbackUrl/correlation gövdede). Credential/finans/      ` → PgOnboardingClient)`
+   sır MCP arg'ına ve sohbete HİÇ girmez. Tek-aktif kayıt invariant'ı farklı
+   correlation'lı ikinci başlatmayı reddeder.
+3. 🩷 **PG onayı asenkron (PG admin MCP)** — onaysız aktivasyon yok; store Pending'de bekler.
    Credential bu yanıtta DÖNMEZ — asenkron callback'le gelir.
-4. **PG HMAC-callback → store credential'ı persist eder.** PG MerchantId+Key'i  `(CallbackSignatureValidator →`
-   store callback ucuna `CallbackSecret` ile HMAC-imzalı POST eder; store        ` ReceiveMerchantCredentials →`
-   imzayı (deserialize ÖNCESİ) + correlation'ı doğrular → Active'e çeker.         ` MerchantInformation.ApplyCredentialsFromCallback)`
-   İmza geçersiz=400; eşleşmeyen/çift correlation idempotent nötr yutulur.
-5. **Merchant kimliği kaydı ödeme akışını besler.**                  `(MerchantKeyGrpcService)`
-   Yapısal S2S merchant-key ucu (Payment.Api gRPC ile çeker, 077). Değer sohbete/loga girmez.
-6. **Key kaybolursa/sızarsa yenilenir — EKRANSIZ (087).** Admin agent  `(AdminReissueMerchantKey →`
-   kayıtlı MerchantId ile PG'de reissue tetikler (yeni correlation);    ` PgOnboardingClient)`
-   eski key PG'de anında ölür, YENİ key aynı HMAC-callback yoluyla
+4. 🩷 **PG HMAC-callback** → 🟦 **Credential'ı persist et** → 🟨 **Kayıt Active'e     `(CallbackSignatureValidator →`
+   çekilir** — PG MerchantId+Key'i store callback ucuna `CallbackSecret` ile           ` ReceiveMerchantCredentials →`
+   HMAC-imzalı POST eder; store imzayı (deserialize ÖNCESİ) + correlation'ı            ` MerchantInformation.ApplyCredentialsFromCallback)`
+   doğrular → Active'e çeker. İmza geçersiz=400; eşleşmeyen/çift correlation
+   idempotent nötr yutulur.
+5. 🟩 **Merchant kimliği kaydı ödeme akışını besler** — yapısal S2S merchant-key      `(MerchantKeyGrpcService)`
+   ucu (Payment.Api gRPC ile çeker, 077). Değer sohbete/loga girmez.
+6. 👤 **Admin** → 🟦 **Key'i yenile — EKRANSIZ (087)** → 🩷 **PG'de reissue** —       `(AdminReissueMerchantKey →`
+   key kaybolursa/sızarsa admin agent kayıtlı MerchantId ile tetikler (yeni            ` PgOnboardingClient)`
+   correlation); eski key PG'de anında ölür, YENİ key aynı HMAC-callback yoluyla
    (adım 4) store'a otomatik gelir. Reveal URL / elle-giriş adımı YOK.
-7. **Admin kimlik/başvuru durumunu sorgular.** Merchant kimliği       `(AdminGetMerchantStatus /`
-   kayıtlı mı + onboarding hangi aşamada; boş sonuç meşru durum.       ` AdminOnboardingStatus)`
+7. 🟩 **Admin kimlik/başvuru durumunu sorgular** — merchant kimliği kayıtlı mı +      `(AdminGetMerchantStatus /`
+   onboarding hangi aşamada; boş sonuç meşru durum.                                    ` AdminOnboardingStatus)`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

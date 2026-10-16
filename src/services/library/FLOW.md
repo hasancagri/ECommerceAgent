@@ -1,30 +1,31 @@
-# Library — Domain Süreci
+# Library — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Kullanıcının ürünle kalıcı ilgi kayıtlarını tutar; ilk dilim fiyat alarmı —
 yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayınlar, gönderim izini saklar.
 
-> Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot · 🟩 read-model ·
+> 👤 aktör · ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
 > Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Kullanıcı ürüne fiyat alarmı kurar.** E-posta kuruluş anında      `(PriceAlarm.Create)`
-   snapshot alınır (doğrulanmaz, boş olabilir); ürün adı + o anki
-   fiyat bağlam olarak saklanır.
-2. **Aynı kullanıcı × ürüne tek alarm.** Mevcut kayıt varsa ikinci     `(CreatePriceAlarm)`
-   kurma isteği idempotent başarı döner, yeni kayıt yazılmaz.
-3. **Fiyat değişimi dinlenir.** Catalog'un ürün event'inde eski        `(CatalogConsumers ← ProductChangedEvent)`
+1. 👤 **Kullanıcı** → 🟦 **Fiyat alarmı kur** → 🟨 **Alarm doğar** — e-posta kuruluş           `(PriceAlarm.Create)`
+   anında snapshot alınır (doğrulanmaz, boş olabilir); ürün adı + o anki fiyat
+   bağlam olarak saklanır.
+2. 🟪 **Aynı kullanıcı × ürüne tek alarm** — mevcut kayıt varsa ikinci kurma                   `(CreatePriceAlarm)`
+   isteği idempotent başarı döner, yeni kayıt yazılmaz.
+3. 🟧 **Ürün fiyatı değişti** ⇦ Catalog → 🟪 **değişim dinlenir** — eski             `(CatalogConsumers ← ProductChangedEvent)`
    fiyat doluysa VE yeni fiyattan farklıysa tetik doğar; yön bakılmaz.
-4. **Üründeki HER alarm için bildirim tetiği yayınlanır.** Mail'e      `(→ PriceAlarmTriggered)`
-   yetecek her alan event'te (email snapshot dahil); worker kimseye sormaz.
-5. **Alarm tetikte KAPANMAZ.** Yaşayan abonelik: kullanıcı kaldırana   `(PriceAlarm — mutator'suz)`
-   dek her fiyat değişimi yeni tetik üretir.
-6. **Kullanıcı alarmı kaldırır.** Hard delete; yaşam döngüsü biter.    `(RemovePriceAlarm)`
-7. **Gönderim sonucu iz olarak yazılır.** Worker'ın sonucu             `(NotificationAgentConsumers ← NotificationSent`
-   append-only kayda düşer (sent / no-email / hata özeti).              ` → NotificationRecord)`
-8. **Tamamlanan sipariş kişisel satın-alma kaydına döner.** Kalem      `(OrderConsumers ← OrderCompleted`
-   başına kullanıcı+ürün satırı; tekrar teslim/alım aynı satır          ` → UserPurchase)`
-   (idempotent upsert). Storefront'tan taşındı (086); kişisel bağlam.
+4. 🟧⭐ **Bildirim tetiği yayınlandı** ⇨ NotificationAgent — üründeki HER alarm için          `(→ PriceAlarmTriggered)`
+   bir tetik; mail'e yetecek her alan event'te (email snapshot dahil), worker kimseye sormaz.
+5. 🟪 **Alarm tetikte KAPANMAZ** — yaşayan abonelik: kullanıcı kaldırana dek her           `(PriceAlarm — mutator'suz)`
+   fiyat değişimi yeni tetik üretir.
+6. 👤 **Kullanıcı** → 🟦 **Alarmı kaldır** — hard delete; yaşam döngüsü biter.                  `(RemovePriceAlarm)`
+7. 🟧 **Bildirim gönderildi** ⇦ NotificationAgent → 🟩 **İz yazılır** —    `(NotificationAgentConsumers ← NotificationSent`
+   worker'ın sonucu append-only kayda düşer (sent / no-email / hata özeti).                   ` → NotificationRecord)`
+8. 🟧 **Sipariş tamamlandı** ⇦ Order → 🟩 **Kişisel satın-alma kaydı** — kalem            `(OrderConsumers ← OrderCompleted`
+   başına kullanıcı+ürün satırı; tekrar teslim/alım aynı satır (idempotent upsert).               ` → UserPurchase)`
+   Storefront'tan taşındı (086); kişisel bağlam.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

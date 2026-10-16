@@ -1,21 +1,23 @@
-# Reviews — Domain Süreci
+# Reviews — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Satın-alma şartıyla ürün yorumu toplar; yorum HEMEN görünür doğar ve vitrin özetini
 (ortalama + adet) Storefront'a yayınlar. Moderasyon yok (kullanıcı serbest yazar).
 
-> Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟩 read-model · 🟥 hotspot ·
+> ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
 > Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Yorum yalnız satın-alanlar tarafından yazılır.** Kanıt lokal       `(OrderConsumers ← OrderCompleted`
-   read-model'den (OrderCompleted event-fed); yoksa RED.                 ` → PurchasedProduct)`
-2. **Kullanıcı × ürün için tek yorum.** Uygulama önce kontrol eder,     `(SubmitReview)`
+1. 🟧 **Sipariş tamamlandı** ⇦ Order → 🟪 **satın-alma kanıtı birikir** → 🟩 **kanıt    `(OrderConsumers ← OrderCompleted`
+   read-model'i** — yorum yalnız satın-alanlar tarafından yazılır; kanıt lokal           ` → PurchasedProduct)`
+   read-model'den (OrderCompleted event-fed), yoksa RED.
+2. 🟦 **Yorum gönder** — kullanıcı × ürün için TEK yorum; uygulama önce kontrol eder,    `(SubmitReview)`
    son sözü Marten unique index söyler (yarış kaybedeni nazik hata).
-3. **Yorum Visible durumda doğar** — puan 1-5 tam, metin ≤2000, ad      `(Review.Create)`
-   zorunlu; görünen ad token claim'inden, istek gövdesinden ASLA.
-4. **Görünen ürün özeti anında yayınlanır.** Ortalama + adet            `(ReviewSummaryChanged)`
-   Reviews'ta hesaplanır (tüketici saymaz), Storefront'a fanout.
+3. 🟨 **Yorum doğar (Visible)** — moderasyon yok, HEMEN görünür; puan 1-5 tam, metin     `(Review.Create)`
+   ≤2000, ad zorunlu; görünen ad token claim'inden, istek gövdesinden ASLA.
+4. 🟧 **Görünen ürün özeti değişti** ⇨ Storefront — ortalama + adet Reviews'ta           `(ReviewSummaryChanged)`
+   hesaplanır (tüketici saymaz), anında fanout'la yayınlanır.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

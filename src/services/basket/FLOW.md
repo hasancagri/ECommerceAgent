@@ -1,22 +1,23 @@
-# Basket — Domain Süreci
+# Basket — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Kullanıcının kalıcı sepetini + kalemlerini tutar. Sahip login kullanıcı YA DA
 anonim ziyaretçi olabilir (057); ikisi aynı modeldir, fark yalnız kimliğin kaynağı. Sepet stok
 TUTMAZ ve süre İŞLETMEZ (056); stok gerçeği checkout anındadır.
 
-> Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
+> ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
 > Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Kullanıcı ürünü sepete atar.** Sepet yoksa oluşur; aynı Id'li satır  `(AddBasketItem`
-   yenisiyle değişir (upsert, adet 1). Stok'a hiçbir çağrı gitmez.        ` → Basket.AddItem)`
-2. **Adet mutlak değere getirilir.** `≤0` ise satır çıkar; 5 tavanı      `(SetBasketItemQuantity)`
-   aşılamaz.
-3. **Satır elle silinir.** Yalnız sepet belgesi değişir.                  `(DeleteBasketItem`
-                                                                          ` → Basket.RemoveItem)`
-4. **Checkout sepeti boşaltır (hand-off).** Orchestrator pivot-sonrası   `(Saga.CheckoutConsumers`
-   broker komutuyla çağırır; sepet silinir (idempotent).                  ` → ClearBasketCommand)`
+1. 🟦 **Ürünü sepete at** → 🟨 **Sepet doğar/güncellenir** — kullanıcı atar; sepet           `(AddBasketItem`
+   yoksa oluşur, aynı Id'li satır yenisiyle değişir (upsert, adet 1). Stok'a                  ` → Basket.AddItem)`
+   hiçbir çağrı gitmez.
+2. 🟦 **Adedi mutlak değere getir** — `≤0` ise satır çıkar; 5 tavanı aşılamaz.               `(SetBasketItemQuantity)`
+3. 🟦 **Satırı elle sil** — yalnız sepet belgesi değişir.                                     `(DeleteBasketItem`
+                                                                                               ` → Basket.RemoveItem)`
+4. 🟪 **Checkout sepeti boşaltır (hand-off)** → 🟦 **Sepeti temizle** ⇦ Checkout —           `(Saga.CheckoutConsumers`
+   orchestrator pivot-sonrası broker komutuyla çağırır; sepet silinir (idempotent).           ` → ClearBasketCommand)`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

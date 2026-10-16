@@ -18,7 +18,7 @@ böyle olduğunun gerekçesi (karar kaydı) repo içinde [`adr/`](adr/README.md)
 - **Domain-TDD (İLKE VI):** saf domain (aggregate davranışı, saga `On*`, VO) test-first; test task'ı
   implementasyondan önce. Handler/endpoint/UI/altyapı bu kuralın dışı (test-sonra/canlı doğrulama).
 
-## Domain süreci belgesi — FLOW.md (İLKE VII uygulaması)
+## Domain süreci belgesi — FLOW.md, EventStorming notasyonlu (İLKE VII uygulaması)
 
 Anayasa "her BC'nin domain süreci belgelenir" der; **nasıl**'ı budur:
 
@@ -32,6 +32,18 @@ Anayasa "her BC'nin domain süreci belgelenir" der; **nasıl**'ı budur:
   anchor** (koda atlama). Satır numarası YOK (bayatlar).
 - **İçerik:** (1) BC ne yapar tek cümle, (2) sıralı **Süreç** adımları, (3) **Domain kuralları**
   (süreci yöneten değişmezler), (4) **Sınır** (BC'nin dokunmadığı). ~1 ekran. Örnek: `checkout/FLOW.md`.
+- **Notasyon (EventStorming):** Süreç satırı sticky-tipli — 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy ·
+  🟨 aggregate · 🟩 read-model · 🩷 dış sistem · 🟥 hotspot · 👤 aktör; zincir `🟪 → 🟦 → 🟧`. Anlatı
+  cümlesi ZORUNLU — sticky adı hikâyeyi (nüans/invariant notunu) öldürmez. Lejant dosya başı blockquote'ta.
+- **Dikiş (BC-arası):** yayınlanan event'e `⇨ TüketenBC1, TüketenBC2`, tüketilene `⇦ YayıncıBC`, başka
+  BC'ye giden broker komutuna `⇨ HedefBC`. Yön AÇIK yazılır — görselleştirici bundan çizer, sezgilemez.
+- **Hotspot:** `🟥 Hotspot (open|closed): soru/çelişki`. Open hotspot clarify sorularının kaynağı; ilgili
+  feature implement'e girmeden kapanır — satır silinmez, `(closed: cevap)` olur (karar izi). Master'da
+  open hotspot yaşayabilir; kapı süreç disiplinidir, CI değil.
+- **Storm-önce-spec:** önemsiz olmayan feature'da speckit-specify'dan ÖNCE mini-storm — ilgili FLOW.md'ye
+  aday event'ler (geçmiş zamanla) + komut/policy/hotspot dökülür; Claude döker, kullanıcı düzeltir.
+- **Planned öğe:** henüz kodu olmayan sticky backtick'SİZ + `_(planned)_` ekiyle yazılır (guard yalnız
+  backtick tarar → fail etmez). Implement bitince ek düşer, backtick kenar-anchor eklenir (as-built).
 - **Güncelleme tetiği (dar):** yalnız domain süreci değişince (yeni/silinen command-event-policy, adım
   sırası). Mekanik rename/refactor tetiklemez. Feature süreci değiştiriyorsa FLOW.md **aynı PR'da** güncellenir.
 - **Guard:** `scripts/check-flow-links.sh` — FLOW.md'deki kenar-anchor tip adlarının kod tabanında hâlâ
