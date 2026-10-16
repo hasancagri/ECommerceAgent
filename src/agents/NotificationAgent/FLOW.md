@@ -1,23 +1,26 @@
-# NotificationAgent — Domain Süreci
+# NotificationAgent — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Library'nin fiyat alarmı tetiğini dinler, maili AI ile kişiselleştirir,
 Mail.Mcp'nin `send_mail` tool'u üzerinden gönderir ve sonucu iz için geri yayınlar. DB'siz worker.
 
-> Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
-> Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
+> 🩷 dış sistem · ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü,
+> süreç değil. Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir;
+> mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Alarm tetiği tüketilir.** Event mail'e yetecek her şeyi taşır      `(PriceAlarmTriggered`
-   (alıcı e-posta snapshot dahil); worker başka servise SORMAZ.          ` → PriceAlarmEventHandlers)`
-2. **E-postasız tetik gönderimsiz kapanır.** Adres boşsa mail atlanır,  `(PriceAlarmEventHandlers)`
+1. 🟧⭐ **Alarm tetiklendi** ⇦ Library — pivot; event mail'e yetecek her şeyi taşır     `(PriceAlarmTriggered`
+   (alıcı e-posta snapshot dahil); worker başka servise SORMAZ.                         ` → PriceAlarmEventHandlers)`
+2. 🟪 **E-postasız tetik gönderimsiz kapanır** — adres boşsa mail atlanır,             `(PriceAlarmEventHandlers)`
    iz "no-email" ile yine düşer.
-3. **Mail TEK agent'la yazılır VE gönderilir.** Türkçe (hitap + ürün    `(MailAgent — send_mail)`
-   adı + eski/yeni fiyat; ürün linki YOK — UI söküldü); aynı LLM
-   çağrısı Mail.Mcp'nin `send_mail` tool'unu tool-seçimiyle çağırır; imperatif MCP YOK.
-4. **Sonuç geri yayınlanır.** Başarı/başarısızlık + kısa detay;         `(→ NotificationSent)`
+3. 🟪 **Tetik maile dönüşür** → 🟦 **Maili yaz VE gönder** → 🩷 **LLM + Mail.Mcp** —   `(MailAgent — send_mail)`
+   mail TEK agent'la yazılır VE gönderilir; Türkçe (hitap + ürün adı + eski/yeni
+   fiyat; ürün linki YOK — UI söküldü); aynı LLM çağrısı Mail.Mcp'nin `send_mail`
+   tool'unu tool-seçimiyle çağırır; imperatif MCP YOK.
+4. 🟧 **Sonuç geri yayınlandı** ⇨ Library — başarı/başarısızlık + kısa detay;          `(→ NotificationSent)`
    izi Library BC yazar.
-5. **Hata dayanıklı yönetilir.** Her LLM/MCP/SMTP hatası aynı yol:      `(NotificationException → DLQ)`
+5. 🟪 **Hata dayanıklı yönetilir** — her LLM/MCP/SMTP hatası aynı yoldan:              `(NotificationException → DLQ)`
    retry 10s/30s/60s sonra error queue.
 
 ## Domain kuralları (süreci yöneten değişmezler)

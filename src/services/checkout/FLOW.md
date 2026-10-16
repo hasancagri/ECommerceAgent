@@ -1,33 +1,36 @@
-# Checkout.Orchestrator — Domain Süreci
+# Checkout.Orchestrator — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Ödeme-sonrası akışı **orkestre eder** — stoğu kalem kalem commit eder, siparişi onaylar,
 sepeti temizler; stok adımı kesin başarısız olursa telafi eder. Ödeme akışın DIŞINDA öncedendir (hosted-CF
 callback), sipariş girişte zaten oluşturulmuştur. Broker-only sağa (kendi iş DB'si yok; state Marten
 belgesi); hiçbir BC'nin verisine dokunmaz.
 
-> Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
+> ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
 > Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Giriş: checkout başlar, senkron bekleme yok.** Ödeme hosted-CF ile     `(StartCheckout)`
-   ÖNCEDEN çekildi → Order.Api `PaymentSucceeded`'i tüketip `StartCheckout`
-   yayınlar; sipariş ZATEN oluşturulmuştur (OrderId dolu gelir).
-2. **Sağa doğar + watchdog kurulur.** Doğrudan stok commit'e geçilir       `(CheckoutProcess.Start`
-   (ödeme + sipariş hazır); telafi mümkün faz = CommittingStock.            ` → CheckoutTimedOut)`
-3. **Kalemler tek tek commit edilir (döngü).** Her başarı sonraki kalemi   `(CommitStockCommand →`
-   tetikler. 056: commit = doğrudan OnHand düşümü (rezervasyon yok) — stok   ` StockCommitted)`
-   yetersizliği İLK KEZ burada yakalanır, telafiye geçer.
-4. **Tüm kalemler commit olunca sipariş onaylanır.** Charge adımı YOK       `(StockCommitted →`
-   (ödeme öncedendir); Phase=Confirming.                                     ` ConfirmOrderCommand)`
-5. **Sipariş onaylandı → sepet temizlenir.** Onay kalıcı başarısız ama      `(OrderConfirmed →`
-   ödeme çekildi → iptal ETME, logla + bitir (manuel müdahale).             ` ClearBasketCommand)`
-6. **Sepet temizliği süreci bitirir.** Başarı da hata da tamamlar;          `(BasketCleared →`
-   sepet temizlenemese bile sipariş Confirmed KALIR (FR-018).               ` MarkCompleted)`
-7. **Telafi (yalnız CommittingStock'ta): stok LIFO geri sarılır → iptal.**  `(StockCommitReverted →`
-   Commit edilmiş her kalem tersten revert; kalmayınca sipariş iptal.        ` RevertCommitStockCommand/CancelOrderCommand)`
-8. **Watchdog güvenceye alır.** CommittingStock'ta takılırsa telafi;        `(CheckoutTimedOut`
-   Confirming + sonrası iptal ETMEZ (ödeme alındı, belirsizlik), bitirir.   ` → CheckoutPhases)`
+1. 🟧⭐ **Ödeme alındı** ⇦ Payment — pivot; hosted-CF ile sağa DIŞINDA, ÖNCEDEN                `(PaymentSucceeded)`
+   çekildi. Sipariş ZATEN oluşturulmuştur (OrderId dolu gelir).
+2. 🟪 **Ödeme alınınca checkout başlar** → 🟦 **Checkout'u başlat** ⇦ Order —                 `(PaymentSucceeded →`
+   Order.Api event'i tüketip komutu yayınlar; senkron bekleme yok.                             ` StartCheckout)`
+3. 🟨 **Sağa doğar** + 🟪 **watchdog kurulur** — ödeme + sipariş hazır olduğundan             `(CheckoutProcess.Start`
+   doğrudan stok commit'e geçilir; telafi mümkün tek faz = CommittingStock.                    ` → CheckoutTimedOut)`
+4. 🟦 **Stok kalemini düş** ⇨ Stock → 🟧 **Stok kalemi düşüldü** — kalem kalem döngü,         `(CommitStockCommand →`
+   her başarı sonrakini tetikler. 056: commit = doğrudan OnHand düşümü (rezervasyon             ` StockCommitted)`
+   yok) — stok yetersizliği İLK KEZ burada yakalanır, telafiye geçer.
+5. 🟪 **Tüm kalemler düşünce onayla** → 🟦 **Siparişi onayla** ⇨ Order — Charge               `(StockCommitted →`
+   adımı YOK (ödeme öncedendir); Phase=Confirming.                                             ` ConfirmOrderCommand)`
+6. 🟧 **Sipariş onaylandı** → 🟦 **Sepeti temizle** ⇨ Basket — onay kalıcı başarısız          `(OrderConfirmed →`
+   ama ödeme çekildi → iptal ETME, logla + bitir (manuel müdahale).                            ` ClearBasketCommand)`
+7. 🟧 **Sepet temizlendi** → 🟪 **süreç tamamlanır** — başarı da hata da tamamlar;            `(BasketCleared →`
+   sepet temizlenemese bile sipariş Confirmed KALIR (FR-018).                                  ` MarkCompleted)`
+8. 🟪 **Telafi** (yalnız CommittingStock'ta): 🟦 **Commit'i geri sar** ⇨ Stock →              `(StockCommitReverted →`
+   🟧 **Stok geri alındı** — commit edilmiş kalemler LIFO tersten revert;                      ` RevertCommitStockCommand`
+   kalmayınca 🟦 **Siparişi iptal et** ⇨ Order.                                                ` / CancelOrderCommand)`
+9. 🟪 **Watchdog güvenceye alır** — CommittingStock'ta takılırsa telafi; Confirming           `(CheckoutTimedOut`
+   + sonrası iptal ETMEZ (ödeme alındı, belirsizlik), bitirir.                                 ` → CheckoutPhases)`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

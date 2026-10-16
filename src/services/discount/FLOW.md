@@ -1,29 +1,32 @@
-# Discount — Domain Süreci
+# Discount — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Admin-güdümlü **kampanya indirimi** yürütür: admin bir süzgeçle (kategori/yazar/yayınevi/
 tek-kitap) yüzde indirim açar; sistem süzgeci kitap setine çözer, her kitaba **tek** indirim işler, vitrine
 iter ve süre dolunca temizler. **Fiyat TUTMAZ** — yalnız yüzde otoritesi; etkin fiyatı tüketici hesaplar.
 
-> Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
+> ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
 > Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Katalog ürün↔taksonomi bağını besler.** Catalog ürün değişimi          `(CatalogConsumers`
-   ürün→kategori/yazar/yayınevi izdüşümünü upsert eder (süzgeç çözümü).      ` → ProductCatalogRef.Apply)`
-2. **Admin süzgeçle kampanya açar.** Ad + süzgeç + yüzde + pencere;          `(CreateCampaign`
-   invariant'lar (yüzde 1-99, bitiş>başlangıç, ad/scopeRef dolu,             ` → Campaign.Create)`
-   scopeType tanımlı) doğrulanır.
-3. **Aktifleşmede süzgeç kitaba çözülür + uygulanır.** startsAt≤now ise      `(CampaignSelectionResolver.Resolve;`
-   hemen, gelecekse start-fire'da; her kitaba indirim yazılır (önceki        ` CampaignApplication.ActivateAsync`
-   varsa ÜZERİNE — son-gelen-kazanır) ve itilir.                            ` → ProductDiscount.Create → ProductDiscountChanged)`
-4. **Süre dayanıklı zamanlanır.** Başlangıç/bitiş per-kampanya              `(CampaignActivated / CampaignEnded`
-   scheduled message; fire guard'lı idempotent (bayat mesaj no-op).         ` → CampaignScheduleHandler)`
-5. **Bitiş/İptal kitapları temizler.** Kampanyanın kitaplarının indirimi     `(CampaignApplication.ClearAsync;`
-   silinir, sıfır-yüzde itilir (vitrin liste fiyatına döner). Zaten iptal    ` CancelCampaign → Campaign.Cancel)`
-   edilmiş / bulunamayan kampanya iptali hata (idempotency guard).
-6. **Checkout canlı doğrular (S2S).** Order ödeme tutarını hesaplarken       `(DiscountQueryGrpcService.GetProductDiscounts`
-   ürünlerin AKTİF yüzdesini gRPC ile sorar (pencere dışı = indirim yok).    ` → ProductDiscount.IsActiveAt)`
+1. 🟧 **Ürün değişti** ⇦ Catalog → 🟪 **taksonomi izdüşümü beslenir** — Catalog ürün        `(CatalogConsumers`
+   değişimi ürün→kategori/yazar/yayınevi izdüşümünü upsert eder (süzgeç çözümü).             ` → ProductCatalogRef.Apply)`
+2. 🟦 **Kampanya aç** → 🟨 **Kampanya doğar** — admin ad + süzgeç + yüzde + pencere          `(CreateCampaign`
+   verir; invariant'lar (yüzde 1-99, bitiş>başlangıç, ad/scopeRef dolu, scopeType            ` → Campaign.Create)`
+   tanımlı) doğrulanır.
+3. 🟪 **Aktifleşmede süzgeç kitaba çözülür** → 🟦 **İndirimi uygula** →                      `(CampaignSelectionResolver.Resolve;`
+   🟧⭐ **Ürün indirimi değişti** ⇨ Storefront — startsAt≤now ise hemen, gelecekse            ` CampaignApplication.ActivateAsync`
+   start-fire'da; her kitaba indirim yazılır (önceki varsa ÜZERİNE —                         ` → ProductDiscount.Create → ProductDiscountChanged)`
+   son-gelen-kazanır) ve vitrine itilir.
+4. 🟪 **Süre dayanıklı zamanlanır** — başlangıç/bitiş per-kampanya scheduled                 `(CampaignActivated / CampaignEnded`
+   message; fire guard'lı idempotent (bayat mesaj no-op).                                    ` → CampaignScheduleHandler)`
+5. 🟪 **Bitiş/iptal kitapları temizler** → 🟦 **İndirimi kaldır** — kampanyanın              `(CampaignApplication.ClearAsync;`
+   kitaplarının indirimi silinir, sıfır-yüzde vitrine itilir ⇨ Storefront (vitrin            ` CancelCampaign → Campaign.Cancel)`
+   liste fiyatına döner). Zaten iptal edilmiş / bulunamayan kampanya iptali hata
+   (idempotency guard).
+6. 🟦 **Aktif yüzdeyi sorgula** ⇦ Order — Order ödeme tutarını hesaplarken                   `(DiscountQueryGrpcService.GetProductDiscounts`
+   ürünlerin AKTİF yüzdesini gRPC ile sorar (pencere dışı = indirim yok).                    ` → ProductDiscount.IsActiveAt)`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

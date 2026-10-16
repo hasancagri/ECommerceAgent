@@ -1,42 +1,43 @@
-# Storefront — Domain Süreci
+# Storefront — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Catalog+Stock+Reviews+Discount'tan akan **şişman event'leri** ürün-anahtarlı bir
 **event-log'a** (Postgres, gerçek-kaynak) biriktirir; **async projeksiyonla** her ürünü katlayıp
 **Elasticsearch** arama dokümanı üretir; vitrini asistana **tek ES-DSL sorgu kapısından** sunar.
 
-> Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
-> Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
+> Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
+> 🟩 read-model · 🩷 dış sistem · 👤 aktör · ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu
+> backtick `(…)` = koda köprü, süreç değil. Süreç değişince (yeni/silinen adım-event-policy)
+> bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Dört kaynak event'i TEK sıralı kuyruğa akar.** Catalog, Stock,     `(storefront.events`
-   Reviews, Discount aynı kuyruğa bağlanır → stream yarışı yok.          ` → Sequential)`
-2. **Her event ürün stream'ine append edilir.** Consumer yalnız          `(CatalogConsumers`
-   durable inbox'a yazar (fold/ES değil); gerçek-kaynak = Postgres        ` → Events.Append)`
+1. 🟧 **Kaynak event gelir** ⇦ Catalog ⇦ Stock ⇦ Reviews ⇦ Discount — dört kaynak            `(storefront.events`
+   TEK sıralı kuyruğa bağlanır → stream yarışı yok (086 CQRS+ES girişi).                       ` → Sequential)`
+2. 🟪 **Event gelince stream'e eklenir** → 🟦 **Ürün stream'ine append et** —                 `(CatalogConsumers`
+   consumer yalnız durable inbox'a yazar (fold/ES değil); gerçek-kaynak = Postgres             ` → Events.Append)`
    event-log. Dört kaynak dört ayrı consumer, aynı stream.
-3. **Async projeksiyon etkilenen ürünleri taze katlar.** Daemon           `(StorefrontProjection`
-   her batch'te ProductId'leri stream'den katlar — saf fold.              ` → AggregateStreamAsync)`
-4. **Katlanan doc alan grupları birleşir.** Her kaynak YALNIZ            `(StorefrontDocument.ApplyCatalog`
-   kendi alanını yazar; kısmi satır geçerli; mutlak değer                 `/ApplyStock/ApplyReviewSummary`
-   son-yazan-kazanır.                                                     `/ApplyDiscount)`
-5. **Satılabilir doc ES'e yazılır, değilse silinir.** IsDeleted ya        `(StorefrontProjection`
-   da fiyatsız (Catalog raporlamadı) → ES'ten silinir; satılamaz          ` → IsSellable)`
-   kitap index'te HİÇ bulunmaz (projeksiyon-zamanı dışlama).
-6. **Etkin fiyat yazım-anında hesaplanır.** İndirim penceresi            `(EffectivePrice)`
-   içindeyse indirimli, değilse liste fiyatı — doc alanına yazılır.
-7. **Açıklama değişince anlamsal temsil tazelenir.** Karar saf: boş       `(DecideEmbedding`
-   → yok, değişti/eksik → üret, aynı+var → koru (önceki vektör            ` → embedding dense_vector)`
+3. 🟪 **Projeksiyon daemon'u uyanır** → 🟩 **Etkilenen ürün taze katlanır** —                 `(StorefrontProjection`
+   async; her batch'te ProductId'ler stream'den katlanır — saf fold.                           ` → AggregateStreamAsync)`
+4. 🟩 **Katlanan doc'ta alan grupları birleşir** — her kaynak YALNIZ kendi                    `(StorefrontDocument.ApplyCatalog`
+   alanını yazar; kısmi satır geçerli; mutlak değer son-yazan-kazanır.                         `/ApplyStock/ApplyReviewSummary`
+                                                                                               `/ApplyDiscount)`
+5. 🟪 **Satılabilirse yaz, değilse sil** → 🩷 **ES dokümanı yazılır/silinir** —               `(StorefrontProjection`
+   IsDeleted ya da fiyatsız (Catalog raporlamadı) → ES'ten silinir; satılamaz                  ` → IsSellable)`
+   kitap index'te HİÇ bulunmaz (projeksiyon-zamanı dışlama, FR-008).
+6. 🟩 **Etkin fiyat yazım-anında hesaplanır** — indirim penceresi içindeyse                   `(EffectivePrice)`
+   indirimli, değilse liste fiyatı — doc alanına yazılır.
+7. 🟪 **Açıklama değişince anlamsal temsil tazelenir** → 🩷 **embedding üretilir** —          `(DecideEmbedding`
+   karar saf: boş → yok, değişti/eksik → üret, aynı+var → koru (önceki vektör                  ` → embedding dense_vector)`
    ES'teki doc'tan okunur). Embedding ES dense_vector alanı.
-8. **Asistan sorusu TEK ES-DSL kapısından yanıtlanır.** Asistanın        `(QueryStorefront`
-   yazdığı ham ES Query DSL önce minimal rail'den geçer (sabit            ` → AgentQueryLog)`
-   index + size≤50 + _source whitelist + timeout), `{{EMBED}}`
-   metni sistemce vektöre çevrilir (knn), sorgu çalışır; ret dahil
-   her çağrı iz bırakır. Text+fuzzy+kNN+filtre tek sorguda; eşik-
-   altı/boş sonuç = "bulunamadı". Keşif envanteri Catalog'dadır.
-9. **Arama index'i açılışta garanti edilir.** ES index yoksa            `(StorefrontSearchIndex`
-   mapping'le kurulur (idempotent). Soğuk başlangıç + yeniden-kurulum     ` → EnsureAsync)`
-   = dev full-reset + kaynak BC republish (R8, event-log'u yeniden
-   doldurur). Elle reindex (sil+kur+rebuild) BACKLOG.
+8. 👤 **Asistan sorar** → 🟦 **Tek ES-DSL kapısından sorgula** — asistanın yazdığı            `(QueryStorefront`
+   ham ES Query DSL önce minimal rail'den geçer (sabit index + size≤50 + _source               ` → AgentQueryLog)`
+   whitelist + timeout), `{{EMBED}}` metni sistemce vektöre çevrilir (knn), sorgu
+   çalışır; ret dahil her çağrı iz bırakır. Text+fuzzy+kNN+filtre tek sorguda;
+   eşik-altı/boş sonuç = "bulunamadı". Keşif envanteri Catalog'dadır.
+9. 🟪 **Açılışta index garanti edilir** → 🩷 **ES index kurulur** — yoksa mapping'le          `(StorefrontSearchIndex`
+   kurulur (idempotent). Soğuk başlangıç + yeniden-kurulum = dev full-reset +                  ` → EnsureAsync)`
+   kaynak BC republish (R8, event-log'u yeniden doldurur). Elle reindex
+   (sil+kur+rebuild) BACKLOG.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
