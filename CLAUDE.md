@@ -23,6 +23,7 @@ dotnet test --filter "FullyQualifiedName~BasketTests.AddItem"       # tek test
 scripts/check-claude-spec-links.sh                        # BC haritası spec yolları guard'ı
 scripts/check-flow-links.sh                               # FLOW.md domain-süreç anchor guard'ı (İLKE VII)
 python3 scripts/build-flow-wall.py                        # FLOW.md'lerden EventStorming duvarı üret (flow-wall.html, git'e girmez)
+python3 scripts/build-miro-wall.py                        # aynı duvarın Miro SVG'si (miro-wall.svg, git'e girmez); boarda basma Claude Miro MCP'yle
 ```
 
 - **Sistemi hep Aspire AppHost'tan başlat**, tek servis değil — servisler birbirini/DB/RabbitMQ'yu
