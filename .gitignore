@@ -30,3 +30,4 @@ k8s-artifacts/
 aspire-manifest.json
 src/aspire/AppHost/aspire-manifest.json
 flow-wall.html
+miro-wall.svg
