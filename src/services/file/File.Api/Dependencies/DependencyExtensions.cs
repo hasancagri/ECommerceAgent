@@ -1,6 +1,6 @@
 namespace FileApi.Dependencies;
 
-// Scrutor otomatik DI kaydı (IDependency marker'ları). LocalDiskFileStore/XlsxCoverSource
+// Scrutor otomatik DI kaydı (IDependency marker'ları). LocalDiskFileStore/JsonCoverSource
 // ISingletonDependency ile implemente eder → burada elle kayıt yok (konvansiyon).
 public static class DependencyExtensions
 {

@@ -29,7 +29,6 @@ public static class AdminGetProduct
         public string Sku { get; set; } = default!;
         public string? Isbn { get; set; }
         public decimal Price { get; set; }
-        public bool IsPublished { get; set; }
         public string? ImageUrl { get; set; }
         public List<AuthorItem> Authors { get; set; } = [];
         public Guid PublisherId { get; set; }
@@ -74,7 +73,6 @@ public static class AdminGetProduct
                 Sku = product.Sku,
                 Isbn = product.Gtin,
                 Price = product.Price.Amount,
-                IsPublished = product.Published,
                 ImageUrl = product.ImageUrl,
                 Authors = product.AuthorIds
                     .Where(authors.ContainsKey)

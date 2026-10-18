@@ -4,7 +4,7 @@ namespace Catalog.Api.Tests;
 public class ProductSpecificationTests
 {
     private static Product NewProduct() =>
-        Product.Create("Ürün", "SKU-1", ProductType.Simple, Money.Create(10m)!, "kısa", "tam");
+        Product.Create("Ürün", "SKU-1", ProductType.Simple, Money.Create(10m)!, "kısa", "tam").Data!;
 
     private static readonly Guid AttrRenk = Guid.NewGuid();
     private static readonly Guid AttrMateryal = Guid.NewGuid();

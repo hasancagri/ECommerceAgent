@@ -11,25 +11,26 @@ ve değişimi Storefront'a bildirir. Ürünler **first-party**: mağaza sahibi e
 > yolu (ürün-CRUD)** sonraki feature'da gelir. Aşağıki adım 1 o girişi bekler; adım 2+ domain davranışları
 > (aggregate metotları) ürün oluşturulunca aynen işler.
 
-> **083 notu (Excel katalog import):** Açılış `books.json` seeder'ı (051) SÖKÜLDÜ — katalog artık
-> **admin xlsx yükleme**siyle dolar. `import_catalog` token-linkli ekran üretir; yüklenen satırlar
-> `ImportRow` staging'e alınır (Excel bir kez okunur), `ImportProcessor` bekleyenleri **TASLAK** ürüne
-> çevirir (ISBN=Gtin idempotency; exactly-once). Import ürünü **draft doğar** (fiyatlı olsa da yayın
-> ayrı: `publish_imported`). Kapak **async** düşer (aşağıda adım 9a).
+> **091 notu (JSON seed dönüşü + yayın makinesi sökümü):** 083 Excel import yolu SÖKÜLDÜ
+> (`ImportSession`/`ImportRow`/token-link ekran/`publish_imported` gitti) — katalog açılışta **commit'li
+> `books.json`**'dan dolar (051 deseninin dönüşü). **Taslak/yayın/gizleme ekseni de SÖKÜLDÜ**: ürün
+> doğduğu an canlıdır; yayın kapısı yerine **fiyat>0 var oluş invariant'ı** (aggregate'te). Kapak
+> **async** düşer (aşağıda adım 9a); File.Api kapak migration'ı AYNI seed dosyasını okur.
 
 > **074 notu (MCP-only + elle giriş):** Domain iş REST yüzeyi söküldü — catalog admin/okuma tümüyle
-> MCP (`/mcp` keşif + `/mcp-admin` yönetim). Doktrin kayması: import-only değil — admin `create_product`
-> (`AdminCreateProduct`) ile elle künye girilir (TASLAK doğar; ISBN=Gtin çakışması reddedilir;
-> yayın ayrı `admin_set_published`). Düzenleme = `AdminUpdateProduct` (058 ekran ikizi). `AdminCreateProduct`
-> `ProductAdded`'i taslak anında yayınlar (InitialStock=0) — Stock bağı yayına kadar beklemez.
+> MCP (tek `/mcp`). Admin `create_product` (`AdminCreateProduct`) ile elle künye girilir (ISBN=Gtin
+> çakışması reddedilir; 091: ürün CANLI doğar, ayrı yayın adımı yok). Düzenleme = `AdminUpdateProduct`
+> (058 ekran ikizi). `AdminCreateProduct` `ProductAdded`'i (InitialStock=0) + `ProductChangedEvent`'i
+> doğumda yayınlar — Stock bağı ve vitrin görünümü beklemez.
 
 ## Süreç
 
-0. 🟦 **Katalogu xlsx'ten al (083)** → 🟪 **bekleyen satır TASLAK ürün olur** —      `(ImportCatalog, ImportSession,`
-   Admin `import_catalog` ile token-linkli ekrandan xlsx yükler; satırlar          ` ImportUploadEndpointExtension, ImportRow,`
-   staging'e (`ImportRow` Pending) alınır, `ImportProcessor` bekleyenleri          ` ImportProcessor, ProcessImportRow)`
-   TASLAK ürüne çevirir (ISBN=Gtin idempotency; ürün+`ProductAdded`+Processed
-   AYNI commit). Var olan ISBN atlanır (additive).
+0. 🟪 **Açılışta katalog commit'li seed'den dolar (091)** → 🟧 **Ürün doğdu** —      `(BookSeedHostedService,`
+   repo'daki `books.json` açılışta SATIR SATIR okunur: ISBN=Gtin lookup →          ` SeedBookRecord, SeedBookRow)`
+   varsa ATLANIR (admin düzenlemesi ezilmez — upsert bilinçli reddedildi),
+   yoksa ürün CANLI doğar; ürün+`ProductAdded`(satır stok)+`ProductChangedEvent`
+   AYNI commit. Geçersiz satır (ISBN boş/fiyat≤0/stok<0) uyarıyla atlanır; dosya
+   yoksa seed sessiz atlanır, parse hatası açılışı durdurur (fail-fast).
 1. 🟦 **Ürünü oluştur/güncelle** → 🟨 **Ürün doğar** — admin `create_product`        `(AdminCreateProduct,`
    elle giriş, veya `update_product` düzenleme (ISBN/ad/fiyat girdi);              ` AdminUpdateProduct, Product.Create, Product.Rename)`
    ISBN=Gtin ile bulun-veya-kur (idempotent).
@@ -46,37 +47,36 @@ ve değişimi Storefront'a bildirir. Ürünler **first-party**: mağaza sahibi e
    ad/açıklamadan türetilir.                                                       ` Product.SetSeo)`
 6. 🟦 **Özellikleri registry'den Id'ye çöz + TAM yaz** — bilinmeyen ad             `(Product.SetSpecifications)`
    opsiyoneldir — yok sayılır, satır spec'siz ilerler.
-7. 🟦 **Yayın anahtarını çevir — admin'dedir (058), kapı fiyat>0** —               `(AdminSetPublished, PublishImported,`
-   fiyatsız yayına alma reddedilir; yayından kaldırma vitrini gizler               ` Product.Publish, Product.Unpublish)`
-   (silmez). Düzenleme yayın durumunu DEĞİŞTİRMEZ (koruma). Import taslakları
-   toplu yayın: `publish_imported` yalnız import-kökenli + fiyat>0 taslakları canlıya çıkarır (083).
+7. _(091: yayın anahtarı adımı SÖKÜLDÜ — taslak/yayın/gizleme yok; fiyat>0 kapısı var oluşa taşındı, bkz. Domain kuralları.)_
 8. 🟧⭐ **Ürün değişti** ⇨ Storefront, Library, Discount — değişim KANONİK          `(ProductChangedEvent)`
    yayınlanır: fiyat decimal, kategori = primary; yazarlar (Id+ad çifti) + yayınevi
-   ADLA taşınır (fat event; tüketici lookup yapmaz — özellik/spec taşınmaz). Yalnız
-   YAYINDAKİ ürün yayar; yayından kaldırma `IsDeleted:true` ile gizletir (058).
+   ADLA taşınır (fat event; tüketici lookup yapmaz — özellik/spec taşınmaz). 091:
+   HER ürün değişimi yayar (yayın filtresi yok); `IsDeleted` kontratta kalır, hep `false` gider.
 9. 🟧⭐ **Ürün doğdu** ⇨ Stock, File — Stock'a bağ ürün DOĞARKEN kurulur:           `(ProductAdded)`
-   barkod→ürün eşlemesi + ilk OnHand yazılır — taslak dahil ürün doğar doğmaz.
-   Excel import'ta InitialStock=satırın Stock kolonu; elle `create_product`
-   girişinde InitialStock=0 (admin sonra `admin_set_stock`/`admin_adjust_stock`
-   ile gerçek adedi girer). Event olmadan taslak yayına alınsa bile Stock'ta
-   satır olmaz, checkout CommitStock RECORD_NOT_FOUND reddederdi.
+   barkod→ürün eşlemesi + ilk OnHand yazılır — ürün doğar doğmaz, YALNIZ doğumda
+   (tekrar yayım satışla düşen stoğu ezerdi). Seed'de InitialStock=satırın stock
+   alanı; elle `create_product` girişinde InitialStock=0 (admin sonra
+   `admin_set_stock`/`admin_adjust_stock` ile gerçek adedi girer). Event olmadan
+   Stock'ta satır olmaz, checkout CommitStock RECORD_NOT_FOUND reddederdi.
 9a. 🟧 **Kapak alındı (083)** ⇦ File → 🟪 **kapak ürüne yazılır** → 🟧 **Ürün        `(FileConsumers, CoverIngested,`
    değişti** — kapak async File.Api'den düşer: `ProductAdded`'i File.Api           ` Product.SetImage, ProductChangedEvent)`
    tüketir, kapağı R2'de çözer/yükler, `CoverIngested(isbn,url)` yayar; Catalog
    `FileConsumers` tüketir → `Product.SetImage` → `ProductChangedEvent` (kapak
-   vitrine yansır). Kapak yoksa event yok — ürün placeholder'da kalır, import bloklanmaz.
-10. 🟩 **Keşif envanteri agent'a sunulur** — yayındaki ürünlerde fiilen            `(ListCategories,`
-   geçen kategori (üst-kategori ağacıyla), yazar ve yayınevi                       ` ListAuthors,`
-   listeleri; yayında olmayanın verisi sızmaz.                                     ` ListPublishers)`
+   vitrine yansır). Kapak yoksa event yok — ürün placeholder'da kalır, seed bloklanmaz.
+10. 🟩 **Keşif envanteri agent'a sunulur** — ürünlerde fiilen geçen                `(ListCategories,`
+   kategori (üst-kategori ağacıyla), yazar ve yayınevi listeleri                   ` ListAuthors,`
+   (091: yayın filtresi yok — her ürün keşfedilebilir).                            ` ListPublishers)`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
-- **Barkod = kimlik.** Ürün GTIN'iyle bulunur; aynı barkod tek ürüne düşer.
+- **Barkod = kimlik.** Ürün GTIN'iyle bulunur; aynı barkod tek ürüne düşer (091: `Gtin` unique-index — DB-seviyesi guard).
 - **Kategori zorunlu, spec opsiyonel.** Kategori çözülemezse reddedilir; bilinmeyen spec sessiz düşer.
-- **Yayın kapısı = fiyat>0 (051).** Fiyatsız ürün yayınlanamaz (satılamaz kart); taslak kalır, event yayılmaz.
+- **Fiyat>0 = var oluş invariant'ı (091; 051 yayın kapısının halefi).** Fiyatsız/sıfır fiyatlı ürün DOĞAMAZ ve fiyat sıfıra ÇEKİLEMEZ `(Product.Create, Product.SetPrice)` — satılamaz kart hiç var olmaz.
+- **Ürün var = canlı (091).** Taslak/yayın/gizleme durumu yok; her ürün doğduğu an keşfedilebilir ve satılabilir.
 - **Fiyat geçmişi append-only (058).** Her gerçek fiyat değişimi (ve ilk fiyat) fiyatla aynı transaction'da satıra döner; satır silinmez/değişmez `(ProductPriceChange)`.
-- **Silme yok (016 sürer).** Ürün silinmez; `IsDeleted:true` yalnız yayından-kaldırmanın vitrin-gizleme bayrağıdır (058) — kayıt Catalog'da yaşamaya devam eder.
-- **Dış dünyaya iki yol = event.** Storefront'a `ProductChangedEvent` (her değişim, yalnız yayındaki), Stock'a `ProductAdded` (ürün doğduğunda, taslak dahil — tek-seferlik, ISBN çakışma guard'ı tekrar tetiklenmeyi engeller).
+- **Silme yok (016 sürer).** Ürün silinmez; 091'de vitrin-gizleme de kalktı — `ProductChangedEvent.IsDeleted` kontratta durur, hep `false` gider.
+- **Seed var olana dokunmaz (091).** Açılış seed'i yalnız EKSİK ISBN'i ekler; admin düzenlemesi seed'le ezilmez (upsert bilinçli reddedildi).
+- **Dış dünyaya iki yol = event.** Storefront'a `ProductChangedEvent` (her değişim), Stock'a `ProductAdded` (yalnız ürün doğduğunda — tekrar yayım stok ezerdi; ISBN guard'ı tekrar tetiklenmeyi engeller).
 
 ## Sınır (bu BC'nin dokunmadığı)
 

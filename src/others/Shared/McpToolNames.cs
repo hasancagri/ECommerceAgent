@@ -83,7 +83,6 @@ public static class CatalogAdminTools
     public const string ListProducts = "admin_list_products";
     public const string GetProduct = "admin_get_product";
     public const string UpdateProduct = "admin_update_product";
-    public const string SetPublished = "admin_set_published";
     public const string GetPriceHistory = "admin_get_price_history";
     // REST admin yüzeyi söküldü; parite tool'ları (MCP-only iş yüzeyi).
     public const string CreateProduct = "admin_create_product";
@@ -101,9 +100,8 @@ public static class CatalogAdminTools
     public const string AddSpecificationAttributeOption = "admin_add_specification_attribute_option";
     public const string ListSpecificationAttributes = "admin_list_specification_attributes";
     public const string RepublishProducts = "admin_republish_products";
-    public const string ImportCatalog = "admin_import_catalog";
-    public const string PublishImported = "admin_publish_imported";
-    public const string GetImportStatus = "admin_get_import_status";
+    // 091: admin_import_catalog / admin_publish_imported / admin_get_import_status / admin_set_published
+    // SÖKÜLDÜ (Excel import + yayın makinesi gitti; katalog doluşu commit'li JSON seed).
 }
 
 // 079/085: Discount.Api /mcp kampanya yönetimi (scope discount.admin.write). Yeni tool eklerken

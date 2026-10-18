@@ -61,8 +61,7 @@ public static class ListAuthors
         public async Task<FeatureObjectResultModel<ListAuthorsResponse>> Handle(
             ListAuthorsQuery query, IQuerySession session, CancellationToken ct)
         {
-            var products = await session.Query<Products.Product>()
-                .Where(x => x.Published).ToListAsync(ct);
+            var products = await session.Query<Products.Product>().ToListAsync(ct); // 091: yayın filtresi yok
             var authors = await session.Query<Author>().ToListAsync(ct);
 
             return FeatureObjectResultModel<ListAuthorsResponse>.Ok(Build(products, authors, query));

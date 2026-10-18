@@ -1,15 +1,18 @@
-<!-- Sync Impact Report — v1.11.0 → v1.11.1 (2026-09-18, PATCH)
-     Modified: İlke V — açıklayıcı istisna eklendi: süreli + tek-kullanımlık capability-link.
-     Scope-korumalı bir yüzeyin (örn. MCP admin tool'u) ürettiği, sunucu-durumlu (DB'de geri
-     çekilebilir), kısa süreli ve TEK kullanımlık token-link; insan-tarayıcı akışı gerektiren DAR
-     hosted ekranları koruyabilir. Scope zorlaması link-ÜRETİM anında uygulanmış sayılır (yetki
-     devri modeli). Koşullar: tek amaçlı yüzey, gizli değer ekrandan OKUNAMAZ (yazma-only),
-     token URL dışında taşınmaz. İlke ihlali değil açıklayıcı istisna → PATCH (v1.7.1 IdP-cookie
-     istisnası emsali).
-     Gerekçe: 078-hosted-onboarding-form — MerchantKey LLM sohbetine giremez; store'da web-login
-     yüzeyi yok (066 söküm) ve geri eklenmeyecek; tek teslim yolu insan gözü + hosted ekran.
+<!-- Sync Impact Report — v1.11.1 → v1.12.0 (2026-10-16, MINOR)
+     Removed: "E2E Testing (Playwright)" bölümü → yerine "Otomatik Regression Kapsamı".
+     Bölüm v1.8.0'da eklenmişti ve tarif ettiği her şey WebApp'e aitti (vitrin gezinme, sepet/
+     checkout ekranları, /Admin/Roles, data-testid, web-first assertions). WebApp 066'da söküldü,
+     sistem agent-only oldu; harness hiç kurulmadı (tests/E2E yok, repoda Playwright referansı
+     yok). Bölüm aynı dosyadaki "Kalite kapıları" maddesiyle (host/entegrasyon harness'ı yoktur)
+     ve İlke VI ile çelişiyordu. İlke değil bölüm kaldırıldı → MINOR.
+     Added: İlke VIII — Sır ve Kimlik Değeri İnsan-Yüzeyde Görünmez (NON-NEGOTIABLE).
+     087 + adr-mcp-control-plane-no-secret-return'de yaşayan invariant anayasaya alındı; şimdiye
+     kadar yalnız CLAUDE.md "Yapma listesi"nde duruyordu, yani spec/plan üretiminde okunmuyordu.
+     Modified: İlke V capability-link örneği 078 (söküldü) → 083 ImportSession (yaşayan tek örnek).
+     Modified: İlke I telemetri istisnası UYKUDA işaretlendi — repoda UI/BFF yok, 042 de söküldü.
+     Modified: İlke I'den WebApp örneği, İlke II'den var olmayan `Brand` aggregate'i çıkarıldı.
      Templates: plan/spec/tasks ✅ değişiklik gerekmez.
-     Runtime docs: CLAUDE.md ⚠ pending (078 Polish T019 günceller). -->
+     Runtime docs: CLAUDE.md ✅ aynı turda hizalandı (yüzey/test/tool adları koda karşı doğrulandı). -->
 
 # ECommerceAgent Constitution
 
@@ -49,7 +52,7 @@ kendi Postgres veritabanı, kendi Marten şeması ve kendi domain modeli vardır
   Örnekler: 028 Order-içi saga → gRPC; 049 ayrı Checkout.Orchestrator → broker komut/yanıt
   (hedefli, korelasyonlu, idempotent).
 - **MCP'yi yalnız agent'lar tüketir** (v1.8.1): MCP tool'ları LLM tool-seçim yüzeyidir;
-  agent olmayan kod (WebApp, servisler) imperatif `CallToolAsync` ile MCP süremez.
+  agent olmayan kod (servisler, worker'lar) imperatif `CallToolAsync` ile MCP süremez.
   Yapısal (LLM'siz) servisler-arası ihtiyaç REST/gRPC sözleşmesiyle karşılanır.
 - **Telemetri kanalı istisnası** (v1.9.0, 042): kayıp-toleranslı, domain-gerçeği OLMAYAN
   davranış telemetrisi, UI/BFF katmanından (bounded context DEĞİLDİR) TEK-tüketicili bir
@@ -58,12 +61,14 @@ kendi Postgres veritabanı, kendi Marten şeması ve kendi domain modeli vardır
   (BC-arası kullanılamaz), tüketici TEKtir, veri kaybı kabul edilebilirdir. İkinci tüketici
   doğduğu an kanal integration event'e TERFİ ETMEK ZORUNDADIR. DB izolasyonu aynen geçerli:
   dosyayı yalnız sahibi BC okur ve kendi veritabanına indirir.
+  **Şu an UYKUDA (v1.12.0):** repoda UI/BFF katmanı yok (066 WebApp söküldü) ve örnekteki 042
+  Personalization BC'si de söküldü — istisna kaldırılmadı, bir UI/BFF doğduğu an yeniden geçerlidir.
 
 ### II. Zengin Aggregate, İçeride Korunan Invariant'lar
 
 Domain modeli anemik olamaz. Her servis tek bir Bounded Context'tir; bir BC, domain'i
 gerektiriyorsa **birden fazla zengin aggregate root** içerebilir (ör. Catalog: `Product`,
-`Category`, `Brand`). Her aggregate root `AggregateRoot`'tan türer ve kendi tutarlılık
+`Category`, `Author`, `Publisher`). Her aggregate root `AggregateRoot`'tan türer ve kendi tutarlılık
 sınırıdır; dış dünya durumu yalnızca kök üzerinden değiştirir.
 
 - Yeni bir aggregate ancak kendi kimliği, kendi invariant'ları ve kendi yaşam döngüsü
@@ -147,12 +152,14 @@ servisi (PDP) açılmaz.
 - Kimlik doğrulama şeması JWT bearer ile sınırlı değildir: dış entegrasyonlar için
   JWT-olmayan custom authentication şemaları (ör. opak UserKey) meşrudur — koşul,
   zorlamanın scope olmasıdır.
-- **İstisna — süreli tek-kullanımlık capability-link (v1.11.1):** Scope-korumalı bir yüzeyin
-  ürettiği, sunucu-durumlu (DB'de geri çekilebilir), kısa süreli ve TEK kullanımlık token-link,
-  insan-tarayıcı akışı gerektiren DAR (tek amaçlı) hosted ekranı koruyabilir; scope zorlaması
-  link-üretim anında uygulanmış sayılır (yetki devri). Koşullar: gizli değer ekrandan okunamaz
-  (yazma-only), token URL dışında taşınmaz, yüzey tek amaçlıdır. Örnek: 078 credential giriş
-  ekranı (linki `merchant.credentials.write` scope'lu tool üretir).
+- **İstisna — süreli tek-kullanımlık capability-link (v1.11.1; v1.12.1'den beri UYKUDA):**
+  Scope-korumalı bir yüzeyin ürettiği, sunucu-durumlu (DB'de geri çekilebilir), kısa süreli ve TEK
+  kullanımlık token-link, insan-tarayıcı akışı gerektiren DAR (tek amaçlı) hosted ekranı koruyabilir;
+  scope zorlaması link-üretim anında uygulanmış sayılır (yetki devri). Koşullar: gizli değer ekrandan
+  okunamaz (yazma-only), token URL dışında taşınmaz, yüzey tek amaçlıdır. **Şu an UYKUDA (v1.12.1):**
+  son yaşayan örnek (083 Excel import yükleme ekranı, `ImportSession`) 091'de söküldü (katalog doluşu
+  commit'li JSON seed'e döndü) — istisna kaldırılmadı (telemetri istisnası emsali), insan-tarayıcı
+  gerektiren yeni bir tek-amaçlı ekran doğduğu an aynı koşullarla yeniden geçerlidir.
 - Anonim gezinme meşrudur: kimlik istemeyen okuma yüzeyleri (vitrin vb.) login'siz
   erişilebilir kalır; login yalnız kullanıcıya bağlı işlemler için istenir.
 - `Identity.Server` HTTPS üzerinden çalışmak zorundadır; tüm servislerin `Authority`
@@ -192,6 +199,22 @@ değiştikçe** güncel tutulur.
 - Gerekçe: DDD'nin çekirdeği domain legibility'dir. Koda uzun süre uzak kalan sahibin bile süreci
   geri yükleyebilmesi, domain'in teknolojinin ardında kaybolmaması gerekir. Domain-altitude olduğu
   için bu belge class-yapısından çok daha az bayatlar — yalnız iş süreci değişince değişir.
+
+### VIII. Sır ve Kimlik Değeri İnsan-Yüzeyde Görünmez (NON-NEGOTIABLE)
+
+Makine sırrı ve kimlik değeri (MerchantId/Key, API anahtarı, finansal veri, PII) hiçbir
+insan-okunur yüzeye ve hiçbir kalıcı ize yazılmaz: ekran, chat, MCP tool dönüşü, log, trace.
+LLM yalnız **sır-olmayan opak tutamaç** görür (durum, referans, maskeli son-dört).
+
+- Sırrın yaşam döngüsü makineler arasındadır: kayıt S2S (bootstrap key), teslim sağlayıcı→store
+  HMAC-imzalı callback, kullanım gRPC/S2S. İnsan hiçbir adımda değeri görmez.
+- Bir yüzeyin sırrı "göstermesi gerekiyorsa" tasarım yanlıştır — yüzey değil **akış** değişir
+  (087 emsali: elle credential giriş ekranı söküldü, yerine makine-handoff geldi).
+- Yazma-only capability-link (İlke V istisnası) bu ilkeyi ihlal etmez: değer ekrandan okunamaz.
+- Gerekçe: agent-only bir sistemde her tool dönüşü bir LLM bağlamına, oradan model sağlayıcısının
+  loglarına girebilir. Sır **dönmeyen** bir kontrol düzlemi, sırrı "dikkatli döndüren" bir kontrol
+  düzleminden kategorik olarak güvenlidir — dikkat bir invariant değildir.
+  ADR: `docs/adr/adr-mcp-control-plane-no-secret-return.md`.
 
 ## Teknoloji ve Mimari Kısıtları
 
@@ -248,25 +271,21 @@ Kalite kapıları:
 - API sürümleme URL-segment tabanlıdır (`v1`); dokümanlar Scalar ile sunulur.
 - Fiziksel klasörler solution klasörleriyle birebir örtüşür.
 
-## E2E Testing (Playwright)
+## Otomatik Regression Kapsamı
 
-- E2E testler Microsoft.Playwright + xUnit ile yazılır; Aspire.Hosting.Testing
-  üzerinden tam stack (PostgreSQL, RabbitMQ, servisler) ayağa kaldırılarak koşulur.
-- Kapsam SADECE kritik kullanıcı akışlarıyla sınırlıdır:
-  - Anonim vitrin gezinme (login'siz ana sayfa + ürün listeleme)
-  - Customer login → sepet → checkout (saga) → sonuç ekranı
-  - Admin login → rol/scope yönetimi (`/Admin/Roles`) temel akışı
-  - Kritik hata senaryoları (korumalı uca anonim 403, stok yetersiz, geçersiz token)
-- Business logic (aggregate invariant'ları, saga `On*` geçişleri, `ScopeResolver`,
-  value object'ler) E2E ile DEĞİL, unit testlerle doğrulanır — İlke VI aynen geçerli.
-- E2E testler TDD döngüsüne dahil değildir; feature tamamlandıktan sonra
-  regression güvencesi olarak yazılır.
-- Assertion'larda web-first assertions (`Expect` + `ToBeVisibleAsync` vb.)
-  kullanılır; `Thread.Sleep` / manuel bekleme yasaktır.
-- Selector stratejisi: `data-testid` öncelikli; CSS class veya text tabanlı
-  selector'lardan kaçınılır.
-- IdP HTTPS olduğundan Playwright `IgnoreHTTPSErrors` kullanır; OpenAI-bağımlı
-  chat akışı E2E dışıdır (mock/CI-dışı). Harness `tests/E2E`'de, ilk ihtiyaçla kurulur.
+Bugün yalnız **saf unit test** vardır (xUnit + Shouldly; host/entegrasyon harness'ı yok — İlke VI).
+Otomatik E2E kapsamı YOKTUR ve bu bilinçli bir durumdur, borç değil.
+
+- v1.8.0'da eklenen "E2E Testing (Playwright)" bölümü **v1.12.0'da kaldırıldı.** Tarif ettiği akışlar
+  (anonim vitrin gezinme, sepet/checkout ekranları, `/Admin/Roles` yönetimi, `data-testid` selector'ları,
+  web-first assertion'lar) WebApp'e aitti; WebApp 066'da söküldü ve sistem agent-only oldu. Harness hiç
+  kurulmadı (`tests/E2E` yok, repoda Playwright referansı yok) — bölüm, var olmayan bir yüzey için var
+  olmayan bir harness'ı dayatıyordu ve aynı dosyadaki "Kalite kapıları" maddesiyle çelişiyordu.
+- Agent-only yüzey için otomatik regression istenirse **yüzey MCP'dir, tarayıcı değil**: Aspire tam-stack
+  üstünde tool-çağrısı seviyesinde doğrulama. Bu bir tasarım kararıdır — kendi spec'i ve bu dosyada bir
+  amendment ile gelir; varsayılan olarak dayatılmaz.
+- O gelene kadar kritik akışların doğrulanması **elle**dir: Aspire'ı kaldır, dış MCP istemcisinden
+  (Claude Desktop vb.) akışı yürüt. Domain mantığı zaten unit testlerdedir ve İlke VI gereği test-first.
 
 ## Governance
 
@@ -279,7 +298,34 @@ Kalite kapıları:
 - Değişiklikler (amendment) commit mesajında ve versiyon artışıyla belgelenir:
   ilke ekleme/kaldırma MAJOR, yeni ilke/bölüm ekleme MINOR, açıklama/düzeltme PATCH.
 
-**Version**: 1.11.1 | **Ratified**: 2026-07-12 | **Last Amended**: 2026-09-18
+**Version**: 1.12.1 | **Ratified**: 2026-07-12 | **Last Amended**: 2026-10-19
+
+<!-- v1.12.1 (2026-10-19, PATCH): İlke V capability-link istisnası UYKUDA işaretlendi — son yaşayan
+     örnek (083 Excel import ekranı, ImportSession) 091-catalog-json-seed ile söküldü (Excel import +
+     ürün yayın makinesi gitti; katalog doluşu commit'li books.json seed'i). İstisna kaldırılmadı
+     (İlke I telemetri istisnasının v1.12.0 emsali): koşullar değişmedi, örneksiz kaldı. İlke içeriği
+     değişmedi → PATCH. -->
+
+
+<!-- v1.12.0 (2026-10-16, MINOR): "E2E Testing (Playwright)" bölümü kaldırıldı → "Otomatik
+     Regression Kapsamı". Bölümün tarif ettiği yüzey (WebApp ekranları) 066'da söküldü, harness hiç
+     kurulmadı, madde Kalite kapıları + İlke VI ile çelişiyordu. Agent-only sistemde regression'ın
+     yüzeyi MCP'dir, tarayıcı değil — istenirse kendi spec'i + amendment ile gelir. Ayrıca İlke VIII
+     eklendi (sır/kimlik değeri insan-yüzeyde görünmez; 087 + ADR'den anayasaya terfi, çünkü
+     CLAUDE.md'de kalınca spec/plan üretiminde okunmuyordu). İlke V capability-link örneği 078'den
+     083 ImportSession'a taşındı (078 ekranı 087'de söküldü, mekanizma import'ta yaşıyor); İlke I
+     telemetri istisnası UYKUDA işaretlendi (UI/BFF yok, 042 söküldü); İlke I'den WebApp örneği ve
+     İlke II'den var olmayan Brand aggregate'i çıkarıldı. Gerekçe: dosya, var olmayan yüzeyler için
+     normatif kural dayatıyordu — anayasa her spec/plan'da okunduğu için en pahalı bayatlama burası. -->
+
+<!-- v1.11.1 (2026-09-18, PATCH): İlke V'e açıklayıcı istisna — süreli + TEK kullanımlık
+     capability-link. Scope-korumalı bir yüzeyin ürettiği, sunucu-durumlu (geri çekilebilir), kısa
+     ömürlü token-link, insan-tarayıcı akışı gerektiren tek-amaçlı hosted ekranı koruyabilir; scope
+     zorlaması link-ÜRETİM anında uygulanmış sayılır (yetki devri). Koşullar: tek amaçlı yüzey,
+     gizli değer ekrandan OKUNAMAZ (yazma-only), token URL dışında taşınmaz. İlke ihlali değil
+     açıklayıcı istisna → PATCH (v1.7.1 IdP-cookie emsali). Gerekçe: 078-hosted-onboarding-form —
+     MerchantKey LLM sohbetine giremez, store'da web-login yüzeyi yok (066). NOT (v1.12.0): o ekran
+     087'de söküldü; istisnanın yaşayan örneği artık 083 Excel import'tur. -->
 
 <!-- v1.11.0 (2026-08-25, MINOR): İlke I orkestre saga adım/telafi kanalı genişletildi — sürecin
      sahibi saga, hedefli komutları tipli senkron RPC (gRPC/HTTP) YA DA hedefli asenkron broker

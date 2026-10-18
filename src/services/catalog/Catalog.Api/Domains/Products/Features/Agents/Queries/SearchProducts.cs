@@ -20,9 +20,9 @@ public static class SearchProducts
             IDocumentSession session,
             CancellationToken ct)
         {
-            // FR-007: vitrin kararı Published bayrağında.
+            // 091: yayın filtresi yok — katalogdaki her ürün keşfedilebilir.
             var products = session.Query<Product>()
-                .Where(x => !x.IsDeleted && x.Published &&
+                .Where(x => !x.IsDeleted &&
                             x.Name.Contains(query.Name, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(query.Category))

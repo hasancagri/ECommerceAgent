@@ -21,7 +21,8 @@ public static class AdminRepublishProducts
         public async Task<FeatureObjectResultModel<AdminRepublishProductsResponse>> Handle(
             AdminRepublishProductsCommand cmd, CancellationToken ct)
         {
-            var products = await session.Query<Product>().Where(p => p.Published).ToListAsync(ct);
+            // 091: yayın makinesi söküldü — TÜM ürünler backfill edilir (hepsi canlı).
+            var products = await session.Query<Product>().ToListAsync(ct);
 
             // Künye adlarını toplu yükle (N+1 önle).
             var authors = (await session.LoadManyAsync<Author>(ct,

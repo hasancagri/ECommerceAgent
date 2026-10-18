@@ -1,10 +1,10 @@
 namespace Catalog.Api.Domains.Products.Features.Agents.Commands;
 
-// admin künye OLUŞTURMA (agent yüzeyi) — REST CreateProduct söküldü, doktrin kayması: import (051)
-// artık tek giriş değil. ISBN mağazada Product.Gtin'de yaşar (ProductId rastgele Guid; ImportBook emsali).
-// Çakışma: aynı Gtin varsa Error (çoğaltma yok — agent admin_update_product'a yönlendirir). Yeni ürün
-// DRAFT doğar (eski REST auto-publish'ten farklı): yayın ayrı adım (admin_set_published). Draft olduğu için
-// ProductChangedEvent YAYILMAZ (AdminUpdateProduct deseni). Fiyat>0 ise geçmişin ilk satırı.
+// admin künye OLUŞTURMA (agent yüzeyi) — REST CreateProduct söküldü. ISBN mağazada Product.Gtin'de
+// yaşar (ProductId rastgele Guid). Çakışma: aynı Gtin varsa Error (çoğaltma yok — agent
+// admin_update_product'a yönlendirir). 091: ürün CANLI doğar (taslak/yayın makinesi söküldü);
+// fiyat>0 var oluş invariant'ı aggregate'te; ProductChangedEvent doğumda YAYILIR (vitrine düşer).
+// Fiyat geçmişin ilk satırı.
 // BUGFIX: ProductAdded ImportBook emsaliyle AYNI ANDA yayılır (InitialStock=0) — Stock'un BarcodeLink+
 // OnHand satırı yalnız bu event'ten doğar (StockEventHandlers.Handle(ProductAdded)); event olmadan admin
 // stok set/adjust edemez VE checkout CommitStock RECORD_NOT_FOUND ile kalıcı reddeder. ISBN çakışma guard'ı
@@ -31,7 +31,6 @@ public static class AdminCreateProduct
     {
         public Guid ProductId { get; set; }
         public string Isbn { get; set; } = default!;
-        public bool IsPublished { get; set; }
     }
 
     [Transactional]
@@ -119,9 +118,12 @@ public static class AdminCreateProduct
                 return FeatureObjectResultModel<AdminCreateProductResponse>.Error(new MessageItem
                 { Property = nameof(cmd.CategoryId), Code = CatalogResourceConstants.RECORD_NOT_FOUND });
 
-            // Oluştur — SKU=ISBN (ImportBook emsali). Draft doğar (Publish YOK); event yayılmaz.
-            var product = Product.Create(cmd.Name, cmd.Isbn, ProductType.Simple, price,
+            // Oluştur — SKU=ISBN (ImportBook emsali). 091: canlı doğar; fiyat>0 kapısı fabrikada.
+            var createResult = Product.Create(cmd.Name, cmd.Isbn, ProductType.Simple, price,
                 cmd.ShortDescription ?? string.Empty, cmd.FullDescription ?? string.Empty);
+            if (!createResult.IsSuccess)
+                return FeatureObjectResultModel<AdminCreateProductResponse>.Error(createResult.Messages);
+            var product = createResult.Data!;
             product.SetIdentifiers(cmd.Isbn, gtin: cmd.Isbn, manufacturerPartNumber: null);
 
             var setAuthors = product.SetAuthors(authors.Select(a => a.Id));
@@ -137,19 +139,26 @@ public static class AdminCreateProduct
 
             session.Store(product);
 
-            // FR-013: fiyat>0 ise geçmişin ilk satırı (OldPrice=null); fiyatsız taslak satır düşürmez.
-            if (price.Amount > 0)
-                session.Store(ProductPriceChange.Create(product.Id, oldPrice: null, price.Amount, DateTime.UtcNow));
+            // Fiyat geçmişin ilk satırı (OldPrice=null) — 091: fiyat>0 garantili (var oluş invariant'ı).
+            session.Store(ProductPriceChange.Create(product.Id, oldPrice: null, price.Amount, DateTime.UtcNow));
 
-            // Stock BarcodeLink+OnHand satırını bu event'ten kurar (InitialStock=0 — admin ayrıca
-            // admin_set_stock/admin_adjust_stock ile gerçek adedi girer; ImportBook emsali).
+            // İki event = iki ayrı hat (kullanıcı onayı 2026-10-18): ProductAdded envanter/kimlik hattı
+            // (Stock BarcodeLink+OnHand yalnız bundan doğar, InitialStock=0 — admin sonra set/adjust eder;
+            // File kapak çözer), ProductChangedEvent vitrin hattı (Storefront/Library/Discount).
             await bus.PublishAsync(new IntegrationEvents.ProductAdded(cmd.Isbn, product.Id, InitialStock: 0));
+
+            // 091: canlı doğan ürün vitrine doğumda düşer (fat event — AdminUpdateProduct deseni).
+            await bus.PublishAsync(new IntegrationEvents.ProductChangedEvent(
+                product.Id, product.Name, product.FullDescription, product.Price.Amount,
+                authors.Select(a => new IntegrationEvents.AuthorRef(a.Id, a.Name)).ToList(),
+                publisher.Id, publisher.Name,
+                categoryId, category.Name,
+                product.ImageUrl, IsDeleted: false, OldPrice: null));
 
             return FeatureObjectResultModel<AdminCreateProductResponse>.Ok(new AdminCreateProductResponse
             {
                 ProductId = product.Id,
                 Isbn = cmd.Isbn,
-                IsPublished = product.Published,
             });
         }
     }
