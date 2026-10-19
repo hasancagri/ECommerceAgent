@@ -23,17 +23,16 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// D6/T010: Excel yükleme ekranı config'i (link tabanı + ömür) — section "ImportOptions".
-// Tüketici düz T enjekte eder (078 emsali; IOptions<T> değil).
-builder.Services.AddOptions<Catalog.Api.Options.ImportOptions>()
-    .BindConfiguration(nameof(Catalog.Api.Options.ImportOptions))
+// 091: açılış katalog seed'i config'i (yol + anahtar) — section "SeedOptions"; yol AppHost env'den.
+// Tüketici düz T enjekte eder (IOptions<T> değil).
+builder.Services.AddOptions<Catalog.Api.Options.SeedOptions>()
+    .BindConfiguration(nameof(Catalog.Api.Options.SeedOptions))
     .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Catalog.Api.Options.ImportOptions>(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Options.ImportOptions>>().Value);
+builder.Services.AddSingleton<Catalog.Api.Options.SeedOptions>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Options.SeedOptions>>().Value);
 
-// T013/FR-002+FR-004: bekleyen staging satırlarını arka planda ürüne çeviren dayanıklı süreç
-// (Process/ deseni). 051 books.json seeder'ı söküldü (FR-011) — Excel import tek katalog giriş yolu.
-builder.Services.AddHostedService<Catalog.Api.Import.ImportProcessor>();
+// 091: commit'li books.json'dan tek-seferlik açılış seed'i (051 deseninin dönüşü; Excel import söküldü).
+builder.Services.AddHostedService<Catalog.Api.Seeding.BookSeedHostedService>();
 
 // L2 (paylaşımlı) önbellek katmanı — Redis IDistributedCache; opsiyonel (yoksa HybridCache yalnız L1).
 if (builder.Configuration.GetConnectionString("redis") is not null)
@@ -64,11 +63,7 @@ app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
 // domain iş REST yüzeyi söküldü — catalog admin/okuma tümüyle MCP (/mcp).
-// Ürün girişi = Excel import (083) + admin_create_product (MCP). Kalan REST = MCP-infra + import ekranı.
-
-// US1/FR-001: hosted xlsx yükleme ekranı — ANONİM (token = yetki; İLKE V v1.11.1 capability-link
-// istisnası). MapMcp'DEN ÖNCE map'lenir; auth token URL'inde taşınır (078 emsali).
-app.MapImportUploadEndpoints();
+// Ürün girişi = açılış seed'i (091, books.json) + admin_create_product (MCP). Kalan REST = MCP-infra.
 
 // TEK uç — anonim keşif + admin tool'lar scope-budamalı; scope katmanı handler'larda, tool-bazlı
 // ([RequiredScope(AdminCatalogWrite)] vb., 403 son savunma). /mcp-admin öldü.

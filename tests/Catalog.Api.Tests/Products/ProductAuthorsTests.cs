@@ -4,7 +4,7 @@ namespace Catalog.Api.Tests.Products;
 public class ProductAuthorsTests
 {
     private static Product NewProduct() =>
-        Product.Create("Wuthering Heights", "0007350813", ProductType.Simple, Money.Zero(), "", "");
+        Product.Create("Wuthering Heights", "0007350813", ProductType.Simple, Money.Create(100m)!, "", "").Data!;
 
     [Fact]
     public void SetAuthors_MultipleIds_AssignsAllInOrder()

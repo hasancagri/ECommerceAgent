@@ -2,22 +2,24 @@
 namespace Catalog.Api.Tests;
 
 // 040 T008: Product zengin modele geçti (staging CustomNopCommerce extract) — davranış testleri
-// test-first yazıldı (anayasa İlke VI). Kapsam: ad, fiyat VO, kategori çift-atama, etiket
-// idempotensi, publish ve ana repoya özgü ⊕ metotlar (SetBrand/SetImage/SetIdentifiers).
+// test-first yazıldı (anayasa İlke VI). Kapsam: ad, fiyat invariant'ı (091: fiyat>0 var oluş şartı,
+// yayın makinesi söküldü), kategori çift-atama, etiket idempotensi, ⊕ metotlar (SetImage/SetIdentifiers).
 public class ProductTests
 {
     private static Product NewProduct(string name = "Telefon", string sku = "SKU-1") =>
-        Product.Create(name, sku, ProductType.Simple, Money.Zero(), "kısa", "tam");
+        Product.Create(name, sku, ProductType.Simple, Money.Create(100m)!, "kısa", "tam").Data!;
 
-    // --- Create (factory düz döner; ad/SKU/fiyat guard'ları handler + VO'da) ---
+    // --- Create (091: fiyat>0 invariant'ı fabrikada; ürün canlı doğar, taslak/yayın durumu yok) ---
 
     [Fact]
     public void Create_SetsCatalogIdentityAndDefaults()
     {
         var price = Money.Create(100m)!;
 
-        var product = Product.Create("Telefon", "SKU-1", ProductType.Simple, price, "kısa", "tam");
+        var result = Product.Create("Telefon", "SKU-1", ProductType.Simple, price, "kısa", "tam");
 
+        result.IsSuccess.ShouldBeTrue();
+        var product = result.Data!;
         product.Name.ShouldBe("Telefon");
         product.Sku.ShouldBe("SKU-1");
         product.Type.ShouldBe(ProductType.Simple);
@@ -25,9 +27,18 @@ public class ProductTests
         product.ShortDescription.ShouldBe("kısa");
         product.FullDescription.ShouldBe("tam");
         product.Gtin.ShouldBeNull(); // 040 K3: Gtin bu feature'da hep boş, 041 dolduracak
-        product.Published.ShouldBeFalse();
         product.Categories.ShouldBeEmpty();
         product.TagIds.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Create_ZeroPrice_ReturnsError()
+    {
+        var result = Product.Create("Telefon", "SKU-1", ProductType.Simple, Money.Zero(), "kısa", "tam");
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_PRICE_REQUIRED);
+        result.Data.ShouldBeNull();
     }
 
     // --- Rename ---
@@ -79,6 +90,18 @@ public class ProductTests
 
         product.SetPrice(Money.Create(250m)!).IsSuccess.ShouldBeTrue();
         product.Price.Amount.ShouldBe(250m);
+    }
+
+    [Fact]
+    public void SetPrice_ZeroAmount_ReturnsError()
+    {
+        var product = NewProduct();
+
+        var result = product.SetPrice(Money.Zero());
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_PRICE_REQUIRED);
+        product.Price.Amount.ShouldBe(100m); // hatada fiyat değişmez
     }
 
     // --- Kategori ataması (çoklu model, çift atama invariant'ı) ---
@@ -155,39 +178,7 @@ public class ProductTests
         product.TagIds.ShouldBeEmpty();
     }
 
-    // --- Publish / Unpublish (vitrin kararı Published bayrağında, FR-007) ---
-    // 051: yayın kapısı = fiyat>0 (satılamaz kart engellenir). Kapı aggregate'te (İLKE II).
-
-    [Fact]
-    public void Create_LeavesProductAsDraft()
-    {
-        NewProduct().Published.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Publish_WithPositivePrice_PublishesAndTogglesBack()
-    {
-        var product = NewProduct();
-        product.SetPrice(Money.Create(100m)!);
-
-        product.Publish().IsSuccess.ShouldBeTrue();
-        product.Published.ShouldBeTrue();
-
-        product.Unpublish().IsSuccess.ShouldBeTrue();
-        product.Published.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Publish_WithZeroPrice_ReturnsErrorAndStaysDraft()
-    {
-        var product = NewProduct(); // Money.Zero()
-
-        var result = product.Publish();
-
-        result.IsSuccess.ShouldBeFalse();
-        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_PRICE_REQUIRED_FOR_PUBLISH);
-        product.Published.ShouldBeFalse();
-    }
+    // 091: Publish/Unpublish testleri söküldü — yayın makinesi kalktı, fiyat kapısı Create/SetPrice'ta.
 
     // --- ⊕ Ana repoya özgü metotlar (K6/K7 + kimlik alanları) ---
 

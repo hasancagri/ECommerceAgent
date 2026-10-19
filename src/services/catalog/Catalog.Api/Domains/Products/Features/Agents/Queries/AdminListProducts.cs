@@ -16,7 +16,6 @@ public static class AdminListProducts
         public string Name { get; set; } = default!;
         public string? Isbn { get; set; }
         public decimal Price { get; set; }
-        public bool IsPublished { get; set; }
         public List<string> AuthorNames { get; set; } = [];
     }
 
@@ -70,7 +69,6 @@ public static class AdminListProducts
                     Name = p.Name,
                     Isbn = p.Gtin,
                     Price = p.Price.Amount,
-                    IsPublished = p.Published,
                     AuthorNames = p.AuthorIds
                         .Where(authors.ContainsKey)
                         .Select(id => authors[id])

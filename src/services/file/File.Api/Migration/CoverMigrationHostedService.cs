@@ -3,23 +3,23 @@ using Microsoft.Extensions.Logging;
 
 namespace FileApi.Migration;
 
-// Bir-kez kapak besleme (config-gated, idempotent). Açılışta xlsx kaynağını okur; her satır:
-// skip-existing → indir (timeout) → IFileStore.Put. Per-satır try/catch (bozuk satır durdurmaz).
-// Özet {yazıldı, atlandı, başarısız} log'lanır. Enabled=false → erken döner (kompozisyonda gate yerine).
+// Bir-kez kapak besleme (config-gated, idempotent). Açılışta seed JSON kaynağını okur (091; eski xlsx
+// emekli); her satır: skip-existing → indir (timeout) → IFileStore.Put. Per-satır try/catch (bozuk satır
+// durdurmaz). Özet {yazıldı, atlandı, başarısız} log'lanır. Enabled=false → erken döner.
 public sealed class CoverMigrationHostedService : BackgroundService
 {
     private const string DefaultContentType = "application/octet-stream";
 
     private readonly CoverMigrationOptions _options;
     private readonly IFileStore _store;
-    private readonly XlsxCoverSource _source;
+    private readonly JsonCoverSource _source;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<CoverMigrationHostedService> _log;
 
     public CoverMigrationHostedService(
         CoverMigrationOptions options,
         IFileStore store,
-        XlsxCoverSource source,
+        JsonCoverSource source,
         IHttpClientFactory httpFactory,
         ILogger<CoverMigrationHostedService> log)
     {
@@ -35,9 +35,9 @@ public sealed class CoverMigrationHostedService : BackgroundService
         if (!_options.Enabled)
             return;
 
-        if (string.IsNullOrWhiteSpace(_options.SourceXlsxPath) || !System.IO.File.Exists(_options.SourceXlsxPath))
+        if (string.IsNullOrWhiteSpace(_options.SourceJsonPath) || !System.IO.File.Exists(_options.SourceJsonPath))
         {
-            _log.LogWarning("Cover migration atlandı: kaynak xlsx bulunamadı ({Path}).", _options.SourceXlsxPath);
+            _log.LogWarning("Cover migration atlandı: kaynak seed JSON bulunamadı ({Path}).", _options.SourceJsonPath);
             return;
         }
 
@@ -52,7 +52,7 @@ public sealed class CoverMigrationHostedService : BackgroundService
         var minDelayMs = _options.MinDelayMs > 0 ? _options.MinDelayMs : 0;
         int written = 0, skipped = 0, failed = 0, processed = 0;
 
-        var rows = _source.Read(_options.SourceXlsxPath);
+        var rows = _source.Read(_options.SourceJsonPath);
         var parallelOptions = new ParallelOptions
         {
             MaxDegreeOfParallelism = concurrency,

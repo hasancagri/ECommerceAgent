@@ -61,11 +61,17 @@ var fileDb = postgres.AddDatabase("fileDb");
 // IdP'yi IdentityOption.Address (sabit issuer URL, https://localhost:5001) ile bulur — proje-ref/
 // service-discovery değil. identityDb de AgentPlatform'da; buradaki identityDb kaydı söküldü.
 
+// 091: commit'li seed verisi (tek dosya, iki tüketici — Catalog seeder + File kapak migration'ı;
+// sözleşme specs/091-catalog-json-seed/contracts/seed-record.md).
+var seedBooksJson = Path.GetFullPath(Path.Combine(
+    builder.AppHostDirectory, "..", "..", "services", "catalog", "Catalog.Api", "Seeding", "Data", "books.json"));
+
 var catalogApi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
     .WithHttpHealthCheck("/health")
     .WithReference(catalogDb)
     .WithReference(rabbit)
     .WithReference(redis)
+    .WithEnvironment("SeedOptions__SourceJsonPath", seedBooksJson)
     .WaitFor(catalogDb)
     .WaitFor(rabbit)
     .WaitFor(redis);
@@ -228,17 +234,17 @@ var notificationAgent = builder.AddProject<Projects.NotificationAgent>("notifica
 // mutlak URL'lerle downstream olarak bağlanır. Bu repoda fasad projesi/route'u kalmadı.
 
 // File.Api — DB'siz kapak deposu (Mail.Mcp emsali). Kalıcı host diskine yazar (reset'e dayanıklı).
-// RootPath = kalıcı host dizini; migration kaynağı = repo-dışı catalog-import.xlsx. Env Options ile enjekte.
+// RootPath = kalıcı host dizini; migration kaynağı = commit'li seed books.json (091 — Catalog seeder'la
+// AYNI dosya; repo-dışı xlsx bağımlılığı bitti). Env Options ile enjekte.
 var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 var coverRootPath = Path.Combine(home, "dev", "catalog-data", "cover-store");
-var coverSourceXlsx = Path.Combine(home, "dev", "catalog-data", "catalog-import.xlsx");
 var fileApi = builder.AddProject<Projects.File_Api>("file-api")
     .WithReference(fileDb).WaitFor(fileDb)   // kayıt defteri (Marten fileDb)
     .WithReference(rabbit).WaitFor(rabbit)   // kapak akışı (ProductAdded tüket → CoverIngested yay)
     .WithHttpHealthCheck("/health")
     .WithEnvironment("CoverStore__RootPath", coverRootPath)
     .WithEnvironment("CoverMigration__Enabled", "true")
-    .WithEnvironment("CoverMigration__SourceXlsxPath", coverSourceXlsx)
+    .WithEnvironment("CoverMigration__SourceJsonPath", seedBooksJson)
     .WithEnvironment("CoverMigration__DownloadTimeoutSeconds", "30")
     // R2 backend (credential user-secrets'te; AccountId/Bucket non-secret). Serve+backfill R2'den.
     .WithEnvironment("CoverStore__Backend", "R2")

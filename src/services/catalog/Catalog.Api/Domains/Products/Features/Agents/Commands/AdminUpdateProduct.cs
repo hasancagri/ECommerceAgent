@@ -35,7 +35,6 @@ public static class AdminUpdateProduct
         public string FullDescription { get; set; } = default!;
         public string? Isbn { get; set; }
         public decimal Price { get; set; }
-        public bool IsPublished { get; set; }
         public string? ImageUrl { get; set; }
         public List<AuthorItem> Authors { get; set; } = [];
         public string PublisherName { get; set; } = string.Empty;
@@ -195,18 +194,15 @@ public static class AdminUpdateProduct
                 ? null
                 : await session.LoadAsync<Category>(finalCategoryId, ct);
 
-            // writer-publishes; 058: yalnız yayındaki ürün event yayar (draft vitrine sızmaz).
-            if (product.Published)
-            {
-                await bus.PublishAsync(new IntegrationEvents.ProductChangedEvent(
-                    product.Id, product.Name, product.FullDescription, product.Price.Amount,
-                    finalAuthors.Select(a => new IntegrationEvents.AuthorRef(a.Id, a.Name)).ToList(),
-                    product.PublisherId, finalPublisher?.Name ?? string.Empty,
-                    finalCategoryId, finalCategory?.Name ?? string.Empty,
-                    product.ImageUrl, IsDeleted: false,
-                    // yalnız GERÇEK fiyat değişiminde dolu — Library alarm tetiği.
-                    OldPrice: priceChanged ? oldPrice : null));
-            }
+            // writer-publishes; 091: yayın makinesi söküldü — her ürün canlı, her değişim vitrine akar.
+            await bus.PublishAsync(new IntegrationEvents.ProductChangedEvent(
+                product.Id, product.Name, product.FullDescription, product.Price.Amount,
+                finalAuthors.Select(a => new IntegrationEvents.AuthorRef(a.Id, a.Name)).ToList(),
+                product.PublisherId, finalPublisher?.Name ?? string.Empty,
+                finalCategoryId, finalCategory?.Name ?? string.Empty,
+                product.ImageUrl, IsDeleted: false,
+                // yalnız GERÇEK fiyat değişiminde dolu — Library alarm tetiği.
+                OldPrice: priceChanged ? oldPrice : null));
 
             return FeatureObjectResultModel<AdminUpdateProductResponse>.Ok(new AdminUpdateProductResponse
             {
@@ -216,7 +212,6 @@ public static class AdminUpdateProduct
                 FullDescription = product.FullDescription,
                 Isbn = product.Gtin,
                 Price = product.Price.Amount,
-                IsPublished = product.Published,
                 ImageUrl = product.ImageUrl,
                 Authors = finalAuthors.Select(a => new AuthorItem { Id = a.Id, Name = a.Name }).ToList(),
                 PublisherName = finalPublisher?.Name ?? string.Empty,

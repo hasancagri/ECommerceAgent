@@ -19,9 +19,9 @@ public static class GetProduct
             IDocumentSession session,
             CancellationToken ct)
         {
-            // FR-007: vitrin kararı Published bayrağında; fiyat dışa decimal görünür (K2).
+            // 091: yayın filtresi yok; fiyat dışa decimal görünür (K2).
             var product = await session.Query<Product>()
-                .Where(x => !x.IsDeleted && x.Published &&
+                .Where(x => !x.IsDeleted &&
                             x.Name.Contains(query.Name, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(x => x.Name)
                 .Select(x => new GetProductResponse

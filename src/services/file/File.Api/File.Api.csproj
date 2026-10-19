@@ -12,7 +12,6 @@
 
     <ItemGroup>
         <PackageReference Include="Scrutor" />
-        <PackageReference Include="ClosedXML" />
         <PackageReference Include="AWSSDK.S3" />
         <!-- 082: DB'siz proxy → Marten fileDb'li BC (kayıt defteri). Wolverine.Marten =
              IntegrateWithWolverine + [Transactional] (in-proc IMessageBus; broker YOK). -->

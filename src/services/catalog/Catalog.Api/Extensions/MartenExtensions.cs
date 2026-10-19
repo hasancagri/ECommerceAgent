@@ -41,16 +41,14 @@ public static class MartenExtensions
                 opts.Schema.For<Catalog.Api.Domains.SpecificationAttributes.SpecificationAttribute>()
                     .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.NormalizedName);
 
-                // Excel import staging + capability token. Token teklik anahtarı (link=yetki); ImportRow
-                // ISBN idempotency + Status processor sorgusu (WHERE Status=Pending) için lookup index'i.
-                // DocumentAlias ZORUNLU: tip adı büyük I ile başlıyor, tr-TR makinede varsayılan alias
-                // lowercase'i noktasız ı üretir → computed-index delta her boot bozulur (42P07). ascii alias baypas.
-                opts.Schema.For<Catalog.Api.Import.ImportSession>()
-                    .DocumentAlias("importsession")
-                    .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.Token);
-                opts.Schema.For<Catalog.Api.Import.ImportRow>()
-                    .DocumentAlias("importrow")
-                    .Index(x => x.Isbn).Index(x => x.Status);
+                // 091: ISBN=Gtin kimlik — seed satır-satır lookup'ı index'ten döner (19.7k × tarama değil)
+                // + çift-ISBN'e DB-seviyesi guard (admin_create_product yarışı dahil). Null Gtin serbest
+                // (Postgres unique NULL'ları saymaz).
+                opts.Schema.For<Catalog.Api.Domains.Products.Product>()
+                    .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.Gtin!);
+
+                // 091: ImportSession/ImportRow şemaları SÖKÜLDÜ (Excel import gitti). Eski tablolar
+                // dev full-reset'le gider (ApplyAllDatabaseChangesOnStartup tablo düşürmez).
             })
             .IntegrateWithWolverine()
             .ApplyAllDatabaseChangesOnStartup();

@@ -19,7 +19,6 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.9.32" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.103.3" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
-    <PackageVersion Include="ClosedXML" Version="0.104.2" />
     <PackageVersion Include="Duende.IdentityModel" Version="8.1.0" />
     <PackageVersion Include="OpenIddict.AspNetCore" Version="7.6.0" />
     <PackageVersion Include="OpenIddict.EntityFrameworkCore" Version="7.6.0" />

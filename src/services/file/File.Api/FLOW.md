@@ -25,7 +25,9 @@ hangi fiziki depolarda (R2/Local/…) yaşıyor izler; URL'i dış-depoya gitmed
    çözülür; yoksa yerel staging'den (`{RootPath}/covers/{isbn}`) okunup R2'ye yazılır + kayıt
    defterine düşer (adım 1).
 6. 🟧 **Kapak alındı** ⇨ Catalog — kapak bulunursa `CoverIngested(isbn,url)` yayılır (Catalog
-   `SetImage`'e köprü); bulunmazsa event yok — ürün placeholder'da kalır (import bloklanmaz).
+   `SetImage`'e köprü); bulunmazsa event yok — ürün placeholder'da kalır (seed bloklanmaz).
+   Staging'i açılış kapak migration'ı doldurur — kaynağı commit'li seed `books.json` (091;
+   isbn+imageUrl, Catalog seeder'la aynı dosya) `(CoverMigrationHostedService, JsonCoverSource)`.
 
 ## Domain kuralları
 
@@ -38,5 +40,5 @@ hangi fiziki depolarda (R2/Local/…) yaşıyor izler; URL'i dış-depoya gitmed
 
 - **Byte tutmaz** — fiziki bitler `IFileStore` backend'inde (R2); kayıt defteri yalnız ImageName + konum +
   metadata.
-- **Katalog künyesi tutmaz** — kapak-özel kalır (xlsx satırı/ürün alanları sızmaz); tek girdi = ISBN + bit.
+- **Katalog künyesi tutmaz** — kapak-özel kalır (seed satırının ürün alanları sızmaz; yalnız isbn+imageUrl okunur); tek girdi = ISBN + bit.
 - Kanallar: internal S2S REST (register/resolve/serve) + broker (083: `ProductAdded` tüket, `CoverIngested` yay).

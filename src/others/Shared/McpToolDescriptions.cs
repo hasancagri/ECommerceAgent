@@ -30,16 +30,16 @@ public static class McpToolDescriptions
             "productId = search_products/get_product'tan dönen ürün kimliği.";
 
         public const string ListCategories =
-            "Mağazadaki kategorileri (ad, üst kategori, ürün sayısı) listeler — yalnız yayında ürünü olanlar. " +
+            "Mağazadaki kategorileri (ad, üst kategori, ürün sayısı) listeler — yalnız ürünü olanlar. " +
             "\"Kategorileri göster\", \"hangi kategoriler var\" gibi keşif istekleri için.";
 
         public const string ListAuthors =
-            "Mağazadaki yazarları (yalnız yayında kitabı olanlar) kitap sayısı çok olan önce listeler. " +
+            "Mağazadaki yazarları (yalnız kitabı olanlar) kitap sayısı çok olan önce listeler. " +
             "\"Yazarları listele\", \"hangi yazarlar var\" gibi istekler için. totalCount toplam yazar sayısıdır; " +
             "liste kırpılmış olabilir — daraltmak için search ile ada göre filtrele.";
 
         public const string ListPublishers =
-            "Mağazadaki yayınevlerini (yalnız yayında kitabı olanlar) kitap sayısı çok olan önce listeler. " +
+            "Mağazadaki yayınevlerini (yalnız kitabı olanlar) kitap sayısı çok olan önce listeler. " +
             "\"Yayınevlerini göster\", \"hangi yayınevleri var\" gibi istekler için. totalCount toplam yayınevi " +
             "sayısıdır; daraltmak için search kullan.";
     }
@@ -163,16 +163,16 @@ public static class McpToolDescriptions
     public static class CatalogAdminTools
     {
         public const string ListProducts =
-            "Ürünleri sayfalı listeler — yayında olmayanlar (taslak) dahil. " +
-            "\"Ürünleri listele\", \"taslak kitapları göster\", \"katalogdaki ürünler\" gibi istekler için. " +
-            "Dönen her satır: productId (diğer admin tool'larının anahtarı), name, isbn, price (TL), isPublished, " +
+            "Ürünleri sayfalı listeler. " +
+            "\"Ürünleri listele\", \"katalogdaki ürünler\" gibi istekler için. " +
+            "Dönen her satır: productId (diğer admin tool'larının anahtarı), name, isbn, price (TL), " +
             "authorNames; ayrıca totalCount + page + pageSize. Devamı için aynı aramayla page'i artır. " +
             "q='dune' ile ada göre ara; q bir ISBN ise tam eşleşme aranır.";
 
         public const string GetProduct =
-            "Tek ürünün tam yönetim detayını döndürür (taslak dahil): künye (name, shortDescription, " +
+            "Tek ürünün tam yönetim detayını döndürür: künye (name, shortDescription, " +
             "fullDescription, sku, isbn, price, imageUrl), bağlar (authors ad+id, publisherId+publisherName, " +
-            "categoryId+categoryName), isPublished ve fiyat değişiklik geçmişi — tek çağrıda. " +
+            "categoryId+categoryName) ve fiyat değişiklik geçmişi — tek çağrıda. " +
             "\"Şu ürünün detayını göster\", \"ürün künyesi\" gibi istekler için. productId = admin_list_products'tan " +
             "dönen kimlik. imageUrl'i kullanıcıya tıklanabilir link olarak sun (markdown: [Kapak](url)).";
 
@@ -184,23 +184,17 @@ public static class McpToolDescriptions
             "kaydolur ve vitrine yansır. Yanıt ürünün güncel halidir — sonucu göstermek için ek çağrı gerekmez. " +
             "Toplu güncelleme yoktur; her ürün için ayrı çağrı yap. İşlem denetim izine kaydedilir.";
 
-        public const string SetPublished =
-            "Tek ürünü yayına alır (published=true) veya yayından kaldırır (published=false). " +
-            "\"Bu kitabı yayına al\", \"ürünü yayından kaldır\" gibi istekler için. Yayından kalkan ürün " +
-            "vitrinden/keşiften düşer ama silinmez — tekrar yayına alınabilir. Yanıt güncel {productId, isPublished}. " +
-            "Not: fiyatsız ürün yayına alınamaz (iş kuralı hatası döner). İşlem denetim izine kaydedilir.";
-
         public const string GetPriceHistory =
-            "Ürünün fiyat değişiklik geçmişini kronolojik listeler (taslak dahil): [{oldPrice, newPrice, changedAtUtc}]. " +
+            "Ürünün fiyat değişiklik geçmişini kronolojik listeler: [{oldPrice, newPrice, changedAtUtc}]. " +
             "\"Bu ürünün fiyat geçmişi\", \"fiyat ne zaman değişti\" gibi istekler için. productId = " +
             "admin_list_products/admin_get_product'tan.";
 
         public const string CreateProduct =
-            "Yeni kitap künyesi oluşturur (taslak — yayına almaz; ayrıca admin_set_published çağır). " +
+            "Yeni kitap künyesi oluşturur — ürün doğrudan satışta/vitrinde doğar (ayrı yayın adımı yok). " +
             "\"Yeni kitap ekle\", \"ürün oluştur\" gibi istekler için. isbn kimliktir; aynı isbn zaten varsa hata " +
             "döner (güncelleme için admin_update_product). En az bir yazar (authorIds ya da newAuthorNames) + " +
             "yayınevi (publisherId ya da newPublisherName) + categoryId zorunlu; katalogda olmayan yazar/yayınevi " +
-            "adları oluşturulur. Fiyat TL (>=0). İşlem denetim izine kaydedilir.";
+            "adları oluşturulur. Fiyat TL (>0 zorunlu — fiyatsız ürün oluşturulamaz). İşlem denetim izine kaydedilir.";
 
         public const string SetProductDimensions =
             "Tek ürünün fiziksel ölçülerini ayarlar (ağırlık + boy x en x yükseklik). " +
@@ -273,28 +267,13 @@ public static class McpToolDescriptions
             "seçenek eklemeden önce tanım id'sini buradan al.";
 
         public const string RepublishProducts =
-            "Tüm yayındaki ürünler için katalog değişiklik event'ini yeniden yayınlar. " +
+            "Tüm ürünler için katalog değişiklik event'ini yeniden yayınlar. " +
             "\"Ürünleri yeniden yayınla\", \"downstream'i yeniden doldur\" gibi istekler için. Yeni bir downstream " +
             "read-model'i (ör. indirim kategori izdüşümü) doldurmak/onarmak için kullanılır. Tüm tüketiciler için " +
             "idempotent; fiyat alarmı tetiklemez.";
 
-        public const string ImportCatalog =
-            "Excel katalog import başlatır — çağrıldığında hemen süreli + tek kullanımlık yükleme ekranı linki üretir. " +
-            "\"Katalog yükle\", \"excel'den ürün import et\" gibi istekler için. Yanıt {url, expiresAt, message}; " +
-            "sohbete yalnız linki düşür. Yüklenen satırlar arka planda taslak ürüne dönüşür (yayın ayrı: " +
-            "admin_publish_imported); ilerleme/sonuç için admin_get_import_status çağır. Not: kullanıcıdan xlsx " +
-            "dosyasını isteme, onay bekleme, soru sorma — dosya tarayıcıdaki ekrandan yüklenir, sohbete girmez.";
-
-        public const string PublishImported =
-            "Excel import ile gelen, fiyatı > 0 olan taslak ürünleri toplu yayınlar (vitrine çıkarır). " +
-            "\"Import edilenleri yayınla\", \"yüklenen taslakları yayına al\" gibi istekler için. Fiyatsız import " +
-            "taslakları + elle oluşturulmuş (import-dışı) taslaklar etkilenmez. Yanıt " +
-            "{publishedCount, skippedNoPriceCount}. Önce admin_import_catalog ile yükle, sonra bunu çağır.";
-
-        public const string GetImportStatus =
-            "Excel katalog import durumunu döndürür: {pending, processed, failed, failures}. " +
-            "\"Import durumu ne\", \"yükleme bitti mi\" gibi istekler için. failures = başarısız satırların " +
-            "{isbn, error} listesi (en fazla 200). Import ilerlemesini ve hatalı satırları görmek için kullanın.";
+        // 091: ImportCatalog / PublishImported / GetImportStatus / SetPublished description'ları SÖKÜLDÜ
+        // (Excel import + yayın makinesi gitti).
     }
 
     public static class DiscountAdminTools
@@ -321,7 +300,7 @@ public static class McpToolDescriptions
             "Tek ürünün stoğunu mutlak değere ayarlar (ör. 'stok 25 olsun' → quantity=25). " +
             "\"Stoğu 25 yap\", \"stok miktarını ayarla\" gibi istekler için. quantity >= 0 olmalı; negatif değer iş " +
             "kuralı hatasıyla reddedilir. Artır/azalt için admin_adjust_stock kullan. Yanıt güncel {productId, onHand}. " +
-            "Ürünün stok kaydı yoksa bulunamadı döner (kayıt ürün yayınlanırken açılır). İşlem denetim izine kaydedilir.";
+            "Ürünün stok kaydı yoksa bulunamadı döner (kayıt ürün doğarken açılır). İşlem denetim izine kaydedilir.";
 
         public const string AdjustStock =
             "Tek ürünün stoğunu delta kadar oynatır — pozitif delta artırır ('3 ekle' → delta=3), negatif delta " +

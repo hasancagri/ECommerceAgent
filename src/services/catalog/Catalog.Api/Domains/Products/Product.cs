@@ -29,8 +29,8 @@ public class Product : AggregateRoot
     public ProductDimensions Dimensions { get; private set; } = ProductDimensions.Empty();
     public SeoMetadata Seo { get; private set; } = SeoMetadata.Empty();
 
-    // Sunum/vitrin politikaları (katalog kararı — başka BC'ye ait değil). K8: yazım yolu publish eder.
-    public bool Published { get; private set; }
+    // Sunum/vitrin politikaları (katalog kararı — başka BC'ye ait değil).
+    // 091: Published/taslak ekseni söküldü — ürün var = canlı; fiyat>0 var oluş invariant'ı.
     public bool ShowOnHomepage { get; private set; }
     public bool MarkAsNew { get; private set; }
     public bool AllowCustomerReviews { get; private set; } = true;
@@ -58,12 +58,16 @@ public class Product : AggregateRoot
     {
     }
 
-    /// <summary>Yeni ürün oluşturur. Ad/SKU zorunluluğu + fiyat guard'ı handler/VO'da yapılır (staging
-    /// konvansiyonu: factory düz aggregate döner).</summary>
-    public static Product Create(string name, string sku, ProductType type, Money price,
+    /// <summary>Yeni ürün oluşturur. 091: fiyat>0 var oluş invariant'ı — fiyatsız ürün doğamaz
+    /// (yayın kapısı kalktı, kapı var oluşa taşındı); ürün doğduğu an canlıdır.</summary>
+    public static ResultDomain<Product> Create(string name, string sku, ProductType type, Money price,
         string shortDescription, string fullDescription)
     {
-        return new Product
+        if (price.Amount <= 0)
+            return ResultDomain<Product>.Error(new MessageItem
+            { Property = nameof(Price), Code = CatalogResourceConstants.PRODUCT_PRICE_REQUIRED });
+
+        return ResultDomain<Product>.Ok(new Product
         {
             Name = name,
             Sku = sku,
@@ -71,7 +75,7 @@ public class Product : AggregateRoot
             Price = price,
             ShortDescription = shortDescription,
             FullDescription = fullDescription,
-        };
+        });
     }
 
     /// <summary>Ürün adını değiştirir. Boş ad reddedilir.</summary>
@@ -92,9 +96,13 @@ public class Product : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Liste fiyatını değiştirir (negatif guard Money VO'da).</summary>
+    /// <summary>Liste fiyatını değiştirir. 091: fiyat>0 invariant'ı (negatif guard Money VO'da,
+    /// sıfır guard'ı burada — satılamaz kart doğamaz/kalamaz).</summary>
     public ResultDomain SetPrice(Money price)
     {
+        if (price.Amount <= 0)
+            return ResultDomain.Error(new MessageItem
+            { Property = nameof(Price), Code = CatalogResourceConstants.PRODUCT_PRICE_REQUIRED });
         Price = price;
         return ResultDomain.Ok();
     }
@@ -110,24 +118,6 @@ public class Product : AggregateRoot
     public ResultDomain SetSeo(SeoMetadata seo)
     {
         Seo = seo;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Ürünü satışa/vitrine açar. 051: yayın kapısı = fiyat>0 (fiyatsız = satılamaz kart, reddedilir;
-    /// taslak kalır, sonra fiyat gelince yeniden denenir). Kapı aggregate'te (İLKE II).</summary>
-    public ResultDomain Publish()
-    {
-        if (Price.Amount <= 0)
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(Price), Code = CatalogResourceConstants.PRODUCT_PRICE_REQUIRED_FOR_PUBLISH });
-        Published = true;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Ürünü vitrinden gizler (silmez). 040'ta akış bağlanmaz; 041 buy-box kullanacak.</summary>
-    public ResultDomain Unpublish()
-    {
-        Published = false;
         return ResultDomain.Ok();
     }
 

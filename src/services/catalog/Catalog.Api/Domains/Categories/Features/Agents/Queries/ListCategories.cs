@@ -48,8 +48,7 @@ public static class ListCategories
         public async Task<FeatureListResultModel<CategoryItem>> Handle(
             ListCategoriesQuery query, IQuerySession session, CancellationToken ct)
         {
-            var products = await session.Query<Products.Product>()
-                .Where(x => x.Published).ToListAsync(ct);
+            var products = await session.Query<Products.Product>().ToListAsync(ct); // 091: yayın filtresi yok
             var categories = await session.Query<Category>().ToListAsync(ct);
 
             return FeatureListResultModel<CategoryItem>.Ok(Build(products, categories));

@@ -30,8 +30,8 @@ builder.Services.AddSingleton<StorageBaseUrlsOptions>(sp =>
     sp.GetRequiredService<IOptions<StorageBaseUrlsOptions>>().Value);
 
 builder.Services.AddAllDependencies();
-// XlsxCoverSource somut tipiyle enjekte edilir (arayüzsüz stateless helper) → elle kayıt.
-builder.Services.AddSingleton<XlsxCoverSource>();
+// JsonCoverSource somut tipiyle enjekte edilir (arayüzsüz stateless helper) → elle kayıt.
+builder.Services.AddSingleton<JsonCoverSource>();
 // resolver concrete tiple inject edilir (Scrutor AsImplementedInterfaces concrete kaydetmez).
 builder.Services.AddSingleton<CoverUrlResolver>();
 

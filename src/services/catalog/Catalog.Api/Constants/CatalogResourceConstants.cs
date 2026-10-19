@@ -12,7 +12,10 @@ public static class CatalogResourceConstants
     public static readonly string PRODUCT_PRICE_NEGATIVE = "CATALOG_PRODUCT_PRICE_NEGATIVE";
     public static readonly string PRODUCT_CATEGORY_ALREADY_ASSIGNED = "CATALOG_PRODUCT_CATEGORY_ALREADY_ASSIGNED";
     // yayın kapısı — fiyatsız kitap yayınlanamaz (satılamaz kart engellenir).
-    public static readonly string PRODUCT_PRICE_REQUIRED_FOR_PUBLISH = "CATALOG_PRODUCT_PRICE_REQUIRED_FOR_PUBLISH";
+    // 091: yayın makinesi söküldü — fiyat>0 artık var oluş invariant'ı (Create/SetPrice).
+    public static readonly string PRODUCT_PRICE_REQUIRED = "CATALOG_PRODUCT_PRICE_REQUIRED";
+    // 091: seed kaydında negatif stok (satır atlanır, seed sürer).
+    public static readonly string SEED_STOCK_NEGATIVE = "CATALOG_SEED_STOCK_NEGATIVE";
     public static readonly string PRODUCT_CATEGORY_NOT_ASSIGNED = "CATALOG_PRODUCT_CATEGORY_NOT_ASSIGNED";
     public static readonly string CATEGORY_NAME_REQUIRED = "CATALOG_CATEGORY_NAME_REQUIRED";
     public static readonly string CATEGORY_SELF_PARENT = "CATALOG_CATEGORY_SELF_PARENT";

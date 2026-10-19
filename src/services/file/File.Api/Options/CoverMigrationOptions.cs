@@ -1,14 +1,15 @@
 namespace FileApi.Options;
 
 // Bir-kez kapak migration'ı yapılandırması. Enabled=false → hosted service erken döner.
-// SourceXlsxPath [Required] DEĞİL: kapalıyken boş olabilir; açıkken varlık hosted service'te doğrulanır.
+// SourceJsonPath [Required] DEĞİL: kapalıyken boş olabilir; açıkken varlık hosted service'te doğrulanır.
+// 091: kaynak xlsx → commit'li seed books.json (Catalog seeder'la aynı dosya).
 public class CoverMigrationOptions
 {
     public const string SectionName = "CoverMigration";
 
     public bool Enabled { get; set; }
 
-    public string SourceXlsxPath { get; set; } = string.Empty;
+    public string SourceJsonPath { get; set; } = string.Empty;
 
     public int DownloadTimeoutSeconds { get; set; } = 30;
 
