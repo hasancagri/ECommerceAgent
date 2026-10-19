@@ -50,7 +50,10 @@ kendi Postgres veritabanı, kendi Marten şeması ve kendi domain modeli vardır
   edildiğinde seçilir. İki biçim de bilinçli sözleşme (`Shared/Protos` ya da
   `Shared.IntegrationEvents`/`Shared/*Messages`) üzerinden yapılır ve DB izolasyonunu bozmaz.
   Örnekler: 028 Order-içi saga → gRPC; 049 ayrı Checkout.Orchestrator → broker komut/yanıt
-  (hedefli, korelasyonlu, idempotent).
+  (hedefli, korelasyonlu, idempotent). **Şu an UYKUDA (v1.12.2):** 049 Checkout.Orchestrator 092'de
+  söküldü (checkout choreography'ye döndü — fanout integration event, İlke I'in birincil kanalı); repoda
+  başka orkestre-saga kalmadı. Kanal KALDIRILMADI (telemetri v1.12.0 + capability-link v1.12.1 "örneksiz
+  uyku" emsali) — çok-adımlı/dallanan/telafili bir süreç doğduğunda aynı koşullarla yeniden geçerli.
 - **MCP'yi yalnız agent'lar tüketir** (v1.8.1): MCP tool'ları LLM tool-seçim yüzeyidir;
   agent olmayan kod (servisler, worker'lar) imperatif `CallToolAsync` ile MCP süremez.
   Yapısal (LLM'siz) servisler-arası ihtiyaç REST/gRPC sözleşmesiyle karşılanır.
@@ -298,7 +301,14 @@ Otomatik E2E kapsamı YOKTUR ve bu bilinçli bir durumdur, borç değil.
 - Değişiklikler (amendment) commit mesajında ve versiyon artışıyla belgelenir:
   ilke ekleme/kaldırma MAJOR, yeni ilke/bölüm ekleme MINOR, açıklama/düzeltme PATCH.
 
-**Version**: 1.12.1 | **Ratified**: 2026-07-12 | **Last Amended**: 2026-10-19
+**Version**: 1.12.2 | **Ratified**: 2026-07-12 | **Last Amended**: 2026-10-19
+
+<!-- v1.12.2 (2026-10-19, PATCH): İlke I orkestre saga adım/telafi kanalının (v1.11.0) canlı örneği
+     049 Checkout.Orchestrator UYKUDA işaretlendi — 092-checkout-choreography ile söküldü (checkout
+     choreography'ye döndü: fanout StockCommitRequested/StockCommitted/StockCommitFailed, atomik batch
+     commit, watchdog yok). Kanal KALDIRILMADI (telemetri v1.12.0 + capability-link v1.12.1 "örneksiz uyku"
+     emsali): choreography zaten İlke I'in birincil kanalı; çok-adım/dallanan/telafili süreç doğunca kanal
+     yine meşru. İlke içeriği değişmedi → PATCH. ADR: adr-checkout-choreography-migration. -->
 
 <!-- v1.12.1 (2026-10-19, PATCH): İlke V capability-link istisnası UYKUDA işaretlendi — son yaşayan
      örnek (083 Excel import ekranı, ImportSession) 091-catalog-json-seed ile söküldü (Excel import +

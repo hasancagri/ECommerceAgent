@@ -14,8 +14,6 @@ public static class StockResourceConstants
     public static readonly string RECORD_NOT_FOUND = "COMMON_MESSAGE_RECORD_NOT_FOUND";
     public static readonly string AMOUNT_MUST_BE_POSITIVE = "AMOUNT_MUST_BE_POSITIVE";
 
-    // 028-checkout-saga
+    // checkout stok dususu (092 koreografi — revert/telafi yok, atomik batch commit)
     public static readonly string STOCK_COMMIT_INVALID = "STOCK_COMMIT_INVALID";
-    public static readonly string STOCK_REVERT_INVALID = "STOCK_REVERT_INVALID";
-    public static readonly string STOCK_REVERT_WITHOUT_COMMIT = "STOCK_REVERT_WITHOUT_COMMIT";
 }

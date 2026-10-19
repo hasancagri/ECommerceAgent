@@ -156,33 +156,7 @@ public class ProductStockTests
         stock.OnHand.ShouldBe(5);
     }
 
-    // --- 028: RevertCommit (saga telafisi) — 056'da aynen korunur ---
-
-    [Fact]
-    public void RevertCommit_RestoresOnHand_OnceOnly()
-    {
-        var stock = ProductStock.Create(Guid.NewGuid(), 5);
-        var orderId = Guid.NewGuid();
-        stock.Commit(2, orderId);
-
-        stock.RevertCommit(2, orderId).IsSuccess.ShouldBeTrue();
-        var second = stock.RevertCommit(2, orderId);
-
-        second.IsSuccess.ShouldBeTrue();
-        stock.OnHand.ShouldBe(5); // tek revert kadar geri geldi
-    }
-
-    [Fact]
-    public void RevertCommit_WithoutPriorCommit_ReturnsError()
-    {
-        var stock = ProductStock.Create(Guid.NewGuid(), 5);
-
-        var result = stock.RevertCommit(2, Guid.NewGuid());
-
-        result.IsSuccess.ShouldBeFalse();
-        result.Messages.ShouldContain(m => m.Code == StockResourceConstants.STOCK_REVERT_WITHOUT_COMMIT);
-        stock.OnHand.ShouldBe(5);
-    }
+    // 092: RevertCommit (saga telafisi) SİLİNDİ — koreografide atomik batch commit, geri alma yok.
 
     // --- 070: Adjust (admin artir/azalt) — tek delta metodu; negatife dusus AGGREGATE'te reddedilir ---
 

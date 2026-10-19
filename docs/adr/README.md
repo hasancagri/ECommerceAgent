@@ -14,7 +14,8 @@ başka karar geçti) · `Tarihsel` (anlattığı pratik söküldü; kayıt öğr
 | [adr-aop-caching-mechanism](adr-aop-caching-mechanism.md) | AOP Query Caching mekanizması — neden IMessageBus decorator? | Kabul |
 | [adr-bounded-context-per-service](adr-bounded-context-per-service.md) | Bounded Context = Mikroservis | Kabul |
 | [adr-cache-vs-readmodel](adr-cache-vs-readmodel.md) | Cache mi, Read Model mi? | Kabul |
-| [adr-checkout-saga-orchestration](adr-checkout-saga-orchestration.md) | Checkout Saga — Orchestration (028) | Kabul |
+| [adr-checkout-choreography-migration](adr-checkout-choreography-migration.md) | Checkout — Orchestration'dan Choreography'ye (092) | Kabul |
+| [adr-checkout-saga-orchestration](adr-checkout-saga-orchestration.md) | Checkout Saga — Orchestration (028) | Superseded |
 | [adr-credential-link-forward-protection](adr-credential-link-forward-protection.md) | Credential-Giriş Linki Forward Koruması | Öneri |
 | [adr-external-agent-oauth-061](adr-external-agent-oauth-061.md) | Dış Agent MCP Erişimi — OAuth 2.1 (061) | Kabul |
 | [adr-hybrid-search-slice](adr-hybrid-search-slice.md) | SearchStorefrontProducts — hibrit aramanın ince işçiliği (019) | Superseded |

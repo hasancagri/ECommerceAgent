@@ -13,7 +13,6 @@
     <ItemGroup>
       <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\..\services\catalog\Catalog.Api\Catalog.Api.csproj" />
-      <ProjectReference Include="..\..\services\checkout\Checkout.Orchestrator\Checkout.Orchestrator.csproj" />
       <ProjectReference Include="..\..\services\customer\Customer.Api\Customer.Api.csproj" />
       <ProjectReference Include="..\..\services\stock\Stock.Api\Stock.Api.csproj" />
       <ProjectReference Include="..\..\services\basket\Basket.Api\Basket.Api.csproj" />

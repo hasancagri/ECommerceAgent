@@ -35,13 +35,22 @@ public static class MessagingExtensions
             });
             opts.ListenToRabbitQueue(RabbitMqConstants.ProductAdded.Queues.Stock).Sequential();
 
-            // checkout stok komutlarını (Commit/RevertCommit) dinle; yanıtları orchestrator reply kuyruğuna.
-            opts.ListenToRabbitQueue(RabbitMqConstants.Checkout.StockCommandsQueue);
-            opts.PublishMessage<CheckoutMessages.StockCommitted>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
-            opts.PublishMessage<CheckoutMessages.StockCommitReverted>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
+            // 092 checkout koreografisi: Order'dan stok commit talebi — kendi kuyruğunu bağlar + dinler (007).
+            rabbit.DeclareExchange(RabbitMqConstants.StockCommitRequested.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.StockCommitRequested.Queues.Stock);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.StockCommitRequested.Queues.Stock);
 
-            // 049/074: checkout sağası step-komut tüketiminde altyapı hatası retry (Checkout.Orchestrator'daki
-            // policyle aynı — FR-024). İş hatası (Result.Permanent) bunu tetiklemez, yalnız fırlayan exception.
+            // Commit sonucu Order'a (fanout; Order kendi kuyruğunu bağlar).
+            rabbit.DeclareExchange(RabbitMqConstants.StockCommitted.Exchange, e => e.ExchangeType = ExchangeType.Fanout);
+            opts.PublishMessage<IntegrationEvents.StockCommitted>().ToRabbitExchange(RabbitMqConstants.StockCommitted.Exchange);
+            rabbit.DeclareExchange(RabbitMqConstants.StockCommitFailed.Exchange, e => e.ExchangeType = ExchangeType.Fanout);
+            opts.PublishMessage<IntegrationEvents.StockCommitFailed>().ToRabbitExchange(RabbitMqConstants.StockCommitFailed.Exchange);
+
+            // Event tüketiminde altyapı (teknik) hatası retry; tükenince ölü-mesaj deposuna (088 DLQ).
+            // İş hatası (yetersiz stok) exception değil StockCommitFailed event'idir, bunu tetiklemez.
             opts.OnException<Exception>().RetryWithCooldown(
                     TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15))
                 // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
@@ -54,9 +63,9 @@ public static class MessagingExtensions
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-            // Konvansiyonel keşif event-handler sınıfını atlayabiliyor (Storefront emsali) — açık kayıt garantili yol.
+            // Konvansiyonel keşif *Consumers (çoğul) sınıfını atlar → açık kayıt ZORUNLU (yoksa event sessiz yutulur).
             opts.Discovery.IncludeType(typeof(Stock.Api.CatalogConsumers));
-            opts.Discovery.IncludeType(typeof(Stock.Api.Saga.CheckoutConsumers));
+            opts.Discovery.IncludeType(typeof(Stock.Api.OrderConsumers));
             // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.

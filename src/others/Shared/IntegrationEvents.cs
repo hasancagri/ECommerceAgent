@@ -96,6 +96,14 @@ public static class IntegrationEvents
     public record PaymentSucceeded(Guid OrderId, Guid UserId, Guid PaymentIntentId, string TxRef, decimal Amount);
     public record PaymentFailed(Guid OrderId, Guid PaymentIntentId, string TxRef, string ReasonCode);
 
+    // 092 checkout koreografisi (orchestration söküldü). Order ödeme onaylanınca stok commit talep eder;
+    // Stock TÜM kalemleri tek transaction'da atomik düşer (biri yetersizse hiçbiri — ya hep ya hiç), sonucu
+    // event'le bildirir. Tümü fanout; binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi). Korelasyon = OrderId.
+    public record StockCommitItem(Guid ProductId, int Quantity);
+    public record StockCommitRequested(Guid OrderId, Guid UserId, IReadOnlyList<StockCommitItem> Items);
+    public record StockCommitted(Guid OrderId);
+    public record StockCommitFailed(Guid OrderId, string ReasonCode); // ReasonCode = Stock kaynak sabiti (STOCK_INSUFFICIENT)
+
     // Discount → Storefront (fanout). Bir kitabın tek indiriminin penceresini iter; indirim
     // kaldırılınca (bitiş/iptal) temizlik için DiscountPct=0 + null pencere gönderilir. Yayıncı Discount.Api
     // exchange deklare eder; binding'i TÜKETİCİ (Storefront) kurar (007 soğuk-açılış dersi). Discount.Api

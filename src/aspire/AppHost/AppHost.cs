@@ -53,7 +53,6 @@ var paymentDb = postgres.AddDatabase("paymentDb");
 var stockDb = postgres.AddDatabase("stockDb");
 var storefrontDb = postgres.AddDatabase("storefrontDb");
 var customerDb = postgres.AddDatabase("customerDb");
-var checkoutDb = postgres.AddDatabase("checkoutDb");
 var discountDb = postgres.AddDatabase("discountDb");
 var fileDb = postgres.AddDatabase("fileDb");
 
@@ -102,7 +101,7 @@ var orderApi = builder.AddProject<Projects.Order_Api>("order-api")
     .WithReference(orderDb)
     .WithReference(rabbit)
     .WithReference(stockApi)
-    // checkout saga ClearBasket adimi Basket gRPC ucunu cagirir.
+    // start_payment sepet okuması Basket gRPC ucunu çağırır (GetBasketItems).
     .WithReference(basketApi)
     .WithReference(redis)
     .WaitFor(orderDb)
@@ -153,18 +152,8 @@ paymentApi.WithReference(customerApi).WaitFor(customerApi);
 // CreateAsync null → "Ödeme başlatılamadı".
 orderApi.WithReference(paymentApi).WaitFor(paymentApi);
 
-// Checkout.Orchestrator — ayrı BC (checkoutDb), broker-only saga. Komutları hedef BC'lere
-// yayınlar, yanıtları reply kuyruğundan dinler. BC komut-kuyruğu tüketicileri önce ayağa kalksın
-// (soğuk-açılış binding dersi, 007). Giriş endpoint'i checkout.write ile korunur (identity).
-var checkoutOrchestrator = builder.AddProject<Projects.Checkout_Orchestrator>("checkout-orchestrator")
-    .WithReference(checkoutDb)
-    .WithReference(rabbit)
-    .WaitFor(checkoutDb)
-    .WaitFor(rabbit)
-    .WaitFor(orderApi)
-    .WaitFor(stockApi)
-    .WaitFor(paymentApi)
-    .WaitFor(basketApi);
+// 092: Checkout.Orchestrator + checkoutDb SÖKÜLDÜ — checkout artık koreografi (Order/Stock/Basket
+// event tüketicileri). Ayrı orkestrasyon servisi yok.
 
 // Reviews BC — satin-alma sartli yorum + puan ozeti. Satin-alma kaniti icin Order gRPC'sine
 // senkron sorar (fail-closed); ozet ReviewSummaryChanged fanout'uyla Storefront'a akar.
@@ -265,13 +254,13 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
 // platform MCP fasadına bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).
 
-// Tüm deploy edilebilir servisleri (14) ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
+// Tüm deploy edilebilir servisleri (13) ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
 // bunların image'ini basıp ghcr.io/hasancagri/ecommerce/<servis>'e iter. Altyapı (postgres/rabbit/
 // redis/es/kibana/mailpit) public image → girmez.
 foreach (var svc in new[]
 {
     catalogApi, stockApi, basketApi, orderApi, storefrontApi, paymentApi, customerApi,
-    checkoutOrchestrator, reviewsApi, libraryApi, discountApi, mailMcp, notificationAgent,
+    reviewsApi, libraryApi, discountApi, mailMcp, notificationAgent,
     fileApi
 })
 {
