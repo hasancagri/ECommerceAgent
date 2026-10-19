@@ -12,7 +12,6 @@
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-servis_başına-4169E1?logo=postgresql&logoColor=white">
   <img alt="RabbitMQ" src="https://img.shields.io/badge/RabbitMQ-integration_events-FF6600?logo=rabbitmq&logoColor=white">
   <img alt="OpenIddict" src="https://img.shields.io/badge/OpenIddict-OIDC%2FOAuth-512BD4">
-  <img alt="YARP" src="https://img.shields.io/badge/YARP-gateway-blueviolet">
   <img alt="MCP" src="https://img.shields.io/badge/MCP-tek_müşteri_fasadı-9333ea">
   <img alt="Microsoft Agent Framework" src="https://img.shields.io/badge/Microsoft_Agent_Framework-AI_worker-2563eb">
   <img alt="Elasticsearch" src="https://img.shields.io/badge/Elasticsearch-arama_%2B_kNN-f59e0b?logo=elasticsearch&logoColor=white">
@@ -36,7 +35,7 @@ DDD, CQRS ve olay-güdümlü tasarımın gerçek .NET kodunda ne kadar ileri ta�
 
 ## Bu proje neyi gösteriyor
 
-- **Bounded-context izolasyonu** — kendi PostgreSQL veritabanı + Marten şeması olan on iki DB-sahibi bounded context, artı YARP gateway ve iki yardımcı süreç (Notification Agent + Mail.Mcp); platform MCP fasadı ile kimlik makamı (IdP) ayrı **AgentPlatform** repo'sunda yaşar. Paylaşılan domain modeli yok; aynı kavram (*Ürün*) her context'te farklı modellenir — Catalog'da zengin aggregate, Basket'te düz sepet-kalemi, Storefront'ta Elasticsearch dokümanı.
+- **Bounded-context izolasyonu** — kendi PostgreSQL veritabanı + Marten şeması olan on iki DB-sahibi bounded context, artı iki yardımcı süreç (Notification Agent + Mail.Mcp); platform MCP fasadı ile kimlik makamı (IdP) ayrı **AgentPlatform** repo'sunda yaşar. Paylaşılan domain modeli yok; aynı kavram (*Ürün*) her context'te farklı modellenir — Catalog'da zengin aggregate, Basket'te düz sepet-kalemi, Storefront'ta Elasticsearch dokümanı.
 - **Zengin aggregate'ler ve zorunlu invariant'lar** — iş kuralları handler'da değil aggregate'in içinde yaşar (private koleksiyon, davranış metotları). Geçersiz durumlar temsil edilemez.
 - **Vertical Slice + CQRS** — kod teknik katmana değil feature'a göre örgütlenir. Yazma/okuma ayrı slice'lar; repository yok — handler doğrudan Marten `IDocumentSession` kullanır.
 - **Exception yerine Result pattern** — beklenen hatalar (bulunamadı, doğrulama, kural ihlali) tipli `Result` nesneleriyle akar; exception yalnız gerçekten beklenmeyene ayrılır.
@@ -67,19 +66,17 @@ flowchart TB
     AIClient -->|"OAuth 2.1 login + consent"| IdP["Platform IdP (AgentPlatform repo'su)<br/>(OpenIddict OIDC/OAuth + ASP.NET Identity)"]
     AIClient -->|"MCP (/mcp)"| Facade["platform MCP fasadı<br/>(AgentPlatform, DB'siz proxy)"]
 
-    Facade -->|"ad→BC token-forward, kullanıcı token'ı"| GW["Gateway (YARP)"]
-
-    GW --> Catalog["catalog-api"]
-    GW --> Basket["basket-api"]
-    GW --> Order["order-api"]
-    GW --> Stock["stock-api"]
-    GW --> Payment["payment-api"]
-    GW --> Storefront["storefront-api"]
-    GW --> Customer["customer-api"]
-    GW --> Reviews["reviews-api"]
-    GW --> Library["library-api"]
-    GW --> Discount["discount-api"]
-    GW -.->|JWT bearer / scope| IdP
+    Facade -->|"ad→BC token-forward, kullanıcı token'ı"| Catalog["catalog-api"]
+    Facade --> Basket["basket-api"]
+    Facade --> Order["order-api"]
+    Facade --> Stock["stock-api"]
+    Facade --> Payment["payment-api"]
+    Facade --> Storefront["storefront-api"]
+    Facade --> Customer["customer-api"]
+    Facade --> Reviews["reviews-api"]
+    Facade --> Library["library-api"]
+    Facade --> Discount["discount-api"]
+    Catalog & Basket & Order & Customer -.->|JWT bearer / scope| IdP
 
     Order -->|"S2S: hosted ödeme linki iste"| Payment
     Payment -->|"hosted link"| PG["Dış PG hosted ödeme sayfası"]
@@ -120,7 +117,7 @@ flowchart TB
     Catalog & Customer -.->|"L1/L2 cache + epoch backplane"| Redis[("Redis")]
 ```
 
-Her servis kendi kendine yeten bir bounded context'tir. Senkron trafik **YARP gateway → servis** üzerinden gider; platform IdP'nin (AgentPlatform repo'su — ECommerce ona issuer URL'iyle dış-servis olarak bakar) verdiği OAuth scope'lu JWT bearer token'larla korunur. Durum değişiklikleri RabbitMQ fanout exchange'lerinde **integration event** olarak yayınlanır; `storefront` dört kaynağın (katalog/stok/yorum/indirim) event'lerini ürün-stream **event-log**'una ekler, **async projection** katlayıp Elasticsearch dokümanını yazar — gerçek-kaynak Postgres stream'i, arama ES'tedir.
+Her servis kendi kendine yeten bir bounded context'tir. Senkron trafik **MCP fasadından BC `/mcp` uçlarına** sabit mutlak URL'lerle gider (ara katman yok); platform IdP'nin (AgentPlatform repo'su — ECommerce ona issuer URL'iyle dış-servis olarak bakar) verdiği OAuth scope'lu JWT bearer token'larla korunur. Durum değişiklikleri RabbitMQ fanout exchange'lerinde **integration event** olarak yayınlanır; `storefront` dört kaynağın (katalog/stok/yorum/indirim) event'lerini ürün-stream **event-log**'una ekler, **async projection** katlayıp Elasticsearch dokümanını yazar — gerçek-kaynak Postgres stream'i, arama ES'tedir.
 
 Müşteri hiçbir mağaza ekranı açmaz: **kendi AI istemcisiyle** platform MCP fasadına (AgentPlatform) bağlanır. Fasad, alt BC `/mcp` uçlarındaki tool'ları LAZY toplar (SDK `WithListToolsHandler`/`WithCallToolHandler`), tool adına göre sahip BC'ye çağrıyı **kullanıcı token'ıyla** proxy'ler (`PerUserMcpTool` server ikizi) — agent *o kullanıcı olarak* davranır.
 
@@ -151,7 +148,6 @@ Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bi
 | Messaging transport | RabbitMQ (fanout exchange + command/reply kuyrukları) |
 | Caching | HybridCache (L1 bellek + Redis L2), AOP decorator; epoch-key durable invalidation + pub/sub backplane |
 | Kimlik & yetki | Platform IdP — **AgentPlatform repo'su** (OpenIddict + ASP.NET Identity; OIDC/OAuth, scope-tabanlı, RFC 7591 DCR); ECommerce relying party (`Platform.Auth` paketi) |
-| API Gateway | YARP (Aspire service discovery ile) |
 | Müşteri yüzeyi | Tek MCP fasadı (AgentPlatform'a taşındı, 001) — dış AI istemcisi tüketir |
 | Senkron RPC | gRPC (stok rezervi, sepet kalemleri — paylaşılan proto kontratları) |
 | AI agent'lar | Microsoft Agent Framework + Microsoft.Extensions.AI (OpenAI), MCP |
@@ -175,7 +171,6 @@ Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bi
 | `discount-api` | Admin kampanya indirimi (079): süzgeç (kategori/yazar/yayınevi/tek-kitap) → yüzde; kitap-başına tek indirim, vitrine event'le iter, süre dolunca temizler; fiyat tutmaz — Order'a gRPC aktif-yüzde |
 | `file-api` | Kapak kayıt defteri (081/083): `FileAsset` (ImageName=ISBN unique) + çoklu fiziki depo (`IFileStore`: R2/Local); `ProductAdded` tüketir → kapağı yükler → `CoverIngested` yayar; anonim cover serve + S2S resolve |
 | `checkout-orchestrator` | Standalone broker-only checkout sağası (`checkoutDb`): `CommitStock → Confirm → ClearBasket`; LIFO telafi + watchdog (ödeme öncedendir) |
-| `gateway` | YARP reverse proxy / tek giriş (MCP + PRM rotaları) |
 | _(identity-server)_ | **TAŞINDI → AgentPlatform** (084): platform IdP — OpenIddict + ASP.NET Identity, OIDC/OAuth + RBAC (rol = scope demeti) + DCR + consent + revocation; ECommerce relying party, AppHost proje-ref'i YOK |
 | _(MCP fasadı)_ | **TAŞINDI → AgentPlatform** (001): tek MCP fasadı artık bu repoda değil; AgentPlatform'ın Aspire host'unda koşar, EC `/mcp` uçlarını sabit URL'lerle downstream toplar. EC ürün `/mcp` uçları KORUNUR |
 | `notification-agent` | Durumsuz worker — `PriceAlarmTriggered → LLM compose → Mail.Mcp send_mail → NotificationSent`; DB yok |
@@ -241,7 +236,7 @@ Dağıtık sistemi her zaman **Aspire AppHost** üzerinden başlat — servisler
 dotnet run --project src/aspire/AppHost/AppHost.csproj
 ```
 
-Bu; her servisi, YARP gateway'i ve agent worker'larını, artı PostgreSQL, RabbitMQ (management eklentisiyle), Redis, Elasticsearch, Kibana ve Mailpit'i ayağa kaldırır. **Aspire dashboard** her kaynağın canlı görünümü, logları ve uçlarıyla açılır. Kimlik makamı bu repo'da DEĞİLDİR — platform IdP'si `AgentPlatform` repo'sunun kendi AppHost'uyla ayrıca başlatılır; korumalı yüzeyler token doğrulamayı ona (issuer URL) yapar.
+Bu; her servisi ve agent worker'larını, artı PostgreSQL, RabbitMQ (management eklentisiyle), Redis, Elasticsearch, Kibana ve Mailpit'i ayağa kaldırır. **Aspire dashboard** her kaynağın canlı görünümü, logları ve uçlarıyla açılır. Kimlik makamı bu repo'da DEĞİLDİR — platform IdP'si `AgentPlatform` repo'sunun kendi AppHost'uyla ayrıca başlatılır; korumalı yüzeyler token doğrulamayı ona (issuer URL) yapar.
 
 > Platform IdP (AgentPlatform) **HTTPS** üzerinde çalışmalıdır (`SameSite=None; Secure` çerezleri düz HTTP'de sonsuz döner); servislerin `IdentityOption.Address`'i issuer URL'iyle birebir eşleşir.
 

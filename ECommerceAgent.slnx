@@ -17,7 +17,6 @@
     <Project Path="src/services/catalog/Catalog.Api/Catalog.Api.csproj" />
     <Project Path="src/services/checkout/Checkout.Orchestrator/Checkout.Orchestrator.csproj" />
     <Project Path="src/services/customer/Customer.Api/Customer.Api.csproj" />
-    <Project Path="src/services/gateway/Gateway/Gateway.csproj" />
     <Project Path="src/services/library/Library.Api/Library.Api.csproj" />
     <Project Path="src/services/order/Order.Api/Order.Api.csproj" />
     <Project Path="src/services/payment/Payment.Api/Payment.Api.csproj" />

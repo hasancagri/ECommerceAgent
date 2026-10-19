@@ -258,31 +258,21 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
     // US4: mevcut R2 kapakları kayıt defterine idempotent al (bir-kez; re-run yinelemez).
     .WithEnvironment("CoverMigration__RegistryBackfill__Enabled", "true");
 
-var gateway = builder.AddProject<Projects.Gateway>("gateway")
-    .WithReference(catalogApi)
-    .WithReference(basketApi)
-    .WithReference(orderApi)
-    .WithReference(paymentApi)
-    .WithReference(stockApi)
-    .WithReference(storefrontApi)
-    .WithReference(customerApi)
-    .WithReference(reviewsApi)
-    // Library MCP gateway üzerinden (dış agent fiyat alarmı); service discovery için referans.
-    .WithReference(libraryApi)
-    // kapak görseli servis (anonim /files/**) gateway üzerinden.
-    .WithReference(fileApi);
+// Gateway (YARP) SÖKÜLDÜ (2026-10-19) — ajan trafiği AgentPlatform fasadından BC /mcp'lerine
+// mutlak URL'le gider, kapak URL'leri R2 public base'e çözülür; rotası kalmamıştı. Canlıda
+// kenar işi k8s ingress'in. Local-depo fallback günü gelirse YARP 5 dk'da geri yazılır.
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
 // platform MCP fasadına bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).
 
-// Tüm deploy edilebilir servisleri (15) ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
+// Tüm deploy edilebilir servisleri (14) ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
 // bunların image'ini basıp ghcr.io/hasancagri/ecommerce/<servis>'e iter. Altyapı (postgres/rabbit/
 // redis/es/kibana/mailpit) public image → girmez.
 foreach (var svc in new[]
 {
     catalogApi, stockApi, basketApi, orderApi, storefrontApi, paymentApi, customerApi,
     checkoutOrchestrator, reviewsApi, libraryApi, discountApi, mailMcp, notificationAgent,
-    fileApi, gateway
+    fileApi
 })
 {
     svc.WithContainerRegistry(ghcr);

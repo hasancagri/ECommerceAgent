@@ -1,4 +1,3 @@
-
 namespace Common.Auths;
 
 // X-User-Key varsa ApiKey şemasını EAGER çözer: geçersiz → 401 (anonim okumada bile, D5/FR-009);
