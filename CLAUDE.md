@@ -79,10 +79,9 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
 |---|---|---|---|
 | `catalog` | catalogDb | Zengin `Product`+`Category`+`Author`+`Publisher`+`ProductTag`+`SpecificationAttribute` (kitap künyesi: çok-yazar + tek yayınevi); admin düzenleme + fiyat geçmişi (058: append-only `ProductPriceChange`). **091: taslak/yayın/gizleme YOK** — ürün CANLI doğar, fiyat>0 var oluş invariant'ı, Gtin unique-index. **Müşteri keşif yüzeyi** (envanter otoritesi — vitrin aramasından ayrı): `get_product` · `search_products` · `get_price_history` · `list_categories` · `list_authors` · `list_publishers`. **Admin:** ürün/kategori/yazar/tag/spec tool'ları + `AdminActionLog` izi (`specs/070-admin-mcp-surface`); `admin_republish_products` = yeni downstream BC ya da sıfırlanmış read-model için `ProductChangedEvent` backfill (replay; tüm tüketiciler idempotent, `OldPrice` hep null). **Seed doluşu (091):** commit'li `Seeding/Data/books.json` → `BookSeedHostedService` açılışta satır satır (Gtin varsa atlar; ürün+`ProductAdded`(satır stok)+`ProductChangedEvent` aynı commit). Kapağı File'dan `CoverIngested` ile alır (`FileConsumers`→`SetImage`) | `specs/040-catalog-domain-extract` · `specs/091-catalog-json-seed` |
 | `basket` | basketDb | Kalıcı sepet + kalem; anonim sahiplik (057) — `MergeFrom` domain'de VAR, yüzeyi YOK; stok tutmaz, süre yok (056: rezervasyonsuz), stok gerçeği checkout'ta; yüzey MCP-only + checkout gRPC | `specs/012-stock-reservation` |
-| `order` | orderDb | Sipariş aggregate + yaşam döngüsü; orchestrator'dan broker Confirm/Cancel; hosted-CF ödeme yolu (`start_payment` — sepet+adres oku, Pending order, Payment S2S hosted link; 077); `PaymentSucceeded`→StartCheckout / `PaymentFailed`→Cancel tüketir; Confirm'de `OrderCompleted` fanout → Reviews + Library | `specs/028-checkout-saga` |
-| `checkout` | checkoutDb | Broker-only checkout sağası (`CheckoutProcess`, ayrı servis); ödeme ÖNCEDEN alınır (077 hosted-CF) → CommitStock → Confirm → ClearBasket; StartCheckout OrderId dolu (`CheckoutId=OrderId`); CommittingStock'ta LIFO telafi + watchdog | `specs/049-checkout-orchestrator` |
+| `order` | orderDb | Sipariş aggregate + yaşam döngüsü; hosted-CF ödeme yolu (`start_payment` — sepet+adres oku, Pending order, Payment S2S hosted link; 077). **092 checkout koreografisi** (orchestrator SÖKÜLDÜ): `PaymentSucceeded`→`StockCommitRequested` yayar / `PaymentFailed`→Cancel; `StockCommitted`→`Order.Confirm`+`OrderCompleted` fanout (Reviews+Library+Basket) / `StockCommitFailed`→Cancel+manuel-iade log (`PaymentConsumers`+`StockConsumers`) | `specs/028-checkout-saga` |
 | `payment` | paymentDb | Hosted-CF ödeme (077): `PaymentIntent` (kart alanı yok); PG hosted link (`PgHostedPaymentClient`, MerchantKey S2S) + HMAC callback (`CallbackSecret` ayrı) → `PaymentSucceeded`/`PaymentFailed` fanout; terk-timer `ScheduleAsync`→Expire; TxRef unique idempotent | `specs/077-hosted-cf-payment` |
-| `stock` | stockDb | `ProductStock` (OnHand); ilk stok `ProductLinked`'ten doğar; checkout düşümü broker'dan (056); `get_stock` anonim; admin `admin_set_stock` (mutlak) / `admin_adjust_stock` (artır-azalt) / `admin_list_all_stock` + `AdminActionLog` izi (058, 070); negatif guard aggregate'te (`Adjust`/`SetQuantity` invariant'ı) | `specs/014-supplier-stock-authority` |
+| `stock` | stockDb | `ProductStock` (OnHand); ilk stok `ProductLinked`'ten doğar; checkout düşümü broker event'inden — **092: `StockCommitRequested` → TÜM kalem tek tx atomik `Commit` (ya hep ya hiç) → `StockCommitted`/`StockCommitFailed` (`OrderConsumers`); RevertCommit söküldü** (056); `get_stock` anonim; admin `admin_set_stock` (mutlak) / `admin_adjust_stock` (artır-azalt) / `admin_list_all_stock` + `AdminActionLog` izi (058, 070); negatif guard aggregate'te (`Adjust`/`SetQuantity` invariant'ı) | `specs/014-supplier-stock-authority` |
 | `storefront` | storefrontDb (Marten event-log) + Elasticsearch | **086: CQRS + Event Sourcing** — Postgres read-model DEĞİL, ürün-stream event-log (gerçek-kaynak); dört kaynak event (Catalog/Stock/Reviews/Discount) stream'e append, **async projection** (`StorefrontProjection`) katlayıp **Elasticsearch** doc'u yazar/siler (satılabilirse; FR-008 projeksiyon-zamanı dışlama). Okuma yolu asistan: TEK tool `query_storefront`, ham **ES Query DSL** alır (text+fuzzy+kNN+filtre tek sorguda; `{{EMBED}}`→knn vektör); minimal rail = sabit index + size≤50 + `_source` whitelist + timeout; `AgentQueryLog` izi; embedding ES `dense_vector`. Açılışta index yoksa kurulur (`EnsureAsync`); soğuk başlangıç = dev full-reset + Catalog `admin_republish_products`; ES-seviyesi elle reindex BACKLOG. 070 playbook'un kanonik evi bu tool'un Description'ı | `specs/003-storefront-read-model` · `specs/086-storefront-elasticsearch-search` |
 | `customer` | customerDb | Wallet (tokenize kart, PAN yok; kart YAZMA yüzeyi yok — yalnız okuma + payment-context) + AddressBook; izole, event YAYMAZ. Müşteri: `list_cards` · `list_addresses`/`add_address`/`update_address`/`remove_address`/`set_default_address`. **087 makine-handoff merchant onboarding:** kayıt store-başlatır S2S register (bootstrap key), credential PG→store HMAC-callback'le gelir (`CallbackSignatureValidator`, 077 aynası), kullanım gRPC; `admin_start_onboarding` · `admin_onboarding_status` · `admin_get_merchant_status` · `admin_reissue_merchant_key`. Sır hiçbir insan-yüzeyde render EDİLMEZ (Yapma listesi) | `specs/022-wallet-address-book` · `specs/087-merchant-id-visibility` |
 | `reviews` | reviewsDb | Satın-alma şartlı yorum (`check_review_eligibility` → `submit_review` → `get_reviews`); yorum HEMEN görünür, moderasyon YOK (088); özet event → Storefront | `specs/044-product-reviews` |
@@ -107,7 +106,7 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
 - **MCP uçlarının auth matrisi** (`Program.cs`'teki `MapMcp` çağrısı kanonik):
   **korumalı** (`RequireAuthorization` + RFC 9728 PRM keşfi, `Common/Extensions/McpResourceMetadataExtension`) —
   basket · order · payment · customer · reviews · library · discount;
-  **anonim kalır** — catalog · stock · storefront · checkout · mail-mcp.
+  **anonim kalır** — catalog · stock · storefront · mail-mcp.
   UserKey (`X-User-Key`) yan yoldur, Bearer'la çakışmaz.
 - **Ölü-mesaj (DLQ) operatör yüzeyi (088):** `admin_list_dead_letters` · `admin_get_dead_letter` ·
   `admin_replay_dead_letter` · `admin_discard_dead_letter` — scope `ops.deadletter`, **File hariç her
@@ -116,8 +115,9 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
   AI istemcisinden yürütür — ayrı ops ekranı yok.
 - **Kalan REST** = S2S internal (merchant-key, adres varsayılan, 077 Payment intents/callback) + auth
   (Identity OIDC) + MCP-infra (PRM) + Catalog import yükleme ekranı. **Kalan senkron kontrat** =
-  checkout gRPC (basket) + Order→Payment hosted-link S2S (077) + Discount→Order aktif-yüzde gRPC.
-  Eski "her aggregate bir REST penceresi" kuralı EMEKLİ.
+  Order `start_payment`→basket gRPC (`GetBasketItems`) + Order→Payment hosted-link S2S (077) +
+  Discount→Order aktif-yüzde gRPC. Eski "her aggregate bir REST penceresi" kuralı EMEKLİ.
+  (092: checkout koreografi oldu — eski checkout broker komut/yanıt sözleşmesi + Checkout.Orchestrator söküldü.)
 - **Scope zorlaması AgentPlatform'da (085 R3/R5):** DCR tavanı değişmedi, **zorlama yeri** değişti —
   `ScopeResolver` `talep ∩ istemci-tavanı ∩ (rol ∪ her-zaman-izinli)` kesişimini kurar
   (`ClientCeilingResolver`; OpenIddict scope-izin ön-validasyonu `IgnoreScopePermissions()` ile
@@ -214,7 +214,8 @@ haritasına ekle (`check-claude-spec-links.sh` doğrular).
   ve `src/others/Shared/McpToolDescriptions.cs` const'ından referanslanır — inline `[Description("...")]`
   string bırakma.
 - **Yeni saga için ayrı orchestration servisi açma** (god-service) — saga sürecin sahibi BC'de host
-  edilir. (049 Checkout.Orchestrator mevcut istisnadır, emsal değil.)
+  edilir. (049 Checkout.Orchestrator istisnası 092'de SÖKÜLDÜ — checkout artık koreografi; repoda
+  orkestre saga örneği KALMADI. Gerçekten çok-adım/dallanan süreç gerekirse önce koreografiyi değerlendir.)
 - **Kimlik makamını ECommerce'e geri gömme (084):** IdP `AgentPlatform`'da. AppHost'a IdP proje-ref'i
   EKLEME, scope/client/rol'ü koda gömme (yenisi `AgentPlatform` `AppRegistry` config'ine). Nötr auth
   kablosu `Platform.Auth` paketinde — `Common`'a geri taşıma.

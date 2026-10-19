@@ -15,15 +15,14 @@ public static class MessagingExtensions
                 opts.Durability.Mode = DurabilityMode.Solo;
 
             // gRPC tipli client (AddGrpcClient) opaque factory'dir; Wolverine handler codegen'i inline
-            // kuramaz ve service-location ister. StockCommitClientProxy CreateOrder handler'ina enjekte edilir.
+            // kuramaz ve service-location ister. start_payment Payment/Basket/Customer/Discount istemcileri enjekte edilir.
             opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
 
-            // OrderCreated exchange kaldirildi; sepet temizligi CheckoutSaga gRPC adimi.
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // siparis odeme onayli tamamlaninca (CheckoutSaga pivot) Personalization'a yayinlanir.
-            // Yayinci yalniz exchange deklare eder; kuyruk + binding TUKETICIDE (007 dersi).
+            // siparis odeme onayli tamamlaninca (Confirm pivotu) OrderCompleted fanout'u yayilir
+            // (Reviews + Library + Basket). Yayinci yalniz exchange deklare eder; binding TUKETICIDE (007 dersi).
             rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
             {
                 e.ExchangeType = ExchangeType.Fanout;
@@ -31,13 +30,27 @@ public static class MessagingExtensions
             opts.PublishMessage<IntegrationEvents.OrderCompleted>()
                 .ToRabbitExchange(RabbitMqConstants.OrderCompleted.Exchange);
 
-            // checkout sipariş komutlarını (Create/Confirm/Cancel) dinle; yanıtları reply kuyruğuna.
-            opts.ListenToRabbitQueue(RabbitMqConstants.Checkout.OrderCommandsQueue);
-            // 049/077: hosted-CF ödeme başarılı → StartCheckout (AlreadyCaptured) orchestrator'a (cross-service).
-            opts.PublishMessage<CheckoutMessages.StartCheckout>().ToRabbitQueue(RabbitMqConstants.Checkout.StartQueue);
-            opts.PublishMessage<CheckoutMessages.OrderCreated>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
-            opts.PublishMessage<CheckoutMessages.OrderConfirmed>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
-            opts.PublishMessage<CheckoutMessages.OrderCancelled>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
+            // 092 checkout koreografisi: ödeme onaylanınca stok commit talep et (fanout; Stock tüketir).
+            rabbit.DeclareExchange(RabbitMqConstants.StockCommitRequested.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+            });
+            opts.PublishMessage<IntegrationEvents.StockCommitRequested>()
+                .ToRabbitExchange(RabbitMqConstants.StockCommitRequested.Exchange);
+
+            // Stock sonuç fanout'ları — tüketici (Order) kendi kuyruğunu bağlar + dinler (007 dersi).
+            rabbit.DeclareExchange(RabbitMqConstants.StockCommitted.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.StockCommitted.Queues.Order);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.StockCommitted.Queues.Order);
+            rabbit.DeclareExchange(RabbitMqConstants.StockCommitFailed.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.StockCommitFailed.Queues.Order);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.StockCommitFailed.Queues.Order);
 
             // Payment.Api hosted-CF sonuç fanout'ları — tüketici kendi kuyruğunu bağlar + dinler (007 dersi).
             rabbit.DeclareExchange(RabbitMqConstants.PaymentSucceeded.Exchange, e =>
@@ -53,19 +66,20 @@ public static class MessagingExtensions
             });
             opts.ListenToRabbitQueue(RabbitMqConstants.PaymentFailed.Queues.Order);
 
-            // 049/074: checkout sağası step-komut tüketiminde altyapı hatası retry (Checkout.Orchestrator'daki
-            // policyle aynı — FR-024). İş hatası (Result.Permanent) bunu tetiklemez, yalnız fırlayan exception.
+            // Event tüketiminde altyapı (teknik) hatası retry; tükenince ölü-mesaj deposuna taşı (088 DLQ
+            // görünürlüğü — watchdog yok, 092). İş hatası (yetersiz stok) exception değil event'tir, bunu tetiklemez.
             opts.OnException<Exception>().RetryWithCooldown(
-                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15));
+                    TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15))
+                .Then.MoveToErrorQueue();
 
             opts.Policies.UseDurableLocalQueues();
             opts.Policies.AddMiddleware(
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-            // Konvansiyonel keşif *EventHandlers/*Consumers sınıfını atlayabiliyor → açık kayıt (Stock emsali).
-            opts.Discovery.IncludeType(typeof(Order.Api.Saga.CheckoutConsumers));
+            // Konvansiyonel keşif *Consumers (çoğul) sınıfını atlar → açık kayıt ZORUNLU (yoksa event sessiz yutulur).
             opts.Discovery.IncludeType(typeof(Order.Api.PaymentConsumers));
+            opts.Discovery.IncludeType(typeof(Order.Api.StockConsumers));
             // 088: ölü-mesaj operatör handler'ları Common'da (assembly taraması dışı) — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.

@@ -14,17 +14,19 @@ public static class MessagingExtensions
             if (builder.Environment.IsDevelopment())
                 opts.Durability.Mode = DurabilityMode.Solo;
 
-            opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
+            var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // OrderCreated dinleyicisi kaldirildi — sepet temizligi saga'nin gRPC adimi (ClearBasket).
+            // 092 checkout koreografisi: sipariş tamamlanınca (OrderCompleted fanout) sepeti sil.
+            // Binding'i tüketici (Basket) kurar (007 soğuk-açılış dersi).
+            rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.OrderCompleted.Queues.Basket);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.OrderCompleted.Queues.Basket);
 
-            // checkout sepet temizleme komutunu dinle; yanıtı orchestrator reply kuyruğuna.
-            opts.ListenToRabbitQueue(RabbitMqConstants.Checkout.BasketCommandsQueue);
-            opts.PublishMessage<CheckoutMessages.BasketCleared>().ToRabbitQueue(RabbitMqConstants.Checkout.RepliesQueue);
-
-            // 049/074: checkout sağası step-komut tüketiminde altyapı hatası retry (Checkout.Orchestrator'daki
-            // policyle aynı — FR-024). İş hatası (Result.Permanent) bunu tetiklemez, yalnız fırlayan exception.
+            // Event tüketiminde altyapı (teknik) hatası retry; tükenince ölü-mesaj deposuna (088 DLQ).
             opts.OnException<Exception>().RetryWithCooldown(
                 TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
 
@@ -33,9 +35,9 @@ public static class MessagingExtensions
                 typeof(ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-            // *EventHandlers static sinifi ad konvansiyonuyla otomatik kesfedilmiyor (Storefront deseni);
-            // acikca dahil et — yoksa ClearBasketCommand (049) calismaz.
-            opts.Discovery.IncludeType(typeof(Saga.CheckoutConsumers));
+            // *Consumers (çoğul) ad konvansiyonuyla otomatik keşfedilmiyor → açık kayıt ZORUNLU
+            // (yoksa OrderCompleted sessiz yutulur, sepet temizlenmez).
+            opts.Discovery.IncludeType(typeof(Basket.Api.OrderConsumers));
             // 088: ölü-mesaj operatör handler'ları Common'da (assembly taraması dışı) — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.

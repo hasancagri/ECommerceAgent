@@ -2,16 +2,14 @@ using Common.Utils.Authorization;
 using Common.Utils.Constants;
 using Microsoft.AspNetCore.Http;
 using Wolverine;
-using static Shared.CheckoutMessages;
+using Shared;
 
 namespace Basket.Api.Tests;
 
-// 077 bug #7 regresyon: checkout sağasının ClearBasket adımı Basket'in broker handler'ından
-// (Saga.CheckoutConsumers, HttpContext YOK) doğrudan tetiklenir. Komut üzerinde [RequiredScope] varsa
-// ScopeAuthorizationMiddleware.Before, HttpContext null olduğundan UnauthorizedAccessException fırlatır
-// -> handler fırlar -> BasketCleared reply cascade olmaz -> saga ClearingBasket'te takılır.
-// 074: ara ClearBasketByCheckoutCommand (iç komut) kaldırıldı — Saga aggregate'e doğrudan dokunuyor,
-// tek dispatch katmanı kaldı. Guard artık doğrudan broker komutu ClearBasketCommand üzerinde.
+// 092 koreografi regresyonu: sepet temizliği artık OrderCompleted event'inden (Basket.OrderConsumers,
+// HttpContext YOK) tetiklenir. Event üzerinde [RequiredScope] OLMAMALI — varsa ScopeAuthorizationMiddleware
+// .Before, HttpContext null olduğundan UnauthorizedAccessException fırlatır → handler fırlar → sepet
+// temizlenmez, mesaj DLQ'ya düşer. (077 bug #7'nin eski ClearBasketCommand karşılığı; komut → event.)
 public class ClearBasketScopeGuardTests
 {
     private sealed class NullHttpContextAccessor : IHttpContextAccessor
@@ -24,10 +22,12 @@ public class ClearBasketScopeGuardTests
     private sealed record ScopedProbe;
 
     [Fact]
-    public void ClearBasketCommand_HasNoScopeAttribute_SoBrokerPathDoesNotThrow()
+    public void OrderCompleted_HasNoScopeAttribute_SoBrokerPathDoesNotThrow()
     {
-        var command = new ClearBasketCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid().ToString());
-        var envelope = new Envelope(command);
+        var evt = new IntegrationEvents.OrderCompleted(
+            Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow,
+            new List<IntegrationEvents.OrderCompletedItem>());
+        var envelope = new Envelope(evt);
 
         Should.NotThrow(() => ScopeAuthorizationMiddleware.Before(envelope, new NullHttpContextAccessor()));
     }

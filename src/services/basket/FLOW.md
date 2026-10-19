@@ -16,8 +16,9 @@ TUTMAZ ve süre İŞLETMEZ (056); stok gerçeği checkout anındadır.
 2. 🟦 **Adedi mutlak değere getir** — `≤0` ise satır çıkar; 5 tavanı aşılamaz.               `(SetBasketItemQuantity)`
 3. 🟦 **Satırı elle sil** — yalnız sepet belgesi değişir.                                     `(DeleteBasketItem`
                                                                                                ` → Basket.RemoveItem)`
-4. 🟪 **Checkout sepeti boşaltır (hand-off)** → 🟦 **Sepeti temizle** ⇦ Checkout —           `(Saga.CheckoutConsumers`
-   orchestrator pivot-sonrası broker komutuyla çağırır; sepet silinir (idempotent).           ` → ClearBasketCommand)`
+4. 🟪 **Sipariş tamamlanınca sepet boşalır (hand-off)** → 🟦 **Sepeti temizle** ⇦ Order —    `(OrderConsumers`
+   Order `OrderCompleted` fanout'unu tüketir (092 koreografi); onaylanan siparişin            ` ⇦ OrderCompleted)`
+   kullanıcısının sepeti silinir (idempotent; sepet yoksa da no-op).
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
@@ -25,11 +26,12 @@ TUTMAZ ve süre İŞLETMEZ (056); stok gerçeği checkout anındadır.
 - **Anonim sahiplik meşrudur (057).** Ekleme/okuma/adet/silme kimlik doğrulama İSTEMEZ; sahip tahmin
   edilemez Guid'dir (token `sub` ya da anonim kimlik). Login-merge yüzeyi 066 sonrası söküldü;
   `Basket.MergeFrom` davranışı domain'de durur, yüzey açılırsa buradan döner.
-- **Sepet stok tutmaz (056).** Ekleme/adet/silme Stock'a gitmez; yetersizlik checkout'ta `CommitStock` reddeder, saga telafi eder.
+- **Sepet stok tutmaz (056).** Ekleme/adet/silme Stock'a gitmez; yetersizlik checkout'ta `StockCommitFailed` ile sipariş iptaline yol açar (telafi yok, 092).
 - **Sabit üst sınır otoriter.** Satır adedi `Basket.MaxItemQuantity` (5) üstüne çıkamaz — UI/API/agent farketmez.
 - **Fiyat snapshot'tır.** Satır fiyatı ekleme anındaki vitrin fiyatıdır; sepette güncellenmez.
+- **Temizlik yalnız onaylı siparişte (092).** Sepet `OrderCompleted` (Confirm pivotu sonrası) ile silinir; iptal/başarısız siparişte sepet KORUNUR.
 
 ## Sınır (bu BC'nin dokunmadığı)
 
 Ürün içeriği/fiyat kaynağı (Catalog/Storefront), OnHand stok otoritesi (Stock),
-sipariş/ödeme (Checkout saga) yok. Checkout temizliği saga'nın adımı — Basket başlatmaz.
+sipariş/ödeme yok. Checkout temizliği event tepkisidir (092 koreografi) — Basket başlatmaz, OrderCompleted'i tüketir.

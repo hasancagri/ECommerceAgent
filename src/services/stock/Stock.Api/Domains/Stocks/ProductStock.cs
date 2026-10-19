@@ -11,13 +11,12 @@ public class ProductStock : AggregateRoot
     // Domain OnHand semantigi (I1); ayni deger, okunabilirlik icin.
     [JsonIgnore] public int OnHand => Quantity;
 
-    // islenmis saga operasyon anahtarlari ("orderId:commit" / "orderId:revert").
-    // At-least-once teslimatta mukerrer Commit/RevertCommit'i no-op yapar. Bounded (son 100).
+    // islenmis commit operasyon anahtarlari ("orderId:commit"). At-least-once teslimatta
+    // mukerrer Commit'i no-op yapar (092 koreografi: telafi/revert yok). Bounded (son 100).
     [JsonProperty("ProcessedOps")] private List<string> _processedOps = new();
     private const int ProcessedOpsLimit = 100;
 
     private static string CommitKey(Guid orderId) => $"{orderId}:commit";
-    private static string RevertKey(Guid orderId) => $"{orderId}:revert";
 
     private void MarkProcessed(string key)
     {
@@ -111,27 +110,6 @@ public class ProductStock : AggregateRoot
 
         Quantity -= quantity;
         MarkProcessed(CommitKey(orderId));
-        return ResultDomain.Ok();
-    }
-
-    // saga telafisi — commit edilmis adedi stoga geri ekler. orderId ile idempotent;
-    // yalniz daha once commit edilmis siparis geri alinabilir (kacak artis engellenir).
-    /// <summary>Saga telafisi: commit edilmis adedi stoga geri ekler; orderId ile idempotent.</summary>
-    public ResultDomain RevertCommit(int quantity, Guid orderId)
-    {
-        if (orderId == Guid.Empty || quantity <= 0)
-            return ResultDomain.Error(new MessageItem
-                { Code = StockResourceConstants.STOCK_REVERT_INVALID });
-
-        if (_processedOps.Contains(RevertKey(orderId)))
-            return ResultDomain.Ok();
-
-        if (!_processedOps.Contains(CommitKey(orderId)))
-            return ResultDomain.Error(new MessageItem
-                { Code = StockResourceConstants.STOCK_REVERT_WITHOUT_COMMIT });
-
-        Quantity += quantity;
-        MarkProcessed(RevertKey(orderId));
         return ResultDomain.Ok();
     }
 }

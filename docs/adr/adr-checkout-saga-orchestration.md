@@ -1,8 +1,14 @@
 ---
-status: Kabul
+status: Superseded
 ---
 
 # ADR + Öğrenme Notu: Checkout Saga — Orchestration (028)
+
+> ⛔ **SUPERSEDED (092):** Bu kararın anlattığı orkestrasyon (`Checkout.Orchestrator`/`CheckoutProcess` saga,
+> kalem-kalem commit, LIFO telafi, watchdog) 092'de SÖKÜLDÜ; yerine choreography geçti —
+> [adr-checkout-choreography-migration](adr-checkout-choreography-migration.md). Aşağıdaki saga deseni/öğrenme
+> içeriği TARİHSEL olarak öğretici (saga nedir, pivot, idempotency); ama "bugünkü checkout böyle çalışır"
+> iddiası artık YANLIŞ. Gerekçe için 092 ADR'sine bak.
 
 > **Gerekçe + öğrenme katmanı.** Bağlayıcı gerçek = kod + `../../CLAUDE.md` + `specs/028-checkout-saga`.
 > İlgili: [adr-bounded-context-per-service](adr-bounded-context-per-service.md).

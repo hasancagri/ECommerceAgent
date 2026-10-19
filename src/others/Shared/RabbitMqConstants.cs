@@ -88,6 +88,9 @@ public static class RabbitMqConstants
         {
             public const string Reviews = "reviews.order-completed";
             public const string Library = "library.order-completed";
+
+            // 092: Basket sipariş tamamlanınca sepeti siler (checkout koreografisi); binding'i tüketici kurar.
+            public const string Basket = "basket.order-completed";
         }
     }
 
@@ -147,20 +150,35 @@ public static class RabbitMqConstants
         }
     }
 
-    // Checkout orchestrator hedefli komut/yanıt (broker; İlke I v1.11.0). Her BC kendi komut
-    // kuyruğunu bağlar; yanıtlar orchestrator'ın tek yanıt kuyruğuna döner (korelasyon = CheckoutId).
-    public static class Checkout
+    // 092 checkout koreografisi (orchestration söküldü). Order stok commit talep eder (fanout; tek tüketici
+    // Stock, tutarlılık için fanout). Stock sonucu Order'a fanout'la döner. Binding'i TÜKETİCİ kurar (007).
+    public static class StockCommitRequested
     {
-        // Giriş: WebApp endpoint + chat (Order) StartCheckout'u buraya yayınlar; orchestrator dinler → saga doğar.
-        public const string StartQueue = "checkout.start";
+        public const string Exchange = "stock.commit-requested";
 
-        // Orchestrator → hedef BC komut kuyrukları (tüketici bağlar).
-        public const string OrderCommandsQueue = "checkout.order-commands";
-        public const string PaymentCommandsQueue = "checkout.payment-commands";
-        public const string StockCommandsQueue = "checkout.stock-commands";
-        public const string BasketCommandsQueue = "checkout.basket-commands";
+        public static class Queues
+        {
+            public const string Stock = "stock.commit-requested";
+        }
+    }
 
-        // Hedef BC → orchestrator yanıt kuyruğu (orchestrator bağlar).
-        public const string RepliesQueue = "checkout.replies";
+    public static class StockCommitted
+    {
+        public const string Exchange = "stock.committed";
+
+        public static class Queues
+        {
+            public const string Order = "order.stock-committed";
+        }
+    }
+
+    public static class StockCommitFailed
+    {
+        public const string Exchange = "stock.commit-failed";
+
+        public static class Queues
+        {
+            public const string Order = "order.stock-commit-failed";
+        }
     }
 }

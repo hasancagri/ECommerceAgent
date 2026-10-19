@@ -15,9 +15,8 @@ public static class AuthorizationScopes
     public const string OrderRead = "order.read";
     public const string OrderWrite = "order.write";
 
-    // checkout.orchestrator (049): checkout giriş endpoint'i kullanıcı scope'u (tıkla/yaz aynı süreç).
-    // Broker komut handler'ları scope-guard DEĞİL (HttpContext yok); yalnız HTTP giriş korunur.
-    public const string CheckoutWrite = "checkout.write";
+    // (092: checkout.write scope'u söküldü — Checkout.Orchestrator + REST girişi gitti, choreography'de
+    //  HTTP checkout yüzeyi yok. Örnek doğduğunda AgentPlatform AppRegistry config'inden yönetilir.)
 
     // payment.api
     public const string PaymentRead = "payment.read";

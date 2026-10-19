@@ -53,7 +53,7 @@ app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
 // domain iş REST yüzeyi söküldü — stok okuma/yönetim tümüyle MCP (/mcp).
-// Checkout saga stok düşümü broker (CommitStock/RevertCommitStock handler'ları) — REST endpoint YOK.
+// Checkout stok düşümü broker event'i (092 koreografi: OrderConsumers StockCommitRequested) — REST endpoint YOK.
 
 // TEK uç — anonim (get_stock); admin tool'lar scope-budamalı görünür, scope katmanı handler'da
 // ([RequiredScope(StockWrite)], 403 son savunma). /mcp-admin öldü.
