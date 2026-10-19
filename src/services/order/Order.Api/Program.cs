@@ -29,7 +29,6 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "order",
     AuthorizationScopes.OrderRead, AuthorizationScopes.OrderWrite, AuthorizationScopes.OpsDeadletter);
 // logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
-builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 

@@ -142,12 +142,6 @@ public static class DeadLetterAdminTools
     public const string DiscardDeadLetter = "admin_discard_dead_letter";
 }
 
-// korumalı MCP'lerdeki ortak oturum-kapatma tool'u (basket/order/payment/customer).
-public static class AuthTools
-{
-    public const string Logout = "logout";
-}
-
 public static class MailTools
 {
     // Mail.Mcp'nin tek tool'u; tüketici NotificationAgent (ChatAgent'a KAYITLI DEĞİL).

@@ -115,7 +115,6 @@ feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `s
   BC'nin `/mcp`'sinde** (`Common/Utils/DeadLetters/DeadLetterAdmin.cs`; BC tarafı kablo
   `Extensions/MessagingExtensions.cs` + `Program.cs`). Admin "hata var mı / tekrar dene" akışını kendi
   AI istemcisinden yürütür — ayrı ops ekranı yok.
-- **`logout`** (`AuthTools`): korumalı MCP'lerde ortak oturum-kapatma tool'u (basket/order/payment/customer).
 - **Kalan REST** = S2S internal (merchant-key, adres varsayılan, 077 Payment intents/callback) + auth
   (Identity OIDC) + MCP-infra (PRM) + Catalog import yükleme ekranı. **Kalan senkron kontrat** =
   checkout gRPC (basket) + Order→Payment hosted-link S2S (077) + Discount→Order aktif-yüzde gRPC.
