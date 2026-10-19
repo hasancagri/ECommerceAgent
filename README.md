@@ -2,6 +2,8 @@
 
 > Olay-güdümlü, Domain-Driven mikroservis e-ticaret platformu — müşteri yüzeyi tamamen **kendi getirdiğin AI istemcisi** (Claude Desktop vb.) üzerinden, uçtan uca **.NET Aspire** ile orkestre.
 
+📖 **Müşteri misin?** [Kullanım kılavuzu](docs/kullanim-kilavuzu.md) — bağlan, "merhaba" yaz, gerisi asistanın işi.
+
 <p>
   <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white">
   <img alt="Aspire" src="https://img.shields.io/badge/.NET_Aspire-orkestrasyon-512BD4">
