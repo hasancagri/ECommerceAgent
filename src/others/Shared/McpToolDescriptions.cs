@@ -345,14 +345,6 @@ public static class McpToolDescriptions
             "hiç girmez — elle okuma/giriş adımı yoktur, sunucu-tarafı callback'le teslim edilir.";
     }
 
-    public static class AuthTools
-    {
-        public const string Logout =
-            "Kullanıcı çıkış yapmak/bağlantıyı kesmek istediğinde bu agent'ın mağaza erişim yetkisini iptal eder. " +
-            "\"Çıkış yap\", \"bağlantıyı kes\", \"oturumu kapat\" gibi istekler için. Sonrasında işlem yapmak için yeniden " +
-            "bağlantı ve onay gerekir. Yanıttaki 'message' alanını kullanıcıya olduğu gibi ilet.";
-    }
-
     public static class DeadLetterAdminTools
     {
         public const string ListDeadLetters =

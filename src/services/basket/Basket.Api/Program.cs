@@ -28,7 +28,6 @@ builder.Services.AddApiKeyAuthentication(builder.Configuration);
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "basket",
     AuthorizationScopes.BasketRead, AuthorizationScopes.BasketWrite, AuthorizationScopes.OpsDeadletter);
 // logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
-builder.Services.AddAgentLogoutClient(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
