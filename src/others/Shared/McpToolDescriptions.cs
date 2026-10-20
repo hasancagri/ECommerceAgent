@@ -315,35 +315,7 @@ public static class McpToolDescriptions
             "+ pageSize; ikisi de verilmezse tüm kayıtlar döner. Salt-okuma, denetim izi bırakmaz. Tek ürün için get_stock kullan.";
     }
 
-    public static class CustomerAdminTools
-    {
-        public const string GetMerchantStatus =
-            "Ödeme gateway'i merchant kimliğinin durumunu döndürür: {configured, merchantId?, updatedAt?}. " +
-            "\"Merchant kimliği tanımlı mı\", \"ödeme kimliği durumu\" gibi istekler için. configured=false ise kimlik " +
-            "tanımsızdır — önce admin_start_onboarding ile kaydı başlat. " +
-            "Not: MerchantKey (sır) hiçbir zaman dönmez.";
-
-        public const string OnboardingStatus =
-            "Ödeme gateway'indeki merchant başvurusunun durumunu sorgular (email = başvuruda kullanılan adres). " +
-            "\"Başvurum onaylandı mı\", \"onboarding durumu\" gibi istekler için. Yanıt {status: None|Pending|Approved|Rejected, " +
-            "message, rejectReason?}. Not: MerchantId/MerchantKey döndürmez — onaylanınca credential store'a sunucu-tarafı " +
-            "güvenli callback ile otomatik gelir, elle giriş/aktarım gerekmez.";
-
-        public const string StartOnboarding =
-            "Yeni satıcı (merchant) kaydını başlatır: store sunucu-tarafı ödeme gateway'ine (DropShop) güvenli kayıt isteği " +
-            "gönderir, yanıt yalnız durum bilgisidir (Pending). " +
-            "\"Yeni satıcı kaydı başlat\", \"yeni merchant ekle\", \"satıcı onboarding başlat\" gibi istekler için. " +
-            "email başvurunun kimliğidir — durum sorgusu aynı adresle yapılır (admin_onboarding_status). PG admini onaylayınca " +
-            "MerchantId+MerchantKey store'a güvenli callback ile otomatik gelir. Not: TCKN/IBAN/MerchantKey gibi kimlik/finans/sır " +
-            "bilgisi isteme ve sohbete yazma — bu değerler sohbete hiç girmez, sunucu-tarafı taşınır.";
-
-        public const string ReissueMerchantKey =
-            "Merchant MerchantKey'ini kaybettiğinde/sızdığında ödeme gateway'inde (DropShop) yeni key üretir; eski key her " +
-            "temsilde anında geçersiz olur, yeni key store'a güvenli callback ile otomatik gelir. " +
-            "\"Merchant key'ini yenile\", \"anahtarı sıfırla\" gibi istekler için. Store'un kayıtlı MerchantId'si kullanılır " +
-            "(Id istenmez). reason opsiyonel (unuttum/sızıntı-şüphesi). Yanıt yalnız durum bilgisidir. Not: MerchantKey sohbete " +
-            "hiç girmez — elle okuma/giriş adımı yoktur, sunucu-tarafı callback'le teslim edilir.";
-    }
+    // (093): CustomerAdminTools (087 merchant onboarding) SÖKÜLDÜ — PG pivotu.
 
     public static class DeadLetterAdminTools
     {

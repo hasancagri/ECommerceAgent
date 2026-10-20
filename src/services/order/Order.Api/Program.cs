@@ -63,14 +63,6 @@ builder.Services
     .AddHttpMessageHandler<SagaTokenHandler>();
 builder.Services.AddScoped<BasketItemsClientProxy>();
 
-var paymentGrpcAddress = builder.Configuration["services:payment-api:https:0"]
-    ?? builder.Configuration["services:payment-api:http:0"]
-    ?? "https://payment-api";
-builder.Services
-    .AddGrpcClient<PaymentIntentService.PaymentIntentServiceClient>(o => o.Address = new Uri(paymentGrpcAddress))
-    .AddHttpMessageHandler<SagaTokenHandler>();
-builder.Services.AddScoped<PaymentIntentClient>();
-
 var customerGrpcAddress = builder.Configuration["services:customer-api:https:0"]
     ?? builder.Configuration["services:customer-api:http:0"]
     ?? "https://customer-api";

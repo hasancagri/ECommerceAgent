@@ -23,7 +23,7 @@
 
 ## Genel Bakış
 
-Her servisin kendi veritabanına sahip, izole bir **bounded context** olduğu tam bir **mikroservis e-ticaret backend'i**. Context'ler arası iletişim yalnızca **integration event**, **Model Context Protocol (MCP)** ve — bir adımın anlık evet/hayır ya da context'ler arası devir gerektirdiği yerde — sanksiyonlu **tipli gRPC** (stok rezervi), **broker command/reply** (checkout sağası) ve **servisten-servise (S2S) çağrı** (Order → Payment hosted ödeme linki) üzerindendir.
+Her servisin kendi veritabanına sahip, izole bir **bounded context** olduğu tam bir **mikroservis e-ticaret backend'i**. Context'ler arası iletişim yalnızca **integration event** (checkout dahil — 092'den beri koreografi), **Model Context Protocol (MCP)** ve — bir adımın anlık evet/hayır gerektirdiği yerde — sanksiyonlu **tipli gRPC** (stok rezervi, sepet kalemleri, aktif indirim) üzerindendir.
 
 Bu proje **agent-only / BYO-agent** duruşundadır: mağaza **ne görsel ekran ne de kendi sohbet agent'ını** host eder. Müşteri **kendi AI istemcisiyle** (Claude Desktop vb.) tek MCP fasadına bağlanır; işlemler alt bounded context'lerin MCP tool'larına, çağıran kullanıcının token'ıyla proxy'lenir. Bir AI agent worker'ı çekirdeğin çevresinde durur, **Microsoft Agent Framework** üzerinde:
 
@@ -35,7 +35,7 @@ DDD, CQRS ve olay-güdümlü tasarımın gerçek .NET kodunda ne kadar ileri ta�
 
 ## Bu proje neyi gösteriyor
 
-- **Bounded-context izolasyonu** — kendi PostgreSQL veritabanı + Marten şeması olan on iki DB-sahibi bounded context, artı iki yardımcı süreç (Notification Agent + Mail.Mcp); platform MCP fasadı ile kimlik makamı (IdP) ayrı **AgentPlatform** repo'sunda yaşar. Paylaşılan domain modeli yok; aynı kavram (*Ürün*) her context'te farklı modellenir — Catalog'da zengin aggregate, Basket'te düz sepet-kalemi, Storefront'ta Elasticsearch dokümanı.
+- **Bounded-context izolasyonu** — kendi PostgreSQL veritabanı + Marten şeması olan on bir DB-sahibi bounded context, artı iki yardımcı süreç (Notification Agent + Mail.Mcp); platform MCP fasadı ile kimlik makamı (IdP) ayrı **AgentPlatform** repo'sunda yaşar. Paylaşılan domain modeli yok; aynı kavram (*Ürün*) her context'te farklı modellenir — Catalog'da zengin aggregate, Basket'te düz sepet-kalemi, Storefront'ta Elasticsearch dokümanı.
 - **Zengin aggregate'ler ve zorunlu invariant'lar** — iş kuralları handler'da değil aggregate'in içinde yaşar (private koleksiyon, davranış metotları). Geçersiz durumlar temsil edilemez.
 - **Vertical Slice + CQRS** — kod teknik katmana değil feature'a göre örgütlenir. Yazma/okuma ayrı slice'lar; repository yok — handler doğrudan Marten `IDocumentSession` kullanır.
 - **Exception yerine Result pattern** — beklenen hatalar (bulunamadı, doğrulama, kural ihlali) tipli `Result` nesneleriyle akar; exception yalnız gerçekten beklenmeyene ayrılır.
@@ -48,8 +48,8 @@ DDD, CQRS ve olay-güdümlü tasarımın gerçek .NET kodunda ne kadar ileri ta�
 - **JSON seed + kapak boru hattı (091/081)** — commit'li `books.json` açılışta katalogu satır satır doldurur (Gtin varsa atlar — admin düzenlemesi ezilmez; ürün CANLI doğar); `ProductAdded` event'iyle File BC kapağı R2'ye yazar, `CoverIngested` ile Catalog'a URL döner. Kapak kayıt defteri provider-agnostik (`IFileStore`: R2/Local).
 - **Ölü-mesaj gözlemlenebilirliği (088)** — her serviste uniform retry → error-queue yakalama; operatör MCP tool'larıyla listele/incele/replay. Cache boşaltma gibi idempotent mesajlar DLQ'ya düşmeden kendi durable retry merdivenini taşır.
 - **Satın-alma şartlı yorum** — `reviews` context'i yalnız ürünü gerçekten satın alan kullanıcıdan 1–5★ yorum kabul eder; hak, `OrderCompleted` event'inden yerel projeksiyonla belirlenir (senkron çağrı değil). Yorum hemen görünür (moderasyon yok); puan özeti Storefront'a akar.
-- **Hosted-CF ödeme (077)** — kart alanı sistemden geçmez. Payment BC bir **hosted ödeme linki** üretir (PG hosted sayfası), müşteri orada öder, PG **HMAC-imzalı callback** ile döner → `PaymentSucceeded`/`PaymentFailed` fanout. Terk-timer (`ScheduleAsync`) callback gelmezse Expire eder; `TxRef` unique olduğu için idempotent.
-- **Dayanıklı checkout orkestrasyonu (broker-only saga)** — checkout, kendi `Checkout.Orchestrator` servisinde Wolverine dayanıklı sağası olarak çalışır (durum Marten'de, `CheckoutId` anahtarlı). 077'de ödeme öncedendir → saga yalnız `CommitStock → Confirm → ClearBasket` sürer (Charge adımı söküldü). `CommittingStock`'ta stok başarısızsa LIFO telafi + takılan koşu için watchdog.
+- **Ödeme GEÇİCİ kapalı (093, PG pivotu)** — kart alanı sistemden hiç geçmedi; eski hosted-CF yolu (PG hosted link + HMAC callback + MerchantKey zinciri) dış PaymentGateway'in banka-adaptör pivotuyla söküldü. `start_payment` tool'u durur ama `PAYMENT_DISABLED` döner (yarım sipariş yaratmaz). Yeni yol **pay-by-link + webhook** kontratıyla ayrı feature olarak gelecek; `PaymentIntent` aggregate'i ve sonuç fanout kontratları geri dönüş için yerinde.
+- **Checkout koreografisi (092)** — merkezi orkestratör yok: `PaymentSucceeded → StockCommitRequested → StockCommitted/StockCommitFailed → Order.Confirm/Cancel → OrderCompleted` zinciri fanout event tepkileriyle yürür; her tüketim idempotent (durum-guard'lı), teknik hata retry→DLQ. Stok commit'i tüm kalemler için tek transaction'da ya-hep-ya-hiç.
 - **Fiyat alarmı + bildirim** — `library` context'i kullanıcı-ürün ilgi kayıtlarını ve yaşayan fiyat alarmı aboneliklerini tutar; `ProductChangedEvent.OldPrice` tetiğiyle alarm başına `PriceAlarmTriggered` yayınlar; Notification Agent maili üretir.
 - **Bildirimsel, kesişen caching + durable invalidation** — okuma sorguları tek `[Cached(...)]` attribute'uyla önbelleklenir (HybridCache L1 + Redis L2, `IMessageBus` decorator'ı; handler'lar dokunulmadan kalır). Boşaltma **epoch-key** desenidir: yazma commit'i sonrası durable mesaj → handler Redis `INCR` ile jenerasyonu artırır, eski girdiler erişilmez kalıp TTL'de ölür; Redis kesintisinde 2 dk aralıklı durable retry merdiveni insansız toparlar. Pod'lar arası L1 tutarlılığı Redis pub/sub backplane ile.
 - **Tek komutla orkestrasyon** — .NET Aspire her servisi, gateway'i, Postgres, RabbitMQ ve Redis'i service discovery + connection-string enjeksiyonuyla ayağa kaldırır.
@@ -78,18 +78,11 @@ flowchart TB
     Facade --> Discount["discount-api"]
     Catalog & Basket & Order & Customer -.->|JWT bearer / scope| IdP
 
-    Order -->|"S2S: hosted ödeme linki iste"| Payment
-    Payment -->|"hosted link"| PG["Dış PG hosted ödeme sayfası"]
-    PG -->|"HMAC-imzalı callback"| Payment
-
-    Catalog & Basket & Order & Stock & Payment & Storefront & Customer & Reviews & Library & Discount -->|integration events| MQ["RabbitMQ (fanout exchange + command kuyrukları)"]
-    Payment -->|"PaymentSucceeded / PaymentFailed"| MQ
-    MQ -->|"PaymentSucceeded→StartCheckout / PaymentFailed→Cancel"| Order
+    Catalog & Basket & Order & Stock & Payment & Storefront & Customer & Reviews & Library & Discount -->|integration events| MQ["RabbitMQ (fanout exchange'ler)"]
+    MQ -->|"PaymentSucceeded→StockCommitRequested / PaymentFailed→Cancel (092 koreografi — ödeme girişi 093'te kapalı)"| Order
     MQ -->|"dört kaynak event → event-log + async projection"| Storefront
     MQ -->|"ProductAdded → kapak yükle"| File["file-api"]
     File -->|CoverIngested| MQ
-    MQ -->|command / reply| Checkout["checkout-orchestrator"]
-    Checkout -->|"CommitStock / Confirm / ClearBasket"| MQ
 
     Library -->|PriceAlarmTriggered| MQ
     MQ -->|LLM compose| Notif["notification-agent<br/>(durumsuz worker)"]
@@ -109,10 +102,9 @@ flowchart TB
     Storefront --> ES[("Elasticsearch<br/>(arama doc + kNN)")]
     Customer --> DB7[("customerDb")]
     Reviews --> DB8[("reviewsDb")]
-    Checkout --> DB9[("checkoutDb")]
-    Library --> DB10[("libraryDb")]
-    Discount --> DB11[("discountDb")]
-    File --> DB12[("fileDb")]
+    Library --> DB9[("libraryDb")]
+    Discount --> DB10[("discountDb")]
+    File --> DB11[("fileDb")]
 
     Catalog & Customer -.->|"L1/L2 cache + epoch backplane"| Redis[("Redis")]
 ```
@@ -121,20 +113,19 @@ Her servis kendi kendine yeten bir bounded context'tir. Senkron trafik **MCP fas
 
 Müşteri hiçbir mağaza ekranı açmaz: **kendi AI istemcisiyle** platform MCP fasadına (AgentPlatform) bağlanır. Fasad, alt BC `/mcp` uçlarındaki tool'ları LAZY toplar (SDK `WithListToolsHandler`/`WithCallToolHandler`), tool adına göre sahip BC'ye çağrıyı **kullanıcı token'ıyla** proxy'ler (`PerUserMcpTool` server ikizi) — agent *o kullanıcı olarak* davranır.
 
-Olaylar dışında iki senkron kanal sanksiyonludur. **Stok rezervi** tipli **gRPC** kontratı (`Shared/Protos`) üzerindedir: Basket sepete-eklemede Stock'u senkron çağırır (fail-closed). **Order → Payment hosted ödeme linki** ise **servisten-servise** çağrıdır (kart alanı LLM'e/mesaja sızmaz). **Checkout** kendi `Checkout.Orchestrator` servisinde **broker command/reply** sağası olarak çalışır.
+Olaylar dışında senkron kanal sanksiyonlu **gRPC**'dir (`Shared/Protos`): **stok rezervi** (Basket sepete-eklemede Stock'u fail-closed çağırır), **sepet kalemleri** ve **aktif indirim yüzdesi** (Order). Checkout 092'den beri **koreografidir** — merkezi saga/orkestratör yok, zincir fanout event tepkileriyle yürür.
 
-## Ödeme + sipariş akışı (077, hosted-CF)
+## Ödeme + sipariş akışı (092 koreografi; ödeme girişi 093'te GEÇİCİ kapalı)
 
-Müşteri hiçbir ekrana dokunmadan, sohbetten uçtan uca ödeyip sipariş verir — ama kart verisi asla LLM'e teslim edilmez:
+**Bugünkü durum (093, PG pivotu):** dış PaymentGateway banka-adaptör modeline yeniden yazılıyor; EC'deki eski hosted-CF yolu (PG hosted link + HMAC callback + MerchantKey zinciri) söküldü. `start_payment` çağrısı `PAYMENT_DISABLED` döner ve sipariş YARATMAZ — belirsiz hata yerine bilinçli kapalı-bildirimi, yarım Pending kirliliği yok. Yeni yol **pay-by-link + webhook** kontratıyla ayrı feature'da gelecek (kart chat'e asla girmez; tek kullanımlık TTL'li link + PG hosted sayfası).
 
-1. **Ödeme başlat** — müşteri (AI istemcisi → platform MCP fasadı) `start_payment`'ı tetikler (Order.Api agent slice'ı). Order sepeti (Basket gRPC, sunucu-yetkili) + adresi okur, **Pending** bir sipariş yaratır ve Payment'tan **S2S** ile hosted ödeme linki ister.
-2. **Hosted ödeme** — Payment bir `PaymentIntent` yaratır (kart alanı yok), PG hosted linkini (`PgHostedPaymentClient`, `MerchantKey` S2S) üretir; müşteri PG'nin hosted sayfasında öder.
-3. **Callback** — PG, ayrı `CallbackSecret` ile **HMAC-imzalı** callback döner; Payment doğrular → `PaymentSucceeded` veya `PaymentFailed` yayınlar. `TxRef` unique olduğu için idempotent; callback gelmezse terk-timer (`ScheduleAsync`) Expire eder.
-4. **Saga tetiği** — Order `PaymentSucceeded`'ı tüketir → `StartCheckout` yayınlar (`CheckoutId = OrderId`) / `PaymentFailed` → siparişi Cancel eder.
-5. **Checkout sağası** — `Checkout.Orchestrator` `CommitStock (kalem başına) → Confirm → ClearBasket` sürer (ödeme önceden olduğu için Charge adımı yok). Stok başarısızsa LIFO telafi + watchdog.
-6. **Tamamlanma** — Order `Confirm`'de `OrderCompleted` fanout eder (Reviews yorum-hakkı + Storefront `UserPurchase`).
+Ödeme sonucu event'leri yeniden akmaya başladığında devralan **092 koreografisi** yerinde ve değişmeden durur:
 
-Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bir "başarılı" bedava sipariş demektir. O yüzden ödeme dış PG'nin hosted sayfasında olur, doğrulama HMAC callback ile **sunucu tarafında**dır; LLM yalnız akışı başlatır. Kart ekleme/çıkarma sohbette **reddedilir** (güvenlik) — kart mağazanın işi değil (PSP sorumluluğu).
+1. `PaymentSucceeded` → Order `StockCommitRequested` yayınlar / `PaymentFailed` → siparişi Cancel eder.
+2. Stock TÜM kalemleri **tek transaction'da ya-hep-ya-hiç** commit eder → `StockCommitted` / `StockCommitFailed`.
+3. `StockCommitted` → `Order.Confirm` → `OrderCompleted` fanout (Reviews yorum-hakkı + Library `UserPurchase` + Basket temizliği); `StockCommitFailed` → Cancel + manuel-iade kaydı.
+
+Neden ödeme hep hosted kalır: `paymentId` başarı kanıtı değildir; halüsine bir "başarılı" bedava sipariş demektir. Ödeme dış PG sayfasında olur, doğrulama **sunucu tarafında**dır; LLM yalnız akışı başlatır. Kart ekleme/çıkarma sohbette **reddedilir** — kart mağazanın işi değil (PSP sorumluluğu).
 
 ## Teknoloji Yığını
 
@@ -144,8 +135,8 @@ Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bi
 | Orkestrasyon | .NET Aspire (AppHost + ServiceDefaults) |
 | Kalıcılık | Marten (PostgreSQL document / event store) |
 | Arama | Elasticsearch (turkish analyzer + `dense_vector` kNN; Kibana dev-görünürlük) |
-| Bus & messaging | Wolverine (CQRS bus + RabbitMQ messaging + dayanıklı saga) |
-| Messaging transport | RabbitMQ (fanout exchange + command/reply kuyrukları) |
+| Bus & messaging | Wolverine (CQRS bus + RabbitMQ messaging) |
+| Messaging transport | RabbitMQ (fanout exchange'ler) |
 | Caching | HybridCache (L1 bellek + Redis L2), AOP decorator; epoch-key durable invalidation + pub/sub backplane |
 | Kimlik & yetki | Platform IdP — **AgentPlatform repo'su** (OpenIddict + ASP.NET Identity; OIDC/OAuth, scope-tabanlı, RFC 7591 DCR); ECommerce relying party (`Platform.Auth` paketi) |
 | Müşteri yüzeyi | Tek MCP fasadı (AgentPlatform'a taşındı, 001) — dış AI istemcisi tüketir |
@@ -161,16 +152,15 @@ Neden ödeme hosted + S2S: `paymentId` başarı kanıtı değildir; halüsine bi
 |---------|----------------|
 | `catalog-api` | Zengin `Product` + `Category` + `Author` + `Publisher` + tag + spesifikasyon (kitap künyesi: çok-yazar, tek yayınevi); first-party ürün yazımı (091: commit'li `books.json` seed açılışta satır satır, Gtin varsa atlar; ürün CANLI doğar, taslak/yayın ekseni yok) + admin düzenleme + fiyat geçmişi; kapak URL'i File'dan `CoverIngested`'le; admin tool'ları tek korumalı `/mcp`'de (085) |
 | `basket-api` | Kalıcı sepet + kalem; anonim sahiplik; stok tutmaz; yüzey MCP-only + checkout gRPC |
-| `order-api` | Sipariş aggregate + yaşam döngüsü; `start_payment` (sepet+adres oku, Pending sipariş, Payment S2S hosted link); `PaymentSucceeded→StartCheckout` / `PaymentFailed→Cancel`; Confirm'de `OrderCompleted` fanout |
+| `order-api` | Sipariş aggregate + yaşam döngüsü; `start_payment` GEÇİCİ kapalı (093: `PAYMENT_DISABLED`, pay-by-link bekleniyor); 092 koreografi: `PaymentSucceeded→StockCommitRequested` / `PaymentFailed→Cancel`; `StockCommitted`→Confirm'de `OrderCompleted` fanout |
 | `stock-api` | `ProductStock` (OnHand); ilk stok `ProductLinked`'ten; checkout düşümü broker'dan; gRPC rezerv sunucusu; admin set/adjust tek korumalı `/mcp`'de (085) |
-| `payment-api` | Hosted-CF ödeme (077): `PaymentIntent` (kart alanı yok); PG hosted link + HMAC callback → `PaymentSucceeded`/`PaymentFailed`; terk-timer; `TxRef` unique idempotent |
+| `payment-api` | `PaymentIntent` durum makinesi + ödeme geçmişi okuma (kart alanı yok, `TxRef` unique); ödeme GİRİŞİ 093'te söküldü (PG pivotu) — `PaymentSucceeded`/`PaymentFailed` fanout kontratı yerinde, pay-by-link kontratı bekleniyor |
 | `storefront-api` | CQRS + Event Sourcing (086): Postgres ürün-stream event-log (gerçek-kaynak) + async projection → Elasticsearch dokümanı; tek asistan tool `query_storefront` = ham ES Query DSL (text+fuzzy+kNN+filtre; minimal rail + `AgentQueryLog`) |
-| `customer-api` | Wallet (tokenize kart, PAN yok; kart YAZMA yüzeyi yok — salt okuma + payment-context) + AddressBook + `MerchantInformation`; merchant-admin tool'ları tek korumalı `/mcp`'de (085); 087: makine-handoff PG onboarding (S2S register + HMAC credential dönüşü — sır insan-yüzeyde render edilmez) |
+| `customer-api` | AddressBook (adres defteri, ≤1 varsayılan invariant'ı); izole, event yaymaz; Order'a varsayılan-adres gRPC'si. Wallet 076'da, merchant kimliği/onboarding makineleri (087) 093 PG pivotunda söküldü |
 | `reviews-api` | Satın-alma şartlı yorum (1–5★); hak `OrderCompleted` event'inden; yorum hemen görünür (moderasyon yok); puan özeti Storefront'a |
 | `library-api` | Kullanıcı-ürün ilgi kayıtları + yaşayan fiyat alarmı aboneliği (email snapshot) + `NotificationRecord`; `ProductChangedEvent.OldPrice` tetiği → `PriceAlarmTriggered`; `UserPurchase` kişisel satın-alma birikimi (086, `OrderCompleted` upsert) |
 | `discount-api` | Admin kampanya indirimi (079): süzgeç (kategori/yazar/yayınevi/tek-kitap) → yüzde; kitap-başına tek indirim, vitrine event'le iter, süre dolunca temizler; fiyat tutmaz — Order'a gRPC aktif-yüzde |
 | `file-api` | Kapak kayıt defteri (081/083): `FileAsset` (ImageName=ISBN unique) + çoklu fiziki depo (`IFileStore`: R2/Local); `ProductAdded` tüketir → kapağı yükler → `CoverIngested` yayar; anonim cover serve + S2S resolve |
-| `checkout-orchestrator` | Standalone broker-only checkout sağası (`checkoutDb`): `CommitStock → Confirm → ClearBasket`; LIFO telafi + watchdog (ödeme öncedendir) |
 | _(identity-server)_ | **TAŞINDI → AgentPlatform** (084): platform IdP — OpenIddict + ASP.NET Identity, OIDC/OAuth + RBAC (rol = scope demeti) + DCR + consent + revocation; ECommerce relying party, AppHost proje-ref'i YOK |
 | _(MCP fasadı)_ | **TAŞINDI → AgentPlatform** (001): tek MCP fasadı artık bu repoda değil; AgentPlatform'ın Aspire host'unda koşar, EC `/mcp` uçlarını sabit URL'lerle downstream toplar. EC ürün `/mcp` uçları KORUNUR |
 | `notification-agent` | Durumsuz worker — `PriceAlarmTriggered → LLM compose → Mail.Mcp send_mail → NotificationSent`; DB yok |
@@ -185,10 +175,10 @@ Paylaşılan temeller `src/others` altında: `Common` (domain yapı taşları, r
 - **Exception yerine Result.** Tüm handler, aggregate metodu ve endpoint bir `Result` döner; endpoint `IsSuccess`'i `Ok`/`BadRequest`'e çevirir.
 - **Agent-only müşteri yüzeyi, tek fasad.** Her müşteri işlemi MCP paritesine ulaşınca ekranlar ve mağazanın kendi agent'ı söküldü; mağaza artık BYO-agent. Müşteri kendi AI istemcisiyle tek platform MCP fasadına (AgentPlatform) bağlanır, tek login yeterlidir.
 - **MCP yalnız agent tüketir.** Agent olmayan kod imperatif `CallToolAsync` süremez → REST/gRPC/S2S. MCP tool'ları ince sarmalayıcıdır: aynı Wolverine command/query'yi çağırır, yalnız LLM-dostu ad + açıklama ekler; sıfır iş-mantığı tekrarı.
-- **Saga bir servistir, bir god-object değil.** Checkout orkestrasyonu dört context'e yayılan bir süreç sahibidir, o yüzden **kendi BC'sinde** yaşar ve yalnız broker command/reply konuşur — asla başka servisin veritabanı.
-- **İki-fazlı ödeme yerine hosted-CF.** Ödeme dış PG'nin hosted sayfasında, checkout'tan **önce** olur; başarı HMAC callback ile doğrulanır. Saga içinde authorize/capture/void makinesi yoktur — ödeme saga dışıdır, saga yalnız stok+onay sürer.
+- **Orkestrasyon yerine koreografi (092).** Checkout merkezi saga değil event zinciridir: her BC kendi tepkisinin sahibi, her tüketim idempotent, takılma durable mesaj + DLQ ile görünür. Ayrı orchestration servisi (049) bilinçli söküldü.
+- **İki-fazlı ödeme yerine hosted ödeme.** Ödeme dış PG sayfasında, checkout'tan **önce** olur; doğrulama sunucu tarafındadır. Authorize/capture/void makinesi yoktur — ödeme koreografi dışıdır, zincir yalnız stok+onay sürer. (093: ödeme girişi pay-by-link kontratına dek geçici kapalı.)
 - **Servisler arası anlık evet/hayır gereken yerde senkron RPC.** Stok rezervi (basket/order → stock) sanksiyonlu senkron kanaldır: tipli gRPC, scope-korumalı, fail-closed. DB izolasyonu korunur — çağıran Stock'un API'sine erişir, veritabanına değil.
-- **Servisler arası transaction yerine idempotency.** Context'ler arası yazımlar transaction paylaşamaz; saga bunun yerine yakınsar: deterministik anahtarlar (`CheckoutId`/`TxRef`), en-az-bir-kez teslim, iş hataları sonsuz retry yerine telafiye yönlendirilir.
+- **Servisler arası transaction yerine idempotency.** Context'ler arası yazımlar transaction paylaşamaz; zincir yakınsar: deterministik anahtarlar (`OrderId`/`TxRef`), en-az-bir-kez teslim, her tüketim durum-guard'lı idempotent.
 - **Eventual-consistency akışları event kullanır, gRPC değil.** Satın-alma sonrası yazılan yorum anlık yanıt gerektirmez, o yüzden hak `OrderCompleted` projeksiyonudur — gRPC yalnız anlık-tutarlılığa (stok) ayrılmıştır.
 - **Rol downstream'e sızmaz — yalnız scope.** Identity rol verir (rol = scope demeti); servisler saf scope'a göre yetkilendirir. Okumalar (stok, storefront) anonim; token alışveriş yazma yolunda önemlidir.
 

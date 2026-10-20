@@ -30,8 +30,6 @@
     <!-- 077 (074'te REST'ten gRPC'ye taşındı): varsayılan adres okuma (Order.Api S2S). -->
     <ItemGroup>
         <Protobuf Include="..\..\..\others\Shared\Protos\address_query.proto" GrpcServices="Server" />
-        <!-- 074: merchant-key okuma (Payment.Api S2S) REST'ten gRPC'ye taşındı. -->
-        <Protobuf Include="..\..\..\others\Shared\Protos\merchant_key.proto" GrpcServices="Server" />
     </ItemGroup>
 
     <ItemGroup>

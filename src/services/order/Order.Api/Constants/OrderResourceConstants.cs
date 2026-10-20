@@ -23,4 +23,7 @@ public static class OrderResourceConstants
     // hosted-CF ödeme başlat (start_payment) — dış PG/link üretimi başarısız.
     public static readonly string PAYMENT_GATEWAY_UNAVAILABLE = "PAYMENT_GATEWAY_UNAVAILABLE";
     public static readonly string PAYMENT_BASKET_EMPTY = "PAYMENT_BASKET_EMPTY";
+
+    // 093 PG pivotu: ödeme yolu söküldü, yeni pay-by-link kontratı gelene dek start_payment kapalı.
+    public static readonly string PAYMENT_DISABLED = "PAYMENT_DISABLED";
 }

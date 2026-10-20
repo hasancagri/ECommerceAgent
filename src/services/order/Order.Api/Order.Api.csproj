@@ -37,8 +37,6 @@
         <Protobuf Include="..\..\..\others\Shared\Protos\basket_items.proto" GrpcServices="Client" />
         <!-- 074: varsayılan adres okuma istemcisi (REST'ten gRPC'ye taşındı). -->
         <Protobuf Include="..\..\..\others\Shared\Protos\address_query.proto" GrpcServices="Client" />
-        <!-- 074: hosted-CF ödeme intent istemcisi (REST'ten gRPC'ye taşındı). -->
-        <Protobuf Include="..\..\..\others\Shared\Protos\payment_intent.proto" GrpcServices="Client" />
         <!-- 079: checkout aktif indirim yüzdesi istemcisi (start_payment tutar hesabı). -->
         <Protobuf Include="..\..\..\others\Shared\Protos\discount_query.proto" GrpcServices="Client" />
     </ItemGroup>

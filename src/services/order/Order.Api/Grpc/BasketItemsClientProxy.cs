@@ -1,10 +1,13 @@
 namespace Order.Api.Grpc;
 
-// hosted-CF start_payment — sepet kalemleri GetBasketItems gRPC ile SUNUCU tarafında okunur (kalem
-// otoritesi: fiyat/adet LLM'e girmez). Fail-closed: Basket erişilemezse Unavailable (link üretilmez).
+// Sepet kalemleri GetBasketItems gRPC ile SUNUCU tarafında okunur (kalem otoritesi: fiyat/adet LLM'e
+// girmez). Fail-closed: Basket erişilemezse Unavailable (link üretilmez). 093: ödeme yolu söküldü,
+// proxy pay-by-link gelene dek uykuda; kalem DTO'su tek tüketici burası olduğundan bu dosyada yaşar.
+public sealed record OrderItemDto(Guid ProductId, string ProductName, decimal UnitPrice, int Quantity = 1);
+
 public sealed record BasketSnapshot(
     bool Reachable,
-    IReadOnlyList<OrderDtos.OrderItemDto> Items,
+    IReadOnlyList<OrderItemDto> Items,
     decimal TotalPrice)
 {
     public bool IsEmpty => Items.Count == 0;
@@ -26,7 +29,7 @@ public sealed class BasketItemsClientProxy(BasketQuery.BasketQueryClient client)
             }, deadline: DateTime.UtcNow.Add(CallDeadline), cancellationToken: ct);
 
             var items = reply.Items
-                .Select(l => new OrderDtos.OrderItemDto(
+                .Select(l => new OrderItemDto(
                     Guid.Parse(l.ProductId), l.Name, (decimal)l.UnitPrice, l.Quantity))
                 .ToList();
 
@@ -40,7 +43,7 @@ public sealed class BasketItemsClientProxy(BasketQuery.BasketQueryClient client)
 
     // Deterministik sepet-içerik hash'i: kalemleri ProductId'ye göre sırala, ProductId:Quantity:UnitPrice
     // birleştir, SHA256 hex. re-use eşleşmesi (BasketRef) — sepet değişince hash değişir → yeni intent.
-    public static string ComputeBasketRef(IReadOnlyList<OrderDtos.OrderItemDto> items)
+    public static string ComputeBasketRef(IReadOnlyList<OrderItemDto> items)
     {
         var payload = string.Join("|", items
             .OrderBy(i => i.ProductId)
