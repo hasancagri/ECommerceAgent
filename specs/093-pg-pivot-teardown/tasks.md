@@ -100,7 +100,7 @@ referansı 0; build+test yeşil.
       `commission.read/write` çıkar (diğer config dosyalarını da tara)
 - [X] T019 [US4] `~/dev/AgentPlatform/tests/Mcp.Gateway.Tests/ToolRoutingRegistryTests.cs` pg-*
       fixture'larını güncelle; `dotnet test` (AgentPlatform çözümü)
-- [ ] T020 [US4] AgentPlatform'da ayrı commit (EC PR'ına girmez)
+- [X] T020 [US4] AgentPlatform'da ayrı commit (EC PR'ına girmez)
 
 ---
 
