@@ -135,5 +135,18 @@
 "Ürünü sepete at": "Add product to basket",
 "İndirimi kaldır": "Remove discount",
 "İndirimi uygula": "Apply discount",
-"İz yazılır": "Audit trail written"
+"İz yazılır": "Audit trail written",
+"Açılışta katalog commit'li seed'den dolar (091)": "Catalog fills from committed seed at startup (091)",
+"Hotspot (open): yeni PG pay-by-link kontratı bekleniyor": "Hotspot (open): waiting for new PG pay-by-link contract",
+"Onayla": "Confirm",
+"Sipariş stoğunu commit et": "Commit order stock",
+"Sipariş tamamlanınca sepet boşalır (hand-off)": "Basket empties when order completes (hand-off)",
+"Stok commit edildi": "Stock committed",
+"Stok commit edildi / yetersiz": "Stock committed / insufficient",
+"Stok commit talep et": "Request stock commit",
+"Stok yetersiz": "Stock insufficient",
+"Varsayılan adres ödeme/sipariş akışını besler": "Default address feeds payment/order flow",
+"başarılı ödeme stok commit'i ister": "Successful payment requests stock commit",
+"stok onaylı sipariş tamamlanır": "Stock-confirmed order completes",
+"yetersiz stok siparişi düşürür": "Insufficient stock cancels order"
 }
