@@ -14,10 +14,8 @@ public static class MartenExtensions
                 opts.UseNewtonsoftForSerialization(
                     nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,
                     configure: s => s.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor);
-                // Wallet (kart-saklama) SÖKÜLDÜ; Customer BC = AddressBook + MerchantInformation.
+                // Wallet (076) + MerchantInformation (093 PG pivotu) SÖKÜLDÜ; Customer BC = AddressBook.
                 opts.Schema.For<Customer.Api.Domains.AddressBooks.AddressBook>().Index(x => x.UserId);
-                // Merchant kimliği (tekil kayıt) — merchant onboarding/admin.
-                opts.Schema.For<Customer.Api.Domains.MerchantInformations.MerchantInformation>();
             })
             .IntegrateWithWolverine()
             .ApplyAllDatabaseChangesOnStartup();

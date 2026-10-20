@@ -4,8 +4,7 @@ namespace Shared;
 // emsali): sunucu attribute'ı ([McpServerTool(Name = ...)]) ile istemci (ChatAgent allowlist +
 // prompt kalıpları) aynı sabiti okur — rename artık derleme hatasıyla yakalanır, sessiz kopmaz.
 // DİKKAT: dış MCP istemcileri (Claude Desktop vb., 061) bu adları dışarıdan görür — sabiti
-// değiştirmek DIŞ KIRILMADIR, bilinçli yapılır. Sınıf-başına-BC gruplama; DropShop onboarding
-// adları BURADA DEĞİL (dış solution kontratı, ChatAgent/ConstValues.cs'te).
+// değiştirmek DIŞ KIRILMADIR, bilinçli yapılır. Sınıf-başına-BC gruplama.
 
 public static class CatalogTools
 {
@@ -53,7 +52,7 @@ public static class StorefrontTools
 
 public static class CustomerTools
 {
-    public const string ListCards = "list_cards";
+    // list_cards 076'da Wallet'la birlikte emekli (sabit 093 temizliğinde düştü).
     public const string ListAddresses = "list_addresses";
     public const string AddAddress = "add_address";
     public const string UpdateAddress = "update_address";
@@ -121,16 +120,7 @@ public static class StockAdminTools
     public const string ListAllStock = "admin_list_all_stock";
 }
 
-public static class CustomerAdminTools
-{
-    public const string GetMerchantStatus = "admin_get_merchant_status";
-    // 087: elle credential giriş/teslim yüzeyi SÖKÜLDÜ — kayıt store-başlatır, credential HMAC-callback'le gelir.
-    public const string OnboardingStatus = "admin_onboarding_status";
-    // 087: makine-handoff kayıt başlatır (store→PG S2S, bootstrap key); yalnız durum döner, credential YOK.
-    public const string StartOnboarding = "admin_start_onboarding";
-    // 087: PG'de merchant key yenileme tetikler; yeni key aynı HMAC-callback yoluyla gelir (ekransız).
-    public const string ReissueMerchantKey = "admin_reissue_merchant_key";
-}
+// (093): CustomerAdminTools (087 merchant onboarding tool'ları) SÖKÜLDÜ — PG pivotu, Merchant BC öldü.
 
 // 088: ölü-mesaj (dead-letter) operatör tool'ları — her BC'nin /mcp'sinde (scope ops.deadletter).
 // Admin kendi AI istemcisinden "hata var mı / tekrar dene" akışını bu tool'larla yürütür.

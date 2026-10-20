@@ -8,12 +8,6 @@
 
     <ItemGroup>
         <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
-        <PackageReference Include="Grpc.AspNetCore" />
-        <PackageReference Include="Grpc.Net.ClientFactory" />
-        <PackageReference Include="Google.Protobuf" />
-        <PackageReference Include="Grpc.Tools">
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
         <PackageReference Include="Marten" />
         <PackageReference Include="Marten.Newtonsoft" />
         <PackageReference Include="Newtonsoft.Json" />
@@ -28,12 +22,6 @@
         <PackageReference Include="Duende.IdentityModel" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
         <PackageReference Include="ModelContextProtocol.AspNetCore" />
-    </ItemGroup>
-
-    <!-- 077 (gRPC'ye taşındı): PaymentIntent S2S sunucu (Order.Api istemci) + MerchantKey S2S istemci (Customer.Api sunucu). -->
-    <ItemGroup>
-        <Protobuf Include="..\..\..\others\Shared\Protos\payment_intent.proto" GrpcServices="Server" />
-        <Protobuf Include="..\..\..\others\Shared\Protos\merchant_key.proto" GrpcServices="Client" />
     </ItemGroup>
 
     <ItemGroup>

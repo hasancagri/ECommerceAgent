@@ -36,9 +36,6 @@ public static class AuthorizationScopes
     // customer.api (022): kayitli kart (Wallet) + adres defteri (AddressBook)
     public const string CustomerRead = "customer.read";
     public const string CustomerWrite = "customer.write";
-    // DropShop vault merchant kimligi (merchantId+key) yonetimi — admin-only capability (customer HARIC).
-    // Audience customer.api (endpoint Customer.Api'de). Onboarding'de admin'e verilen kimligi girer.
-    public const string MerchantCredentialsWrite = "merchant.credentials.write";
 
     // reviews.api (044): yorum yazma + uygunluk sorgusu; Order satin-alma-kaniti gRPC ucu da
     // bu scope'u ister (R4: ayri scope acilmaz, sub==user_id guard'i sunucuda).
@@ -60,12 +57,5 @@ public static class AuthorizationScopes
     // Identity.Server ic yuzeyini belirler.
     public const string IdentityRolesManage = "identity.roles.manage";
 
-    // (PG bloğu): PaymentGateway MCP tool'ları store fasadına downstream bağlandı — fasat bunları
-    // PRM'de ilan eder + DiscoveryScope'ta talep eder. Audience'lar PG BC'lerinde (merchant.api /
-    // commission.api); yetki PG'nin "Platform" şemasında + tool-bazlı [RequiredScope]'ta zorlanır.
-    public const string MerchantRead = "merchant.read";
-    public const string MerchantWrite = "merchant.write";
-    public const string MerchantAdmin = "merchant.admin";
-    public const string CommissionRead = "commission.read";
-    public const string CommissionWrite = "commission.write";
+    // (093): PG bloğu (merchant.*/commission.*) SÖKÜLDÜ — PG pivotu, Merchant+Commission BC'leri öldü.
 }

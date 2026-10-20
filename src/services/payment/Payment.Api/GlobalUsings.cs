@@ -28,25 +28,9 @@ global using Common.Dependencies;
 global using Payment.Api.Domains.Payments.Features.Agents;
 global using Shared.Utils.Constants;
 
-// hosted-CF ödeme — options + S2S + auth.
+// auth + options (093: PG istemci/callback/gRPC using'leri sökümle düştü).
 global using Platform.Auth;
 global using Common.Utils.Authorization;
-global using Payment.Api.Options;
 global using Microsoft.Extensions.Options;
-global using System.Net.Http.Headers;
-global using System.Net.Http.Json;
-global using System.ComponentModel.DataAnnotations;
-global using System.Security.Cryptography;
-global using System.Text;
-global using System.Text.Json;
-global using System.Net.Http;
-global using Payment.Api.Infrastructure;
 global using Shared;
-
-// (gRPC'ye taşındı): PaymentIntent S2S sunucu + MerchantKey S2S istemci.
-global using Grpc.Core;
-global using Shared.Grpc.Payment;
-global using Shared.Grpc.Customer;
-global using Payment.Api.Grpc;
-global using Payment.Api.Grpc.HostedPayment;
 global using Payment.Api.Extensions;

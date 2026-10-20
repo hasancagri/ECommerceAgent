@@ -18,33 +18,20 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.CustomerRead,
     AuthorizationScopes.CustomerWrite,
-    // Vault merchant kimliği yönetimi (admin-only capability).
-    AuthorizationScopes.MerchantCredentialsWrite,
     // 088: ölü-mesaj operatör tool'ları (admin_list/get/replay/discard_dead_letter).
     AuthorizationScopes.OpsDeadletter);
 // RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
 // fix: 062 adres YAZMA tool'ları açıldığında bu liste bayat kalmıştı — scope'unu PRM'den türeten
 // istemciler (mcp-remote köprüsü) customer.write'sız token alıp add_address'te düşüyordu.
-// /mcp TEK uç — PRM TAM demeti ilan eder (merchant.credentials.write dahil, contracts/mcp-surface.md).
+// /mcp TEK uç — PRM TAM demeti ilan eder.
 builder.Services.AddMcpResourceMetadata(builder.Configuration, "customer",
-    AuthorizationScopes.CustomerRead, AuthorizationScopes.CustomerWrite, AuthorizationScopes.MerchantCredentialsWrite,
+    AuthorizationScopes.CustomerRead, AuthorizationScopes.CustomerWrite,
     AuthorizationScopes.OpsDeadletter);
 // logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// DropShop onboarding config (section "DropShopOnboarding"). (076: DropShopVault/kart config söküldü.)
-builder.Services.AddOptionsExt();
-
-// D3: PG onboarding S2S REST istemcisi — makine kimliği (client_credentials) handler'ıyla
-// (070'in imperatif MCP sapması US4'te SÖKÜLDÜ; kontrat specs/078/contracts/pg-onboarding-rest.md).
-builder.Services.AddTransient<Customer.Api.Onboarding.OnboardingGatewayTokenHandler>();
-builder.Services.AddHttpClient<Customer.Api.Onboarding.PgOnboardingClient>()
-    .AddHttpMessageHandler<Customer.Api.Onboarding.OnboardingGatewayTokenHandler>()
-    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    });
+// 093 PG pivotu: DropShop onboarding config + S2S istemcisi (087 makineleri) SÖKÜLDÜ.
 
 // L2 (paylaşımlı) önbellek katmanı — Redis IDistributedCache; opsiyonel (yoksa HybridCache yalnız L1).
 if (builder.Configuration.GetConnectionString("redis") is not null)
@@ -82,13 +69,6 @@ app.UseAuthorization();
 // performans için REST'ten gRPC'ye taşındı (İlke I — BC-arası S2S artık gRPC, dış webhook hariç).
 app.MapGrpcService<Customer.Api.Grpc.HostedPayment.AddressGrpcService>()
     .RequireAuthorization(AuthorizationScopes.CustomerRead);
-// Payment.Api PG hosted-payment X-Api-Key kaynağı S2S çeker (customer.read). REST'ten gRPC'ye taşındı.
-app.MapGrpcService<Customer.Api.Grpc.HostedPayment.MerchantKeyGrpcService>()
-    .RequireAuthorization(AuthorizationScopes.CustomerRead);
-
-// 087: PG→store credential callback ucu — HMAC imzalı (JWT değil; İlke V kanıt = imza). Raw body okur,
-// imza doğrular, geçerliyse ReceiveMerchantCredentials invoke eder. (078 elle-giriş ekranı SÖKÜLDÜ.)
-app.MapMerchantRegistrationCallbackEndpoint();
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
 // TEK uç — merchant admin tool'lar scope-budamalı aynı ucta (scope katmanı handler'larda). /mcp-admin öldü.

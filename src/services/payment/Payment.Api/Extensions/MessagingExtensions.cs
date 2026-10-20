@@ -16,11 +16,6 @@ public static class MessagingExtensions
             if (builder.Environment.IsDevelopment())
                 opts.Durability.Mode = DurabilityMode.Solo;
 
-            // CreatePaymentIntent handler'ı typed HttpClient (MerchantKeyClient/PgHostedPaymentClient,
-            // AddHttpClient<T> = opaque lambda transient) inject eder; Wolverine inline codegen bunları
-            // service-location ister. Varsayılan NotAllowed → 500. Order.Api ile aynı politika.
-            opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
-
             // checkout Charge broker yolu SÖKÜLDÜ (PaymentCommandsQueue listen + PaymentCharged publish).
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!).AutoProvision();
 
@@ -39,8 +34,6 @@ public static class MessagingExtensions
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-            // Handler/Consumer son eki taşımayan süreç sınıfı taramada keşfedilmez → açık kayıt şart.
-            opts.Discovery.IncludeType(typeof(Payment.Api.Process.PaymentIntentExpiry));
             // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.

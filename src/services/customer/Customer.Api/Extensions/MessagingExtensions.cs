@@ -14,11 +14,6 @@ public static class MessagingExtensions
             if (builder.Environment.IsDevelopment())
                 opts.Durability.Mode = DurabilityMode.Solo;
 
-            // onboarding handler'ları typed HttpClient (PgOnboardingClient, AddHttpClient<T> = opaque
-            // lambda transient) inject eder; Wolverine inline codegen bunları service-location ister.
-            // Varsayılan NotAllowed → 500. Payment/Order.Api ile aynı politika.
-            opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
-
             // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
             opts.OnException<Exception>().RetryWithCooldown(
                 TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
