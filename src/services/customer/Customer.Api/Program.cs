@@ -31,8 +31,6 @@ builder.Services.AddMcpResourceMetadata(builder.Configuration, "customer",
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// 093 PG pivotu: DropShop onboarding config + S2S istemcisi (087 makineleri) SÖKÜLDÜ.
-
 // L2 (paylaşımlı) önbellek katmanı — Redis IDistributedCache; opsiyonel (yoksa HybridCache yalnız L1).
 if (builder.Configuration.GetConnectionString("redis") is not null)
     builder.AddRedisDistributedCache("redis");

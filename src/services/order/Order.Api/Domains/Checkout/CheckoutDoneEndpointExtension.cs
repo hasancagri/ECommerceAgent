@@ -7,8 +7,8 @@ public static class CheckoutDoneEndpointExtension
     public static void AddCheckoutDoneEndpoint(this WebApplication app)
     {
         app.MapGet("/checkout/done", () => Results.Content(
-                "<html><body><h3>Ödeme işleminiz alındı.</h3><p>Sohbetinize dönebilirsiniz.</p></body></html>",
-                "text/html"))
+                "<html><head><meta charset=\"utf-8\"></head><body><h3>Ödeme işleminiz alındı.</h3><p>Sohbetinize dönebilirsiniz.</p></body></html>",
+                "text/html", System.Text.Encoding.UTF8))
             .WithTags("checkout")
             .AllowAnonymous();
     }

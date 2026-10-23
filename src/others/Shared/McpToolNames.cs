@@ -120,8 +120,6 @@ public static class StockAdminTools
     public const string ListAllStock = "admin_list_all_stock";
 }
 
-// (093): CustomerAdminTools (087 merchant onboarding tool'ları) SÖKÜLDÜ — PG pivotu, Merchant BC öldü.
-
 // 088: ölü-mesaj (dead-letter) operatör tool'ları — her BC'nin /mcp'sinde (scope ops.deadletter).
 // Admin kendi AI istemcisinden "hata var mı / tekrar dene" akışını bu tool'larla yürütür.
 public static class DeadLetterAdminTools

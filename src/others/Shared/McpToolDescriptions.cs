@@ -315,8 +315,6 @@ public static class McpToolDescriptions
             "+ pageSize; ikisi de verilmezse tüm kayıtlar döner. Salt-okuma, denetim izi bırakmaz. Tek ürün için get_stock kullan.";
     }
 
-    // (093): CustomerAdminTools (087 merchant onboarding) SÖKÜLDÜ — PG pivotu.
-
     public static class DeadLetterAdminTools
     {
         public const string ListDeadLetters =
