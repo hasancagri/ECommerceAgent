@@ -43,7 +43,7 @@ app.UseAuthorization();
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge (dış agent keşfi).
 // get_price_alarm library.read; create/remove library.write (agent slice [RequiredScope]).
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp");
 app.MapMcpResourceMetadata();
 
 await app.RunAsync();

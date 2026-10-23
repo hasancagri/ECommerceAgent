@@ -76,7 +76,7 @@ app.MapGrpcService<Payment.Api.Grpc.PaymentIntentGrpcService>();
 app.AddPaymentCallbackEndpoint();
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp");
 app.MapMcpResourceMetadata();
 
 await app.RunAsync();

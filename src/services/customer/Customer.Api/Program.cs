@@ -70,7 +70,7 @@ app.MapGrpcService<Customer.Api.Grpc.HostedPayment.AddressGrpcService>()
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
 // TEK uç — merchant admin tool'lar scope-budamalı aynı ucta (scope katmanı handler'larda). /mcp-admin öldü.
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp");
 app.MapMcpResourceMetadata();
 
 await app.RunAsync();

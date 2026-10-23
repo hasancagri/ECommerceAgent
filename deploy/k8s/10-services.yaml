@@ -24,6 +24,9 @@ spec:
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
             - { name: "ImportOptions__PublicBaseUrl", value: "http://catalog-api:8080" }
             - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            # 091 açılış seed'i: books.json image'da (/app/Seeding/Data/books.json). Local Aspire'da yolu
+            # AppHost enjekte eder; k8s'te YOK → SourceJsonPath boş → seeder atlar (boş katalog). Burada set.
+            - { name: "SeedOptions__SourceJsonPath", value: "/app/Seeding/Data/books.json" }
 ---
 apiVersion: v1
 kind: Service
