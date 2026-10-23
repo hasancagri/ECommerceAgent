@@ -50,7 +50,7 @@ app.UseAuthorization();
 app.MapGrpcService<Discount.Api.Grpc.Checkout.DiscountQueryGrpcService>().RequireAuthorization(AuthorizationScopes.DiscountRead);
 
 // R5: korumalı yönetim ucu — kimliksiz istek 401 + resource_metadata challenge. /mcp-admin öldü.
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp");
 app.MapMcpResourceMetadata();
 
 await app.RunAsync();

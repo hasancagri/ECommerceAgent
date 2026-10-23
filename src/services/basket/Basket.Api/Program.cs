@@ -61,7 +61,7 @@ app.UseAuthorization();
 
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp");
 app.MapMcpResourceMetadata();
 
 // GetBasketItems gRPC ucu (Order.Api chat siparis tamamlama; makine token'i basket.read).

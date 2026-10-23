@@ -41,7 +41,7 @@ app.UseAuthorization();
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge (dış agent keşfi).
 // get_reviews login yeter (RequiredScope yok); eligibility/submit reviews.write (Wolverine middleware).
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp");
 app.MapMcpResourceMetadata();
 
 await app.RunAsync();
