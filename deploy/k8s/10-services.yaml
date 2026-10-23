@@ -23,7 +23,9 @@ spec:
             - { name: "ConnectionStrings__catalogDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=catalogDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
             - { name: "ImportOptions__PublicBaseUrl", value: "http://catalog-api:8080" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "catalog.api" }
             # 091 açılış seed'i: books.json image'da (/app/Seeding/Data/books.json). Local Aspire'da yolu
             # AppHost enjekte eder; k8s'te YOK → SourceJsonPath boş → seeder atlar (boş katalog). Burada set.
             - { name: "SeedOptions__SourceJsonPath", value: "/app/Seeding/Data/books.json" }
@@ -52,7 +54,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__stockDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=stockDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "stock.api" }
 ---
 apiVersion: v1
 kind: Service
@@ -78,7 +82,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__basketDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=basketDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "basket.api" }
 ---
 apiVersion: v1
 kind: Service
@@ -104,7 +110,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__libraryDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=libraryDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "library.api" }
 ---
 apiVersion: v1
 kind: Service
@@ -130,7 +138,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__reviewsDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=reviewsDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "reviews.api" }
 ---
 apiVersion: v1
 kind: Service
@@ -181,7 +191,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__discountDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=discountDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "discount.api" }
 ---
 apiVersion: v1
 kind: Service
@@ -207,7 +219,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__customerDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=customerDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "customer.api" }
 ---
 apiVersion: v1
 kind: Service
@@ -264,7 +278,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__orderDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=orderDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "order.api" }
             - { name: "SagaAuth__ClientId", value: "order-saga" }
             - { name: "SagaAuth__ClientSecret", value: "dummy-saga-secret" }
             - { name: "services__basket-api__http__0", value: "http://basket-api:8080" }
@@ -296,7 +312,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__paymentDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=paymentDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "payment.api" }
             - { name: "SagaAuth__ClientId", value: "payment-s2s" }
             - { name: "SagaAuth__ClientSecret", value: "dummy-saga-secret" }
             - { name: "PaymentOptions__CallbackSecret", value: "dummy-callback-secret" }
@@ -377,7 +395,9 @@ spec:
             - { name: "ConnectionStrings__storefrontDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=storefrontDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
             - { name: "ConnectionStrings__elasticsearch", value: "http://elasticsearch:9200" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com/" }
+            - { name: "IdentityOption__Audience", value: "storefront.api" }
             - name: "OpenAI__ApiKey"
               valueFrom: { secretKeyRef: { name: openai, key: apikey } }
 ---
