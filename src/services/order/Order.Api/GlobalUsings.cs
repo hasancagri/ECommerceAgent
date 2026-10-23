@@ -30,6 +30,8 @@ global using ModelContextProtocol.Server;
 global using Shared.Grpc.Basket;
 global using Shared.Grpc.Customer;
 global using Shared.Grpc.Discount;
+global using Shared.Grpc.Payment;
+global using Order.Api.Domains.Checkout;
 global using System.ComponentModel;
 global using Platform.Auth;
 global using Order.Api.Options;

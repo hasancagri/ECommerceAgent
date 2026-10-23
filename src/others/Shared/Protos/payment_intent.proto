@@ -1,0 +1,30 @@
+// 094 EC-içi S2S kontratı — Order.Api start_payment, ödeme niyeti + PG hosted link'i Payment.Api'den
+// ister (tek çağıran Order; mantık gRPC servis class'ında, Features hop yok — conventions S2S kuralı).
+// Payment.Api PaymentIntent (Pending) yaratır, PG POST /payment-links çağırır, hosted link'i döner.
+// Kart verisi bu kontrattan GEÇMEZ (İlke VIII). Yetki: Order makine token (SagaTokenHandler).
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Grpc.Payment";
+
+service PaymentIntentService {
+  // Order sepet tutarını hesapladıktan sonra çağırır; PaymentIntent + PG link üretir, hosted URL döner.
+  // Mağaza satışa kapalıysa (PG STORE_NOT_LIVE) is_success=false + error_code (link üretilmez).
+  rpc CreateIntentAndLink (CreateIntentAndLinkRequest) returns (CreateIntentAndLinkReply);
+}
+
+message CreateIntentAndLinkRequest {
+  string order_id      = 1;  // = OrderRef (PG orderRef); PaymentIntent.OrderId + TxRef kaynağı
+  string user_id       = 2;  // PaymentIntent.UserId
+  string basket_ref    = 3;  // re-use eşleşmesi (UserId+BasketRef)
+  string amount        = 4;  // decimal string (kuruş kaybı yok)
+  string currency      = 5;  // "TRY"
+  string store_name    = 6;
+  string order_summary = 7;
+  string return_url    = 8;  // {EcBaseUrl}/checkout/done
+}
+
+message CreateIntentAndLinkReply {
+  bool   is_success = 1;
+  string hosted_url = 2;  // başarıda PG hosted link (Ayşe'ye döner)
+  string error_code = 3;  // başarısızlıkta (ör. PAYMENT_STORE_NOT_LIVE / PAYMENT_GATEWAY_UNAVAILABLE)
+}

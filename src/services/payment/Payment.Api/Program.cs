@@ -42,6 +42,16 @@ if (builder.Configuration.GetConnectionString("redis") is not null)
 builder.Services.AddCachingAspect("payment");
 
 builder.Services.AddHttpContextAccessor();
+
+// 094 pay-by-link rewire: Order→Payment S2S gRPC + EC→PG link REST istemcisi + PG→EC webhook config.
+builder.Services.AddGrpc();
+builder.Services.AddOptions<Payment.Api.Options.PgPaymentLinkOptions>()
+    .BindConfiguration(nameof(Payment.Api.Options.PgPaymentLinkOptions))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Payment.Api.Options.PgPaymentLinkOptions>(
+    sp => sp.GetRequiredService<IOptions<Payment.Api.Options.PgPaymentLinkOptions>>().Value);
+builder.Services.AddHttpClient<Payment.Api.Grpc.PgPaymentLinkClient>();
+
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
@@ -61,8 +71,9 @@ app.UseAuthentication();
 app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
-// 093 PG pivotu: hosted-CF REST callback + Order S2S intent gRPC söküldü; yeni pay-by-link
-// kontratı gelince ödeme girişi burada yeniden kurulur.
+// 094 pay-by-link rewire: Order→Payment S2S intent gRPC + PG→EC ödeme sonucu webhook'u (anonim+HMAC).
+app.MapGrpcService<Payment.Api.Grpc.PaymentIntentGrpcService>();
+app.AddPaymentCallbackEndpoint();
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
 app.MapMcp("/mcp").RequireAuthorization();
