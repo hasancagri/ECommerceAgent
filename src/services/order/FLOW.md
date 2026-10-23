@@ -1,28 +1,27 @@
 # Order — Domain Süreci (EventStorming)
 
-**BC ne yapar:** Adresi + sepet kalemlerini bir **siparişe** bağlar; ödeme başarılı olunca stok commit'i
-talep eder, stok onaylanınca siparişi tamamlar ve satın-alma kanıtını yayar. **093 PG pivotu: ödeme
-başlatma GEÇİCİ KAPALI** — `start_payment` tool'u durur (dış sözleşme) ama PAYMENT_DISABLED döner;
-sipariş oluşturan tek yol şimdilik yok. **092 koreografisi YERİNDE** (uykuda): ödeme sonucu event'leri
-gelmeye başladığında zincir değişmeden canlanır.
+**BC ne yapar:** Sepet kalemlerini bir **siparişe** bağlar; ödeme başlatır (PG hosted link), ödeme
+başarılı olunca stok commit'i talep eder, stok onaylanınca siparişi tamamlar ve satın-alma kanıtını
+yayar. **094 pay-by-link: `start_payment` CANLI** — sepet + indirimli tutar → Pending sipariş → Payment
+BC'den hosted ödeme linki. **092 koreografisi** ödeme sonucu event'leriyle tetiklenir.
 
 > Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
-> 🟩 read-model · 👤 aktör · ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda
-> köprü, süreç değil. Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir;
+> 🟩 read-model · 👤 aktör · 🩷 dış sistem · ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick
+> `(…)` = koda köprü, süreç değil. Süreç değişince (yeni/silinen adım-event-policy) bu dosya güncellenir;
 > mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. 👤 **Müşteri** → 🟦 **Ödeme başlat** → ❌ **kapalı-bildirimi döner (093)** —               `(StartPayment)`
-   handler sepete/adrese/Payment'a hiç gitmeden PAYMENT_DISABLED hatası döner;
-   Pending sipariş YARATILMAZ. 🟥 Hotspot (open): yeni PG pay-by-link kontratı
-   bekleniyor — sepet oku + indirimli tutar + Pending order + link isteme akışı
-   burada geri açılacak (sepet/adres/indirim gRPC istemcileri uykuda yerinde).
+1. 👤 **Müşteri** → 🟦 **Ödeme başlat** → 🩷 **hosted ödeme linki döner** —                   `(StartPayment →`
+   sepet kalemleri (Basket gRPC, sunucu-otoritesi) + aktif indirim (Discount gRPC) ile              ` PaymentIntentClient)`
+   tutar hesaplanır (liste−indirim), Pending sipariş kalemleri **etkin fiyatla** eklenir,
+   Payment BC'ye S2S ile ödeme niyeti + PG linki istenir; `HostedUrl` müşteriye döner.
+   Adres chat-only'de atlanır. Başarısız yolda (boş sepet / mağaza kapalı / PG hata)
+   sipariş KALICI OLMAZ. Kart alanı bu akıştan geçmez (İlke VIII).
 2. 🟧⭐ **Ödeme alındı** ⇦ Payment → 🟪 **başarılı ödeme stok commit'i ister** →              `(PaymentConsumers →`
    🟦 **Stok commit talep et** ⇨ Stock — `PaymentSucceeded` fanout'u tüketilir;               ` StockCommitRequested)`
-   Pending siparişin kalemleri için `StockCommitRequested` yayılır. _(093: tetikleyici
-   ödeme yolu kapalı — zincir uykuda, kontrat değişmedi.)_
-3. 🟧 **Ödeme başarısız/terk** ⇦ Payment → 🟪 **başarısız ödeme siparişi düşürür** →        `(PaymentConsumers →`
+   Pending siparişin kalemleri için `StockCommitRequested` yayılır.
+3. 🟧 **Ödeme başarısız** ⇦ Payment → 🟪 **başarısız ödeme siparişi düşürür** →              `(PaymentConsumers →`
    🟦 **Siparişi iptal et** — `PaymentFailed` → `Order.Cancel` (stok hiç düşmedi).            ` Order.Cancel)`
 4. 🟧 **Stok commit edildi** ⇦ Stock → 🟪 **stok onaylı sipariş tamamlanır** →              `(StockConsumers →`
    🟦 **Onayla** → 🟧⭐ **Sipariş tamamlandı** ⇨ Reviews, Library, Basket —                  ` Order.Confirm → OrderCompleted)`
@@ -37,9 +36,9 @@ gelmeye başladığında zincir değişmeden canlanır.
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **Durum geçişi aggregate'te korunur.** Yalnız `Pending→Confirmed` / `Pending→Cancelled`.
-- **Sipariş kullanıcının adresine gider.** Adres varsayılan adres defterinden (FR-001b); ödeme sahibi değiştirmez.
-- **Ödeme öncedendir.** Checkout charge çekmez; sipariş ödeme öncesi Pending oluşturulur (OrderId korelasyon anahtarı).
-- **Ödeme kapalıyken sipariş doğmaz (093).** `start_payment` kısa devre — yarım Pending kirliliği yok.
+- **Ödeme öncedendir.** Checkout charge çekmez; sipariş ödeme öncesi Pending oluşturulur (OrderId korelasyon anahtarı, PG'ye orderRef).
+- **Tutar = liste − aktif indirim.** Sepet/indirim gRPC'den canlı; sipariş kalemleri etkin fiyatla → `TotalPrice` = ödenecek tutar.
+- **Başarısız başlatmada sipariş doğmaz (094).** PG linki başarıyla alınmadan Order commit edilmez — yarım Pending kirliliği yok.
 - **Satın-alma kanıtı Confirm'de yayılır.** `OrderCompleted` yalnız Confirmed pivotunda; idempotent.
 - **Koreografi (092).** Checkout merkezi saga değil event zinciri; her tüketim idempotent (durum-guard'lı), teknik hata Wolverine retry→DLQ.
 

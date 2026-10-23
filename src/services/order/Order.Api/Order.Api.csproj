@@ -39,6 +39,7 @@
         <Protobuf Include="..\..\..\others\Shared\Protos\address_query.proto" GrpcServices="Client" />
         <!-- 079: checkout aktif indirim yüzdesi istemcisi (start_payment tutar hesabı). -->
         <Protobuf Include="..\..\..\others\Shared\Protos\discount_query.proto" GrpcServices="Client" />
+        <Protobuf Include="..\..\..\others\Shared\Protos\payment_intent.proto" GrpcServices="Client" />
     </ItemGroup>
 
     <ItemGroup>

@@ -80,6 +80,15 @@ builder.Services
     .AddHttpMessageHandler<SagaTokenHandler>();
 builder.Services.AddScoped<DiscountClient>();
 
+// 094 pay-by-link: Payment.Api S2S istemcisi — start_payment ödeme niyeti + PG hosted link ister (payment.write).
+var paymentGrpcAddress = builder.Configuration["services:payment-api:https:0"]
+    ?? builder.Configuration["services:payment-api:http:0"]
+    ?? "https://payment-api";
+builder.Services
+    .AddGrpcClient<PaymentIntentService.PaymentIntentServiceClient>(o => o.Address = new Uri(paymentGrpcAddress))
+    .AddHttpMessageHandler<SagaTokenHandler>();
+builder.Services.AddScoped<PaymentIntentClient>();
+
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
@@ -98,6 +107,9 @@ app.UseAuthentication();
 app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
+
+// 094 pay-by-link: PG hosted ödeme dönüş ucu (anonim bilgilendirme; gerçek durum webhook'tan).
+app.AddCheckoutDoneEndpoint();
 
 // MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
 app.MapMcp("/mcp").RequireAuthorization();
