@@ -77,8 +77,8 @@ Order Confirmed + stok düşer.
 
 ## Phase 6: Polish & cross-cutting
 
-- [ ] T020 [P] `order` + `payment` FLOW.md: canlanan sticky'ler (🟦 start_payment, 🟪 PG-link policy, 🩷 PG, 🟧 PaymentSucceeded/Failed) + as-built kenar-anchor (İlke VII) `src/services/order/FLOW.md` + `src/services/payment/FLOW.md`
-- [ ] T021 [P] CLAUDE.md BC haritası: Order `start_payment` canlandı + Payment webhook/link/intent-gRPC geri (093 "uykuda/söküldü" notlarını güncelle) `CLAUDE.md`
+- [X] T020 [P] `order` + `payment` FLOW.md: canlanan sticky'ler (🟦 start_payment, 🟪 PG-link policy, 🩷 PG, 🟧 PaymentSucceeded/Failed) + as-built kenar-anchor (İlke VII) `src/services/order/FLOW.md` + `src/services/payment/FLOW.md`
+- [X] T021 [P] CLAUDE.md BC haritası: Order `start_payment` canlandı + Payment webhook/link/intent-gRPC geri (093 "uykuda/söküldü" notlarını güncelle) `CLAUDE.md`
 - [ ] T022 `dotnet build && dotnet test` + `scripts/check-flow-links.sh` + `scripts/check-claude-spec-links.sh` (hepsi yeşil)
 - [ ] T023 Canlı iki-host E2E (quickstart US1-US3 + S6 sır taraması İlke VIII) — tüm geliştirme bitince topluca; PG + EC AppHost ayakta, merchant Live
 
