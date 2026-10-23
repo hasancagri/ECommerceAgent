@@ -57,9 +57,9 @@ Order Confirmed + stok düşer.
 
 **Independent Test**: aynı Paid webhook ×2 → tek Confirm; imzasız/yanlış imza → 404; tutar oynatılmış → red.
 
-- [ ] T016 [US2] Webhook guard'ları: `amount == PaymentIntent.Amount` değilse AMOUNT_MISMATCH red (anti-tamper); bilinmeyen pgPaymentRef → 404 fail-closed; imza geçersiz → 404 fail-closed `PaymentCallbackEndpointExtension.cs`
-- [ ] T017 [US2] İdempotent 200: aggregate no-op geçişte webhook 200 döner (PG durable retry durur); status=Failed→MarkFailed→PaymentFailed yolu `PaymentCallbackEndpointExtension.cs`
-- [ ] T018 [P] [US2] [domain test] (T005 kapsamıyorsa) MarkSucceeded/MarkFailed çift-çağrı no-op + terminal-koruma kenar testleri `tests/Payment.Api.Tests/PaymentIntentTests.cs`
+- [X] T016 [US2] Webhook guard'ları: `amount == PaymentIntent.Amount` değilse AMOUNT_MISMATCH red (anti-tamper); bilinmeyen pgPaymentRef → 404 fail-closed; imza geçersiz → 404 fail-closed `PaymentCallbackEndpointExtension.cs`
+- [X] T017 [US2] İdempotent 200: aggregate no-op geçişte webhook 200 döner (PG durable retry durur); status=Failed→MarkFailed→PaymentFailed yolu `PaymentCallbackEndpointExtension.cs`
+- [X] T018 [P] [US2] [domain test] (T005 kapsamıyorsa) MarkSucceeded/MarkFailed çift-çağrı no-op + terminal-koruma kenar testleri `tests/Payment.Api.Tests/PaymentIntentTests.cs`
 
 **Checkpoint**: webhook retry/sahte/tamper'a dayanıklı.
 
@@ -71,7 +71,7 @@ Order Confirmed + stok düşer.
 
 **Independent Test**: Live olmayan MerchantId → start_payment "mağaza satışa kapalı", HostedUrl yok, Pending Order yok.
 
-- [ ] T019 [US3] `PgPaymentLinkClient` PG `STORE_ONBOARDING_STORE_NOT_LIVE` yanıtını Result hatasına çevir; gRPC `is_success=false, error_code=STORE_NOT_LIVE`; start_payment anlaşılır mesaj taşır, Order/Intent commit etmez `PgPaymentLinkClient.cs` + `StartPayment.cs`
+- [X] T019 [US3] `PgPaymentLinkClient` PG `STORE_ONBOARDING_STORE_NOT_LIVE` yanıtını Result hatasına çevir; gRPC `is_success=false, error_code=STORE_NOT_LIVE`; start_payment anlaşılır mesaj taşır, Order/Intent commit etmez `PgPaymentLinkClient.cs` + `StartPayment.cs`
 
 ---
 
