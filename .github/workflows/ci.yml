@@ -88,6 +88,9 @@ jobs:
           ssh-keyscan -H 91.132.49.70 >> ~/.ssh/known_hosts 2>/dev/null
       - name: Manifest kopyala + uygula + app rollout
         run: |
+          # scp -r hedef dizin VARSA icine nest eder (/tmp/.../k8s/...) -> apply -f (non-recursive)
+          # bayat ilk-kopyayi tekrar uygular. Her deploy'da remote tmp'yi SIFIRLA (nesting bug fix).
+          ssh -i ~/.ssh/deploy root@91.132.49.70 'rm -rf /tmp/deploy-k8s'
           scp -i ~/.ssh/deploy -r deploy/k8s root@91.132.49.70:/tmp/deploy-k8s
           # NOT: remote script tek-tirnakli; icine Turkce kesme isareti (apostrof) KOYMA (tirnagi kapatir).
           ssh -i ~/.ssh/deploy root@91.132.49.70 '
