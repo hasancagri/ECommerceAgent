@@ -34,7 +34,6 @@ var basketDb = postgres.AddDatabase("basketDb");
 var orderDb = postgres.AddDatabase("orderDb");
 var paymentDb = postgres.AddDatabase("paymentDb");
 var customerDb = postgres.AddDatabase("customerDb");
-var discountDb = postgres.AddDatabase("discountDb");
 var fileDb = postgres.AddDatabase("fileDb");
 
 // identity-server AgentPlatform repo'suna taşındı (ayrı Aspire AppHost). ECommerce servisleri
@@ -135,19 +134,8 @@ var libraryApi = builder.AddProject<Projects.Library_Api>("library-api")
     .WaitFor(libraryDb)
     .WaitFor(rabbit);
 
-// Discount BC — admin kampanya indirimi. Catalog product.changed'i tüketir (ProductCatalogRef),
-// checkout gRPC ile Order'a aktif yüzde döner. ProductDiscountChanged vitrin event'i SÖKÜLDÜ
-// (tek tüketici Storefront'tu). Kendi discountDb'si.
-var discountApi = builder.AddProject<Projects.Discount_Api>("discount-api")
-    .WithHttpHealthCheck("/health")
-    .WithReference(discountDb)
-    .WithReference(rabbit)
-    .WaitFor(discountDb)
-    .WaitFor(rabbit);
-
-// Order.Api → Discount.Api checkout gRPC (start_payment aktif yüzde doğrulama, discount.read).
-// discountApi orderApi'den SONRA tanımlı → referans burada (paymentApi emsali).
-orderApi.WithReference(discountApi).WaitFor(discountApi);
+// Discount BC SÖKÜLDÜ (095 branch'i, 2026-10-31) — kampanya/indirim modeli kullanıcı kararıyla
+// kalktı; checkout tutarı = liste fiyatı. İndirim dönerse bilinçli mimari karar + spec'le döner.
 
 // Mailpit + Mail.Mcp + NotificationAgent SÖKÜLDÜ — tüm MCP temizlendi (Mail.Mcp standalone MCP
 // server'dı; NotificationAgent onu MCP client'la sürüyordu). Fiyat-alarmı mail hattı kalktı.
@@ -194,7 +182,7 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
 foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
-    reviewsApi, libraryApi, discountApi,
+    reviewsApi, libraryApi,
     fileApi
 })
 {

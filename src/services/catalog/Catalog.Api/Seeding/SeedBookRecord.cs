@@ -2,7 +2,7 @@ namespace Catalog.Api.Seeding;
 
 // 091: books.json kayıt DTO'su (contracts/seed-record.md) — saklanmaz, yalnız okuma. Aynı dosyayı
 // File.Api kendi okuyucusuyla (isbn+imageUrl) okur; ortak tip YOK (bilinçli tekrar, sözleşme alan adları).
-// Bilinmeyen JSON alanları (tags/specs/familyCode/discountPercent/stock/binding) yok sayılır (additive evrim).
+// Bilinmeyen JSON alanları yok sayılır (additive evrim); dosyada bu 14 alan dışında alan yok (095 doğrulandı).
 public class SeedBookRecord
 {
     public string Isbn { get; set; } = string.Empty;

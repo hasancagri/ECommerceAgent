@@ -26,7 +26,6 @@ global using Wolverine.Attributes;
 global using System.ComponentModel;
 global using Common.Dependencies;
 global using Catalog.Api.Domains.Products.ValueObjects;
-global using Catalog.Api.Domains.ProductTags;
 global using Marten.Linq.MatchesSql;
 global using Catalog.Api.Domains.Products.Entities;
 global using Common.Utils.Caching;

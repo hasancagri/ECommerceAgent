@@ -15,7 +15,7 @@ public static class MessagingExtensions
                 opts.Durability.Mode = DurabilityMode.Solo;
 
             // gRPC tipli client (AddGrpcClient) opaque factory'dir; Wolverine handler codegen'i inline
-            // kuramaz ve service-location ister. start_payment Payment/Basket/Customer/Discount istemcileri enjekte edilir.
+            // kuramaz ve service-location ister. start_payment Payment/Basket/Customer istemcileri enjekte edilir.
             opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
 
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)

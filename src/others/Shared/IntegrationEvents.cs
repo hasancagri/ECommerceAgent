@@ -32,10 +32,13 @@ public static class IntegrationEvents
         // YALNIZ fiyat değişiminde dolu (eski fiyat); null = fiyat-dışı değişiklik.
         // Additive default'lu — eski tüketici (Storefront) kırılmaz. Library tetik kararını bundan verir.
         decimal? OldPrice = null,
-        // çoklu-kategori: primary + ilgili tüm kategori ADLARI (ata zinciri dahil, dedupe). null/boş =
-        // yalnız tekil Category kullan (eski tüketici kırılmaz; CategoryId hâlâ primary leaf). Storefront
-        // ES "category" alanına dizi yazar (text+keyword diziyi native kabul eder).
-        List<string>? Categories = null);
+        // 095: kategori AD zinciri = leaf + ata adları (yayın anında ağaçtan çözülür; related GİRMEZ).
+        // null/boş = yalnız tekil Category kullan (eski tüketici kırılmaz; CategoryId hâlâ primary leaf).
+        List<string>? Categories = null,
+        // 095 additive: kategori ID zinciri = leaf + ata id'leri (Categories ile aynı sıra/semantik).
+        // Üst-kategori eşleşmesi gereken tüketiciler bundan beslenir (ör. 096 keşif); null görürse
+        // tüketici [CategoryId] fallback'ine düşer (eski event kırılmaz).
+        List<Guid>? CategoryIds = null);
 
     // Catalog → File (dijital pivot: Stock BC söküldü). Yeni ürün yayınlanınca yayılır; File kapak
     // çözümünü (ISBN/Barcode) tetikler. InitialStock SÖKÜLDÜ (stok yok — Stock BC kaldırıldı).

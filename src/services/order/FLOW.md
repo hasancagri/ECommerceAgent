@@ -14,8 +14,8 @@ söküldü, REST first-party'de yeniden açılacak). Dijital (PDF) pivot: stok c
 ## Süreç
 
 1. 👤 **Müşteri** → 🟦 Ödeme başlat _(planned)_ → 🩷 **hosted ödeme linki döner** —           `(PaymentIntentClient)`
-   sepet kalemleri (Basket gRPC, sunucu-otoritesi) + aktif indirim (Discount gRPC) ile
-   tutar hesaplanır (liste−indirim), Pending sipariş kalemleri **etkin fiyatla** eklenir,
+   sepet kalemleri (Basket gRPC, sunucu-otoritesi) ile tutar hesaplanır (liste fiyatı —
+   indirim modeli 095'te SÖKÜLDÜ), Pending sipariş kalemleri liste fiyatıyla eklenir,
    Payment BC'ye S2S ile ödeme niyeti + PG linki istenir; `HostedUrl` müşteriye döner.
    Adres dijital üründe gerekmez. Başarısız yolda (boş sepet / mağaza kapalı / PG hata)
    sipariş KALICI OLMAZ. Kart alanı bu akıştan geçmez (İlke VIII). _(094'te MCP
@@ -41,6 +41,6 @@ söküldü, REST first-party'de yeniden açılacak). Dijital (PDF) pivot: stok c
 
 ## Sınır (bu BC'nin dokunmadığı)
 
-Gerçek çekim Payment/PG'nin işidir. Order indirim kuralına sahip değil (yüzdeyi Discount'tan sorar,
-yalnız tutara uygular), ürün fiyat otoritesi değil, dijital teslim/kütüphane Library'nin işi.
+Gerçek çekim Payment/PG'nin işidir. İndirim kavramı yok (Discount BC 095'te söküldü — tutar = liste
+fiyatı), ürün fiyat otoritesi değil, dijital teslim/kütüphane Library'nin işi.
 Merkezi orkestratör/watchdog yok (092): takılma durable mesaj + DLQ + Pending sipariş sorgusuyla görünür.

@@ -14,8 +14,7 @@ public static class RabbitMqConstants
             // Library fiyat değişimini dinler (alarm tetiği); binding'i tüketici kurar (007).
             public const string Library = "library.events";
 
-            // Discount ürün↔kategori/yazar/yayınevi izdüşümünü (ProductCatalogRef) besler; binding tüketici kurar.
-            public const string Discount = "discount.events";
+            // Discount kuyruğu SÖKÜLDÜ (095) — kampanya/indirim BC'si kaldırıldı.
         }
     }
 

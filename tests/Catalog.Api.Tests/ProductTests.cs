@@ -1,44 +1,62 @@
 
 namespace Catalog.Api.Tests;
 
-// 040 T008: Product zengin modele geçti (staging CustomNopCommerce extract) — davranış testleri
-// test-first yazıldı (anayasa İlke VI). Kapsam: ad, fiyat invariant'ı (091: fiyat>0 var oluş şartı,
-// yayın makinesi söküldü), kategori çift-atama, etiket idempotensi, ⊕ metotlar (SetImage/SetIdentifiers).
+// 095: sade künye modeli — kimlik Gtin (ISBN), tek leaf kategori + editoryal ilgili kategoriler.
+// Davranış testleri test-first (İlke VI). Sku/Tag/Dimensions/Seo/çoklu-kategori testleri 095'te söküldü.
 public class ProductTests
 {
-    private static Product NewProduct(string name = "Telefon", string sku = "SKU-1") =>
-        Product.Create(name, sku, ProductType.Simple, Money.Create(100m)!, "kısa", "tam").Data!;
+    private static Product NewProduct(string name = "Kitap", string gtin = "9789750000001") =>
+        Product.Create(name, gtin, Money.Create(100m)!, "açıklama").Data!;
 
-    // --- Create (091: fiyat>0 invariant'ı fabrikada; ürün canlı doğar, taslak/yayın durumu yok) ---
+    // --- Create (fiyat>0 var oluş invariant'ı + kimlik guard'ları) ---
 
     [Fact]
-    public void Create_SetsCatalogIdentityAndDefaults()
+    public void Create_SetsBookIdentityAndDefaults()
     {
-        var price = Money.Create(100m)!;
-
-        var result = Product.Create("Telefon", "SKU-1", ProductType.Simple, price, "kısa", "tam");
+        var result = Product.Create("Kitap", "9789750000001", Money.Create(100m)!, "açıklama");
 
         result.IsSuccess.ShouldBeTrue();
         var product = result.Data!;
-        product.Name.ShouldBe("Telefon");
-        product.Sku.ShouldBe("SKU-1");
-        product.Type.ShouldBe(ProductType.Simple);
+        product.Name.ShouldBe("Kitap");
+        product.Gtin.ShouldBe("9789750000001");
+        product.Description.ShouldBe("açıklama");
         product.Price.Amount.ShouldBe(100m);
-        product.ShortDescription.ShouldBe("kısa");
-        product.FullDescription.ShouldBe("tam");
-        product.Gtin.ShouldBeNull(); // 040 K3: Gtin bu feature'da hep boş, 041 dolduracak
-        product.Categories.ShouldBeEmpty();
-        product.TagIds.ShouldBeEmpty();
+        product.CategoryId.ShouldBe(Guid.Empty); // kategori ataması SetCategory ile (seed zorunlu kılar)
+        product.RelatedCategoryIds.ShouldBeEmpty();
+        product.AuthorIds.ShouldBeEmpty();
+        product.ImageUrl.ShouldBeNull();
     }
 
     [Fact]
     public void Create_ZeroPrice_ReturnsError()
     {
-        var result = Product.Create("Telefon", "SKU-1", ProductType.Simple, Money.Zero(), "kısa", "tam");
+        var result = Product.Create("Kitap", "9789750000001", Money.Zero(), "a");
 
         result.IsSuccess.ShouldBeFalse();
         result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_PRICE_REQUIRED);
         result.Data.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_EmptyName_ReturnsError(string name)
+    {
+        var result = Product.Create(name, "9789750000001", Money.Create(100m)!, "a");
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_NAME_REQUIRED);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_EmptyGtin_ReturnsError(string gtin)
+    {
+        var result = Product.Create("Kitap", gtin, Money.Create(100m)!, "a");
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_GTIN_REQUIRED);
     }
 
     // --- Rename ---
@@ -54,7 +72,7 @@ public class ProductTests
 
         result.IsSuccess.ShouldBeFalse();
         result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_NAME_REQUIRED);
-        product.Name.ShouldBe("Telefon");
+        product.Name.ShouldBe("Kitap");
     }
 
     [Fact]
@@ -62,11 +80,22 @@ public class ProductTests
     {
         var product = NewProduct();
 
-        product.Rename("Telefon 2").IsSuccess.ShouldBeTrue();
-        product.Name.ShouldBe("Telefon 2");
+        product.Rename("Kitap 2").IsSuccess.ShouldBeTrue();
+        product.Name.ShouldBe("Kitap 2");
     }
 
-    // --- Money VO (fiyat guard'ı VO'da) ---
+    // --- SetDescription (tek açıklama alanı — Short/Full 095'te birleşti) ---
+
+    [Fact]
+    public void SetDescription_ReplacesDescription()
+    {
+        var product = NewProduct();
+
+        product.SetDescription("yeni açıklama").IsSuccess.ShouldBeTrue();
+        product.Description.ShouldBe("yeni açıklama");
+    }
+
+    // --- Money VO + SetPrice ---
 
     [Fact]
     public void MoneyCreate_NegativeAmount_ReturnsNull()
@@ -104,85 +133,69 @@ public class ProductTests
         product.Price.Amount.ShouldBe(100m); // hatada fiyat değişmez
     }
 
-    // --- Kategori ataması (çoklu model, çift atama invariant'ı) ---
+    // --- SetCategory (tek leaf; üst kategori ürüne yazılmaz — ağaçtan çözülür) ---
 
     [Fact]
-    public void AssignToCategory_FirstAssignment_Succeeds()
+    public void SetCategory_ValidLeaf_AssignsSingleCategory()
     {
         var product = NewProduct();
-        var categoryId = Guid.NewGuid();
+        var leafId = Guid.NewGuid();
 
-        product.AssignToCategory(categoryId, isFeatured: false, displayOrder: 0).IsSuccess.ShouldBeTrue();
-
-        product.Categories.Count.ShouldBe(1);
-        product.Categories[0].CategoryId.ShouldBe(categoryId);
+        product.SetCategory(leafId).IsSuccess.ShouldBeTrue();
+        product.CategoryId.ShouldBe(leafId);
     }
 
     [Fact]
-    public void AssignToCategory_SameCategoryTwice_ReturnsError()
-    {
-        var product = NewProduct();
-        var categoryId = Guid.NewGuid();
-        product.AssignToCategory(categoryId, false, 0);
-
-        var second = product.AssignToCategory(categoryId, true, 5);
-
-        second.IsSuccess.ShouldBeFalse();
-        second.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_CATEGORY_ALREADY_ASSIGNED);
-        product.Categories.Count.ShouldBe(1);
-    }
-
-    [Fact]
-    public void RemoveFromCategory_NotAssigned_ReturnsError()
+    public void SetCategory_EmptyGuid_ReturnsError()
     {
         var product = NewProduct();
 
-        var result = product.RemoveFromCategory(Guid.NewGuid());
+        var result = product.SetCategory(Guid.Empty);
 
         result.IsSuccess.ShouldBeFalse();
-        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_CATEGORY_NOT_ASSIGNED);
+        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_CATEGORY_REQUIRED);
+        product.CategoryId.ShouldBe(Guid.Empty);
+    }
+
+    // --- SetRelatedCategories (editoryal liste; dedup + leaf hariç + boş Guid elenir) ---
+
+    [Fact]
+    public void SetRelatedCategories_DuplicateIds_Deduplicates()
+    {
+        var product = NewProduct();
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+
+        product.SetRelatedCategories(new[] { a, b, a }).IsSuccess.ShouldBeTrue();
+
+        product.RelatedCategoryIds.ShouldBe(new[] { a, b });
     }
 
     [Fact]
-    public void RemoveFromCategory_Assigned_RemovesAssignment()
+    public void SetRelatedCategories_ContainsPrimaryLeaf_ExcludesLeaf()
     {
         var product = NewProduct();
-        var categoryId = Guid.NewGuid();
-        product.AssignToCategory(categoryId, false, 0);
+        var leafId = Guid.NewGuid();
+        var related = Guid.NewGuid();
+        product.SetCategory(leafId);
 
-        product.RemoveFromCategory(categoryId).IsSuccess.ShouldBeTrue();
-        product.Categories.ShouldBeEmpty();
-    }
+        product.SetRelatedCategories(new[] { leafId, related }).IsSuccess.ShouldBeTrue();
 
-    // --- Etiketler (idempotent) ---
-
-    [Fact]
-    public void AddTag_Twice_StaysSingle()
-    {
-        var product = NewProduct();
-        var tagId = Guid.NewGuid();
-
-        product.AddTag(tagId).IsSuccess.ShouldBeTrue();
-        product.AddTag(tagId).IsSuccess.ShouldBeTrue();
-
-        product.TagIds.Count.ShouldBe(1);
-        product.TagIds[0].ShouldBe(tagId);
+        product.RelatedCategoryIds.ShouldBe(new[] { related }); // ilgili liste ata/leaf zinciriyle karışmaz
     }
 
     [Fact]
-    public void RemoveTag_AbsentTag_IsIdempotent()
+    public void SetRelatedCategories_EmptyAndDefaultIds_ResultsEmptyList()
     {
         var product = NewProduct();
+        product.SetRelatedCategories(new[] { Guid.NewGuid() });
 
-        product.RemoveTag(Guid.NewGuid()).IsSuccess.ShouldBeTrue();
-        product.TagIds.ShouldBeEmpty();
+        product.SetRelatedCategories(new[] { Guid.Empty }).IsSuccess.ShouldBeTrue();
+
+        product.RelatedCategoryIds.ShouldBeEmpty(); // tam-değiştirme: boş geçerli, önceki liste silinir
     }
 
-    // 091: Publish/Unpublish testleri söküldü — yayın makinesi kalktı, fiyat kapısı Create/SetPrice'ta.
-
-    // --- ⊕ Ana repoya özgü metotlar (K6/K7 + kimlik alanları) ---
-
-    // 052: SetBrand → SetAuthors/SetPublisher; kapsamı ProductAuthorsTests + ProductPublisherTests taşır.
+    // --- SetImage ---
 
     [Fact]
     public void SetImage_AssignsAndClearsUrl()
@@ -194,57 +207,5 @@ public class ProductTests
 
         product.SetImage(null).IsSuccess.ShouldBeTrue();
         product.ImageUrl.ShouldBeNull();
-    }
-
-    [Fact]
-    public void SetIdentifiers_EmptySku_ReturnsError()
-    {
-        var product = NewProduct();
-
-        var result = product.SetIdentifiers("", gtin: null, manufacturerPartNumber: null);
-
-        result.IsSuccess.ShouldBeFalse();
-        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_SKU_REQUIRED);
-        product.Sku.ShouldBe("SKU-1");
-    }
-
-    [Fact]
-    public void SetIdentifiers_Valid_SetsAllIdentity()
-    {
-        var product = NewProduct();
-
-        product.SetIdentifiers("SKU-9", "8690000000001", "MPN-1").IsSuccess.ShouldBeTrue();
-
-        product.Sku.ShouldBe("SKU-9");
-        product.Gtin.ShouldBe("8690000000001");
-        product.ManufacturerPartNumber.ShouldBe("MPN-1");
-    }
-
-    // --- Descriptions + Dimensions VO ---
-
-    [Fact]
-    public void UpdateDescriptions_ReplacesBoth()
-    {
-        var product = NewProduct();
-
-        product.UpdateDescriptions("yeni kısa", "yeni tam").IsSuccess.ShouldBeTrue();
-        product.ShortDescription.ShouldBe("yeni kısa");
-        product.FullDescription.ShouldBe("yeni tam");
-    }
-
-    [Fact]
-    public void DimensionsCreate_NegativeValue_ReturnsNull()
-    {
-        ProductDimensions.Create(-1m, 0, 0, 0).ShouldBeNull();
-    }
-
-    [Fact]
-    public void SetDimensions_ReplacesDimensions()
-    {
-        var product = NewProduct();
-        var dimensions = ProductDimensions.Create(1.5m, 10m, 20m, 30m)!;
-
-        product.SetDimensions(dimensions).IsSuccess.ShouldBeTrue();
-        product.Dimensions.Weight.ShouldBe(1.5m);
     }
 }

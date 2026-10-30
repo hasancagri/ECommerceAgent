@@ -1,24 +1,16 @@
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Catalog.Api.Domains.Authors;
-using Catalog.Api.Domains.Publishers;
-using Catalog.Api.Domains.Categories;
 using Catalog.Api.Options;
 
 namespace Catalog.Api.Seeding;
 
-// 091: açılış katalog seed'i (051 BookImportHostedService'in dönüşü; 083 Excel import söküldü).
-// Commit'li books.json'u okur, SATIR SATIR insert-or-ignore (kullanıcı kararı: UPSERT DEĞİL — var olan
-// ürüne dokunulmaz, yoksa admin MCP düzenlemesinin kıymeti kalmazdı; seed yalnız eksik ürünü ekler).
-// Kayıt başına Gtin lookup → varsa atla, yoksa ürün + ProductAdded + ProductChangedEvent satırın KENDİ
-// commit'inde ([Transactional] SeedBookRow — outbox atomik). Yarıda kesilme = sonraki açılış kaldığı
-// yerden; hız ikincil.
-// TEK SEFERLİK: ExecuteAsync dosyayı işleyip RETURN eder — döngü/poll yok (ImportProcessor'ın sonsuz
-// döngüsünün aksine); ikinci açılış "hepsi var" deyip biter.
-// K7: dosya yoksa bilgi-logla atla (prod/seed-kapalı meşru); parse hatası fırlar → host durur (fail-fast,
-// bozuk commit'li veri sessiz geçilmez). Kullanıcı tetiklemez → Domains/ dışı (Seeding/).
+// 091: açılış katalog seed'i; 095: İKİ FAZLI — Faz A kapalı kategori ağacını kurar (tüm yollardan
+// deterministik, FR-007), Faz B satır satır ürün (insert-or-ignore: Gtin varsa ATLA — var olan ürün
+// admin'indir, UPSERT bilinçli reddedildi). Kayıt başına ürün + ProductAdded + ProductChangedEvent
+// satırın KENDİ commit'inde ([Transactional] SeedBookRow — outbox atomik). Yarıda kesilme = sonraki
+// açılış kaldığı yerden; hız ikincil.
+// TEK SEFERLİK: ExecuteAsync dosyayı işleyip RETURN eder; ikinci açılış "hepsi var" deyip biter.
+// K7: dosya yoksa bilgi-logla atla (prod/seed-kapalı meşru); parse/ağaç hatası fırlar → host durur
+// (fail-fast, bozuk commit'li veri sessiz geçilmez). Kullanıcı tetiklemez → Domains/ dışı (Seeding/).
 public class BookSeedHostedService(
     IServiceProvider services,
     SeedOptions options,
@@ -48,10 +40,20 @@ public class BookSeedHostedService(
 
         logger.LogInformation("Catalog seed başladı: {Count} kayıt ({Path}).", records.Count, options.SourceJsonPath);
 
-        int created = 0, skipped = 0, invalid = 0;
         using var scope = services.CreateScope();
         var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
 
+        // Faz A: kapalı kategori ağacı — tüm yollar (primary + related) + "Genel" fallback kökü.
+        // Ad-çakışması/seviye ihlali CategoryTreeSeed.Build'den fırlar → host durur (deterministik hata).
+        var paths = records.SelectMany(r => r.RelatedCategoryPaths.Prepend(r.CategoryPath))
+            .Append(["Genel"])
+            .ToList();
+        var treeCreated = await bus.InvokeAsync<int>(
+            new SeedCategoryTree.SeedCategoryTreeCommand(paths), stoppingToken);
+        logger.LogInformation("Catalog seed kategori ağacı hazır: {Created} yeni düğüm.", treeCreated);
+
+        // Faz B: satır satır ürün.
+        int created = 0, skipped = 0, invalid = 0;
         foreach (var record in records)
         {
             if (stoppingToken.IsCancellationRequested)
@@ -81,9 +83,55 @@ public class BookSeedHostedService(
     }
 }
 
+// 095 Faz A: kapalı kategori ağacını kurar (yalnız seed'den — FR-007). [Transactional] tek commit;
+// var olan düğüme dokunmaz (normalize ad eşleşmesi), yalnız eksik düğümü ekler. Yeni düğüm doğduysa
+// handler-içi atomik cache boşaltma (090 idiomu).
+public static class SeedCategoryTree
+{
+    public record SeedCategoryTreeCommand(List<List<string>> Paths);
+
+    [Transactional]
+    public class SeedCategoryTreeCommandHandler
+    {
+        public async Task<int> Handle(
+            SeedCategoryTreeCommand cmd,
+            IDocumentSession session,
+            IMessageBus bus,
+            CancellationToken ct)
+        {
+            var nodes = CategoryTreeSeed.Build(cmd.Paths);
+
+            var existing = await session.Query<Category>().ToListAsync(ct);
+            var byNormalized = existing.ToDictionary(c => c.NormalizedName);
+
+            var created = 0;
+            foreach (var node in nodes)
+            {
+                var key = NameNormalization.Normalize(node.Name);
+                if (byNormalized.ContainsKey(key))
+                    continue;
+
+                Guid? parentId = node.ParentName is null
+                    ? null
+                    : byNormalized[NameNormalization.Normalize(node.ParentName)].Id;
+                var category = Category.Create(node.Name, parentId).Data!;
+                session.Store(category);
+                byNormalized[key] = category;
+                created++;
+            }
+
+            if (created > 0)
+                await bus.PublishAsync(new CacheInvalidationRequested(CatalogCacheTags.AgentLists));
+
+            return created;
+        }
+    }
+}
+
 // Tek seed satırını ürüne çevirir (insert-or-ignore). [Transactional] — ürün Store + ProductAdded +
 // ProductChangedEvent AYNI Marten commit (Wolverine outbox atomik). ISBN üründe VARSA no-op (false —
-// var olan ürün admin'indir, seed dokunmaz). Get-or-create mantığı sökülen ImportProcessor'dan devralındı.
+// var olan ürün admin'indir, seed dokunmaz). 095: kategori get-or-create YOK — leaf kapalı ağaçtan
+// (Faz A) çözülür; çözülemeyen primary → "Genel", çözülemeyen related → atlanır (satır reddedilmez).
 public static class SeedBookRow
 {
     public record SeedBookRowCommand(SeedBookRecord Record);
@@ -91,7 +139,7 @@ public static class SeedBookRow
     [Transactional]
     public class SeedBookRowCommandHandler
     {
-        // Get-or-create helper'ları YENİ referans (yazar/yayınevi/kategori) yazınca işaretler.
+        // Get-or-create helper'ları YENİ referans (yazar/yayınevi) yazınca işaretler.
         private bool _createdReference;
 
         public async Task<bool> Handle(
@@ -114,45 +162,51 @@ public static class SeedBookRow
             await ApplyAuthorBiosAsync(session, authors, record.AuthorBios);
             var publisher = await GetOrCreatePublisherAsync(session, Fallback(record.Publisher, "Unknown"), ct);
 
-            // Kanonik kategori: [üst] ya da [üst, leaf] (canonicalize_categories.py). Zincir get-or-create
-            // → primary (leaf, yoksa üst). Boş yol → "Genel" fallback'i.
-            var (primary, primaryNames) = await GetOrCreateCategoryChainAsync(
-                session, record.CategoryPath.Count > 0 ? record.CategoryPath : ["Genel"], ct);
+            // Primary leaf: [üst] → üst, [üst, leaf] → leaf; boş/çözülemeyen → "Genel" (Faz A garanti kökü).
+            var leaf = await FindLeafAsync(session, record.CategoryPath, ct)
+                       ?? await FindByNameAsync(session, "Genel", ct)
+                       ?? throw new InvalidOperationException("Kategori ağacı kurulmamış: 'Genel' kökü yok (Faz A koşmadı mı?).");
 
-            // SKU=ISBN (ImportBook emsali). ImageUrl boş — kapak async File.Api'den (CoverIngested).
-            var product = Product.Create(record.Title, record.Isbn, ProductType.Simple, price, "", record.Description).Data!;
-            product.SetIdentifiers(record.Isbn, gtin: record.Isbn, manufacturerPartNumber: null);
+            var product = Product.Create(record.Title, record.Isbn, price, record.Description).Data!;
             product.SetAuthors(authors.Select(a => a.Id));
             product.SetPublisher(publisher.Id);
-            product.SetImage(null);
+            product.SetImage(null); // kapak async File.Api'den (CoverIngested)
             product.SetBookMeta(record.PageCount, record.PublishedOn, record.Language);
             product.SetTranslators(record.Translators);
-            product.AssignToCategory(primary!.Id, isFeatured: false, displayOrder: 0);
+            product.SetCategory(leaf.Id);
 
-            // Çoklu kategori: ilgili yolları da ata (duplicate AssignToCategory içinde elenir).
-            var categoryNames = new List<string>(primaryNames);
+            // İlgili kategoriler (editoryal): leaf'leri çöz, çözülemeyeni atla (satır reddedilmez).
+            var relatedIds = new List<Guid>();
             foreach (var relatedPath in record.RelatedCategoryPaths)
             {
-                if (relatedPath.Count == 0) continue;
-                var (related, relatedNames) = await GetOrCreateCategoryChainAsync(session, relatedPath, ct);
-                product.AssignToCategory(related!.Id, isFeatured: false, displayOrder: 0);
-                categoryNames.AddRange(relatedNames);
+                var related = await FindLeafAsync(session, relatedPath, ct);
+                if (related is not null)
+                    relatedIds.Add(related.Id);
             }
+            product.SetRelatedCategories(relatedIds); // dedup + primary'yi eleme aggregate'te
             session.Store(product);
 
             // Fiyat geçmişin ilk satırı (OldPrice=null) — fiyat>0 garantili.
             session.Store(ProductPriceChange.Create(product.Id, oldPrice: null, price.Amount, DateTime.UtcNow));
 
+            // Yayın-anı zincir çözümü (leaf + ata; ad VE id) — FileConsumers ile ortak tek kaynak.
+            var chainMap = new Dictionary<Guid, Category> { [leaf.Id] = leaf };
+            if (leaf.ParentCategoryId is Guid parentId
+                && await session.LoadAsync<Category>(parentId, ct) is { } parent)
+                chainMap[parentId] = parent;
+            var (categoryIds, categoryNames) = CategoryNaming.ResolveChain(leaf.Id, chainMap);
+
             // İki event = iki hat: ProductAdded kimlik/kapak (File kapak çözer), ProductChangedEvent
-            // vitrin (Library/Discount tüketir). Categories = primary+ilgili tüm kategori adları (çoklu-kategori).
+            // vitrin (Library tüketir). Categories/CategoryIds = leaf + ata (related GİRMEZ).
             await bus.PublishAsync(new IntegrationEvents.ProductAdded(record.Isbn, product.Id));
             await bus.PublishAsync(new IntegrationEvents.ProductChangedEvent(
-                product.Id, product.Name, product.FullDescription, price.Amount,
+                product.Id, product.Name, product.Description, price.Amount,
                 authors.Select(a => new IntegrationEvents.AuthorRef(a.Id, a.Name)).ToList(),
                 publisher.Id, publisher.Name,
-                primary.Id, primary.Name,
+                leaf.Id, leaf.Name,
                 product.ImageUrl, IsDeleted: false,
-                Categories: categoryNames.Distinct().ToList()));
+                Categories: categoryNames,
+                CategoryIds: categoryIds));
 
             // Tek idiom (090): boşaltma HER yazma yolunda handler-içi publish — yeni referans
             // doğduysa agent-lists boşaltılır; [Transactional] içinden publish = outbox atomikliği.
@@ -171,7 +225,21 @@ public static class SeedBookRow
             return names.Length == 0 ? ["Unknown"] : names;
         }
 
-        // Sökülen ProcessImportRow'un get-or-create yardımcılarının devamı (091'de buraya taşındı).
+        // Kanonik yolun leaf'ini ([üst] → üst, [üst, leaf] → leaf) kapalı ağaçtan çözer; yoksa null.
+        private static async Task<Category?> FindLeafAsync(
+            IDocumentSession session, List<string> path, CancellationToken ct)
+        {
+            var leafName = path.LastOrDefault(s => !string.IsNullOrWhiteSpace(s));
+            return leafName is null ? null : await FindByNameAsync(session, leafName, ct);
+        }
+
+        private static async Task<Category?> FindByNameAsync(
+            IDocumentSession session, string name, CancellationToken ct)
+        {
+            var normalized = NameNormalization.Normalize(name);
+            return await session.Query<Category>().FirstOrDefaultAsync(c => c.NormalizedName == normalized, ct);
+        }
+
         private async Task<List<Author>> GetOrCreateAuthorsAsync(
             IDocumentSession session, string[] names, CancellationToken ct)
         {
@@ -212,26 +280,6 @@ public static class SeedBookRow
             await Task.CompletedTask;
         }
 
-        // Kanonik kategori yolunu ([üst] ya da [üst, leaf]) zincirle get-or-create eder; (leaf-ya-üst, tüm
-        // segment adları) döner. leaf==üst savunma guard'ı (kanonik veri bunu üretmez ama ikinci Store
-        // unique ihlalini engeller).
-        private async Task<(Category Category, List<string> Names)> GetOrCreateCategoryChainAsync(
-            IDocumentSession session, List<string> path, CancellationToken ct)
-        {
-            var top = await GetOrCreateCategoryAsync(session, path[0].Trim(), parentId: null, ct);
-            var names = new List<string> { top.Name };
-            if (path.Count == 1)
-                return (top, names);
-
-            var leafName = path[1].Trim();
-            var leaf = NameNormalization.Normalize(leafName) == top.NormalizedName
-                ? top
-                : await GetOrCreateCategoryAsync(session, leafName, parentId: top.Id, ct);
-            if (leaf.Id != top.Id)
-                names.Add(leaf.Name);
-            return (leaf, names);
-        }
-
         private async Task<Publisher> GetOrCreatePublisherAsync(
             IDocumentSession session, string name, CancellationToken ct)
         {
@@ -244,21 +292,6 @@ public static class SeedBookRow
             session.Store(publisher);
             _createdReference = true;
             return publisher;
-        }
-
-        private async Task<Category> GetOrCreateCategoryAsync(
-            IDocumentSession session, string name, Guid? parentId, CancellationToken ct)
-        {
-            var normalized = NameNormalization.Normalize(name);
-            var existing = await session.Query<Category>().FirstOrDefaultAsync(c => c.NormalizedName == normalized, ct);
-            if (existing is not null)
-                return existing;
-
-            var category = Category.Create(name, parentCategoryId: parentId).Data!;
-            category.SetPublished(true);
-            session.Store(category);
-            _createdReference = true;
-            return category;
         }
     }
 }

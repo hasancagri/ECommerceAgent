@@ -5,7 +5,7 @@ namespace Order.Api.Grpc;
 
 // 094: Order → Payment.Api S2S istemcisi (makine token payment.write, SagaTokenHandler). start_payment
 // tutarı hesapladıktan sonra ödeme niyeti + PG hosted link'i ister. FAIL-CLOSED: erişilemez →
-// PAYMENT_GATEWAY_UNAVAILABLE (link üretilmez, Order commit edilmez). AddressClient/DiscountClient emsali.
+// PAYMENT_GATEWAY_UNAVAILABLE (link üretilmez, Order commit edilmez). AddressClient emsali.
 public sealed class PaymentIntentClient(PaymentIntentService.PaymentIntentServiceClient client)
 {
     private static readonly TimeSpan CallDeadline = TimeSpan.FromSeconds(10);

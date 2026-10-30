@@ -4,7 +4,7 @@ namespace Catalog.Api.Tests.Products;
 public class ProductBookMetaTests
 {
     private static Product NewProduct() =>
-        Product.Create("17. Roman", "9789750858079", ProductType.Simple, Money.Create(150m)!, "", "").Data!;
+        Product.Create("17. Roman", "9789750858079", Money.Create(150m)!, "").Data!;
 
     [Fact]
     public void SetBookMeta_AllValues_SetsFields()

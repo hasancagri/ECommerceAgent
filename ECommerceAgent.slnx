@@ -15,7 +15,6 @@
     <Project Path="src/services/library/Library.Api/Library.Api.csproj" />
     <Project Path="src/services/order/Order.Api/Order.Api.csproj" />
     <Project Path="src/services/payment/Payment.Api/Payment.Api.csproj" />
-    <Project Path="src/services/discount/Discount.Api/Discount.Api.csproj" />
     <Project Path="src/services/file/File.Api/File.Api.csproj" />
     <Project Path="src/services/reviews/Reviews.Api/Reviews.Api.csproj" />
   </Folder>
@@ -24,7 +23,6 @@
     <Project Path="tests/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
     <Project Path="tests/Customer.Api.Tests/Customer.Api.Tests.csproj" />
     <Project Path="tests/Common.Tests/Common.Tests.csproj" />
-    <Project Path="tests/Discount.Api.Tests/Discount.Api.Tests.csproj" />
     <Project Path="tests/File.Api.Tests/File.Api.Tests.csproj" />
     <Project Path="tests/Library.Api.Tests/Library.Api.Tests.csproj" />
     <Project Path="tests/Order.Api.Tests/Order.Api.Tests.csproj" />
