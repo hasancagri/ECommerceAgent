@@ -10,7 +10,6 @@ global using Common.Results;
 global using Common.Utils.Constants;
 global using Common.Utils.Authorization;
 global using System.ComponentModel;
-global using ModelContextProtocol.Server;
 global using Library.Api.Constants;
 global using Library.Api.Dependencies;
 global using Library.Api.Domains.PriceAlarms;

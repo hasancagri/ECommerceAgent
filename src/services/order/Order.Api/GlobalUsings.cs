@@ -26,7 +26,6 @@ global using System.Net.Http.Headers;
 global using System.Text.Json;
 global using Common.Dependencies;
 global using Grpc.Core;
-global using ModelContextProtocol.Server;
 global using Shared.Grpc.Basket;
 global using Shared.Grpc.Customer;
 global using Shared.Grpc.Discount;

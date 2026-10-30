@@ -14,8 +14,7 @@ public static class CatalogResourceConstants
     // yayın kapısı — fiyatsız kitap yayınlanamaz (satılamaz kart engellenir).
     // 091: yayın makinesi söküldü — fiyat>0 artık var oluş invariant'ı (Create/SetPrice).
     public static readonly string PRODUCT_PRICE_REQUIRED = "CATALOG_PRODUCT_PRICE_REQUIRED";
-    // 091: seed kaydında negatif stok (satır atlanır, seed sürer).
-    public static readonly string SEED_STOCK_NEGATIVE = "CATALOG_SEED_STOCK_NEGATIVE";
+    // SEED_STOCK_NEGATIVE SÖKÜLDÜ — Stock BC kaldırıldı, seed'de stok alanı yok.
     public static readonly string PRODUCT_CATEGORY_NOT_ASSIGNED = "CATALOG_PRODUCT_CATEGORY_NOT_ASSIGNED";
     public static readonly string CATEGORY_NAME_REQUIRED = "CATALOG_CATEGORY_NAME_REQUIRED";
     public static readonly string CATEGORY_SELF_PARENT = "CATALOG_CATEGORY_SELF_PARENT";
@@ -36,16 +35,5 @@ public static class CatalogResourceConstants
     public static readonly string PRODUCT_CATEGORY_REQUIRED = "CATALOG_PRODUCT_CATEGORY_REQUIRED";
 
     // özellik (specification) tanımları + atama guard'ları.
-    public static readonly string SPEC_NAME_REQUIRED = "CATALOG_SPEC_NAME_REQUIRED";
-    public static readonly string SPEC_OPTION_NAME_REQUIRED = "CATALOG_SPEC_OPTION_NAME_REQUIRED";
-    public static readonly string SPEC_OPTION_ALREADY_EXISTS = "CATALOG_SPEC_OPTION_ALREADY_EXISTS";
-    public static readonly string SPEC_ALREADY_EXISTS = "CATALOG_SPEC_ALREADY_EXISTS";
-    public static readonly string SPEC_NOT_FOUND = "CATALOG_SPEC_NOT_FOUND";
-    public static readonly string SPEC_DUPLICATE_ATTRIBUTE = "CATALOG_SPEC_DUPLICATE_ATTRIBUTE";
-
-    // Excel import — capability token + staging satır durum guard'ları.
-    public static readonly string IMPORT_LINK_LIFETIME_INVALID = "CATALOG_IMPORT_LINK_LIFETIME_INVALID";
-    public static readonly string IMPORT_SESSION_NOT_USABLE = "CATALOG_IMPORT_SESSION_NOT_USABLE";
-    public static readonly string IMPORT_ISBN_REQUIRED = "CATALOG_IMPORT_ISBN_REQUIRED";
-    public static readonly string IMPORT_ROW_ALREADY_TERMINAL = "CATALOG_IMPORT_ROW_ALREADY_TERMINAL";
+    // SPEC_* sabitleri SÖKÜLDÜ — SpecificationAttribute facet sistemi kaldırıldı.
 }

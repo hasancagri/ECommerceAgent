@@ -26,7 +26,6 @@
         <PackageReference Include="Asp.Versioning.Http" />
         <PackageReference Include="Duende.IdentityModel" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-        <PackageReference Include="ModelContextProtocol.AspNetCore" />
     </ItemGroup>
 
     <!-- 079: checkout S2S — Order.Api aktif indirim yüzdesini canlı doğrular (bu servis SUNUCU). -->

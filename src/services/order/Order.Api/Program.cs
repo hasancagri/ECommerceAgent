@@ -25,10 +25,6 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.ReviewsWrite,
     // 088: ölü-mesaj operatör tool'ları (admin_list/get/replay/discard_dead_letter).
     AuthorizationScopes.OpsDeadletter);
-// RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
-builder.Services.AddMcpResourceMetadata(builder.Configuration, "order",
-    AuthorizationScopes.OrderRead, AuthorizationScopes.OrderWrite, AuthorizationScopes.OpsDeadletter);
-// logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -89,12 +85,7 @@ builder.Services
     .AddHttpMessageHandler<SagaTokenHandler>();
 builder.Services.AddScoped<PaymentIntentClient>();
 
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport()
-    .WithToolsFromAssembly()
-    // 088: ölü-mesaj operatör tool'ları Common'da (assembly taraması dışı) — açık kayıt.
-    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
+// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp sipariş/ödeme-başlat tool'ları + DLQ MCP kaldırıldı; REST first-party'ye.
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
@@ -110,9 +101,5 @@ app.UseAuthorization();
 
 // 094 pay-by-link: PG hosted ödeme dönüş ucu (anonim bilgilendirme; gerçek durum webhook'tan).
 app.AddCheckoutDoneEndpoint();
-
-// MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
-app.MapMcp("/mcp");
-app.MapMcpResourceMetadata();
 
 await app.RunAsync();

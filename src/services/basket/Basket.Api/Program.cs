@@ -24,10 +24,6 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.OpsDeadletter);
 // Dış tüketiciler icin opak UserKey (X-User-Key) custom auth semasi. JWT'ye dokunmaz.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
-// RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
-builder.Services.AddMcpResourceMetadata(builder.Configuration, "basket",
-    AuthorizationScopes.BasketRead, AuthorizationScopes.BasketWrite, AuthorizationScopes.OpsDeadletter);
-// logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -43,12 +39,7 @@ builder.Services.AddHttpContextAccessor();
 // checkout saga ClearBasket gRPC sunucusu (Order saga'si makine token'iyla cagirir).
 builder.Services.AddGrpc();
 
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport()
-    .WithToolsFromAssembly()
-    // 088: ölü-mesaj operatör tool'ları Common'da (assembly taraması dışı) — açık kayıt.
-    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
+// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp tool'ları + DLQ MCP kaldırıldı; okuma/yazma REST first-party'ye.
 
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
@@ -59,10 +50,6 @@ app.UseAuthentication();
 app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
-
-// MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
-app.MapMcp("/mcp");
-app.MapMcpResourceMetadata();
 
 // GetBasketItems gRPC ucu (Order.Api chat siparis tamamlama; makine token'i basket.read).
 app.MapGrpcService<Basket.Api.Grpc.Checkout.BasketItemsGrpcService>()

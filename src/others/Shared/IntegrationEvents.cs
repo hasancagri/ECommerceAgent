@@ -8,9 +8,7 @@ public static class IntegrationEvents
     // 006-home-storefront-list: Description/Price/Brand eklendi.
     // 016-category-brand: kimlik + ad birlikte taşınır (R7); Id opak değerdir, tüketici lookup yapmaz.
     // Kategori zorunludur (kullanıcı kararı 2026-07-27): kategorisiz ürün domain'de yoktur.
-    // Specs — kanonik özellik AD çiftleri (Id taşınmaz; sözleşme=AD, taksonomi deseni).
-    // Additive + opsiyonel: eski yayıncı/tüketici kırılmaz; null = özellik bilgisi yok (boş sayılır).
-    public record ProductSpec(string Attribute, string Option);
+    // ProductSpec SÖKÜLDÜ — SpecificationAttribute facet sistemi + tek tüketicisi Storefront kaldırıldı.
 
     // kitap künyesi — yazar (Id+ad çifti; paralel-liste kırılganlığı olmadan taşınır).
     public record AuthorRef(Guid Id, string Name);
@@ -29,30 +27,29 @@ public static class IntegrationEvents
         string Category,
         string? ImageUrl,
         bool IsDeleted,
-        List<ProductSpec>? Specs = null,
         // varyant ailesi kodu (opsiyonel; null = ailesiz).
         string? FamilyCode = null,
         // YALNIZ fiyat değişiminde dolu (eski fiyat); null = fiyat-dışı değişiklik.
         // Additive default'lu — eski tüketici (Storefront) kırılmaz. Library tetik kararını bundan verir.
-        decimal? OldPrice = null);
-    public record StockChangedEvent(Guid ProductId, int Quantity);
+        decimal? OldPrice = null,
+        // çoklu-kategori: primary + ilgili tüm kategori ADLARI (ata zinciri dahil, dedupe). null/boş =
+        // yalnız tekil Category kullan (eski tüketici kırılmaz; CategoryId hâlâ primary leaf). Storefront
+        // ES "category" alanına dizi yazar (text+keyword diziyi native kabul eder).
+        List<string>? Categories = null);
 
-
-    // 050/051: Catalog → Stock. Yalnız YENİ ürün YAYINLANINCA yayılır; Stock BarcodeLink eşlemesini kurar
-    // ve OnHand'i InitialStock ile mutlak yazar. 051: ilk yayıncısı = kitap import ("Linked" feed-adı düştü).
+    // Catalog → File (dijital pivot: Stock BC söküldü). Yeni ürün yayınlanınca yayılır; File kapak
+    // çözümünü (ISBN/Barcode) tetikler. InitialStock SÖKÜLDÜ (stok yok — Stock BC kaldırıldı).
     public record ProductAdded(
         string Barcode,
-        Guid ProductId,
-        int InitialStock);
+        Guid ProductId);
 
     // File.Api → Catalog. Kapak R2'de hazır + registry upsert sonrası yayılır. Url = r2.dev public
     // (CoverUrlResolver çıktısı; r2.dev base Catalog'a sızmaz — İLKE I). Catalog FileConsumers tüketir →
     // Product.SetImage → ProductChangedEvent. Kapak yoksa event YOK (ürün placeholder ImageUrl'süz kalır).
     public record CoverIngested(string Isbn, string Url);
 
-    // Reviews → Storefront. Visible yorumlardan MUTLAK özet (delta değil) — geç/yeniden teslim
-    // son-yazan-kazanır ile güvenli. Count=0 ⇒ tüketici özeti temizler (rozet çizilmez).
-    public record ReviewSummaryChanged(Guid ProductId, decimal Average, int Count);
+    // ReviewSummaryChanged SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı. Rating özeti
+    // Reviews aggregate'inde durur, yayınlanmaz (arama pg-hibrit'e taşınınca yeniden değerlendirilir).
 
     // Order → Reviews. YALNIZ odeme onayli tamamlanan siparis (Confirm pivotu) icin yayilir;
     // olusturulan/odenmemis DEGIL. Reviews satin-alma kanitini (yorum hakki) bu event'ten projeksiyonlar.
@@ -96,21 +93,9 @@ public static class IntegrationEvents
     public record PaymentSucceeded(Guid OrderId, Guid UserId, Guid PaymentIntentId, string TxRef, decimal Amount);
     public record PaymentFailed(Guid OrderId, Guid PaymentIntentId, string TxRef, string ReasonCode);
 
-    // 092 checkout koreografisi (orchestration söküldü). Order ödeme onaylanınca stok commit talep eder;
-    // Stock TÜM kalemleri tek transaction'da atomik düşer (biri yetersizse hiçbiri — ya hep ya hiç), sonucu
-    // event'le bildirir. Tümü fanout; binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi). Korelasyon = OrderId.
-    public record StockCommitItem(Guid ProductId, int Quantity);
-    public record StockCommitRequested(Guid OrderId, Guid UserId, IReadOnlyList<StockCommitItem> Items);
-    public record StockCommitted(Guid OrderId);
-    public record StockCommitFailed(Guid OrderId, string ReasonCode); // ReasonCode = Stock kaynak sabiti (STOCK_INSUFFICIENT)
+    // dijital (PDF) pivot: Stock BC + checkout stok-commit koreografisi (StockCommitRequested/Committed/
+    // Failed) söküldü. PaymentSucceeded → doğrudan Order.Confirm + OrderCompleted (Order PaymentConsumers).
 
-    // Discount → Storefront (fanout). Bir kitabın tek indiriminin penceresini iter; indirim
-    // kaldırılınca (bitiş/iptal) temizlik için DiscountPct=0 + null pencere gönderilir. Yayıncı Discount.Api
-    // exchange deklare eder; binding'i TÜKETİCİ (Storefront) kurar (007 soğuk-açılış dersi). Discount.Api
-    // FİYAT TUTMAZ — yalnız yüzde; etkin fiyatı Storefront kendi liste fiyatından hesaplar.
-    public record ProductDiscountChanged(
-        Guid ProductId,
-        int DiscountPct,      // 0 = indirim yok (temizle); 1-99 = kitabın aktif/gelecek indirimi
-        DateTime? StartsAt,   // pencere başlangıcı (null = temizlik)
-        DateTime? EndsAt);    // pencere bitişi (null = süresiz ya da temizlik)
+    // ProductDiscountChanged SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı. İndirim yüzdesi
+    // Order'a checkout gRPC'siyle (ayrı kanal) akmaya devam eder; vitrin event'i artık yayılmaz.
 }

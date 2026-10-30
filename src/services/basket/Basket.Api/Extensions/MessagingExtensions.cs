@@ -38,8 +38,6 @@ public static class MessagingExtensions
             // *Consumers (çoğul) ad konvansiyonuyla otomatik keşfedilmiyor → açık kayıt ZORUNLU
             // (yoksa OrderCompleted sessiz yutulur, sepet temizlenmez).
             opts.Discovery.IncludeType(typeof(Basket.Api.OrderConsumers));
-            // 088: ölü-mesaj operatör handler'ları Common'da (assembly taraması dışı) — açık kayıt.
-            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
         });

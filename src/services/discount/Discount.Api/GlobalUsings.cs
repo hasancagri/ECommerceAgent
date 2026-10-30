@@ -12,7 +12,6 @@ global using Common.Utils.Constants;
 global using Marten;
 global using Marten.Newtonsoft;
 global using Microsoft.Extensions.Options;
-global using ModelContextProtocol.Server;
 global using System;
 global using System.ComponentModel;
 global using System.Reflection;

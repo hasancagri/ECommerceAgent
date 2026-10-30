@@ -14,15 +14,11 @@
       <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\..\services\catalog\Catalog.Api\Catalog.Api.csproj" />
       <ProjectReference Include="..\..\services\customer\Customer.Api\Customer.Api.csproj" />
-      <ProjectReference Include="..\..\services\stock\Stock.Api\Stock.Api.csproj" />
       <ProjectReference Include="..\..\services\basket\Basket.Api\Basket.Api.csproj" />
       <ProjectReference Include="..\..\services\order\Order.Api\Order.Api.csproj" />
       <ProjectReference Include="..\..\services\payment\Payment.Api\Payment.Api.csproj" />
-      <ProjectReference Include="..\..\services\storefront\Storefront.Api\Storefront.Api.csproj" />
       <!-- 084: Identity.Server AgentPlatform repo'suna taşındı (platform IdP). ECommerce artık relying
            party — IdP'ye dış-servis (issuer URL, IdentityOption.Address) olarak bakar, proje-ref YOK. -->
-      <ProjectReference Include="..\..\agents\Mail.Mcp\Mail.Mcp.csproj" />
-      <ProjectReference Include="..\..\agents\NotificationAgent\NotificationAgent.csproj" />
       <ProjectReference Include="..\..\services\reviews\Reviews.Api\Reviews.Api.csproj" />
       <ProjectReference Include="..\..\services\library\Library.Api\Library.Api.csproj" />
       <ProjectReference Include="..\..\services\discount\Discount.Api\Discount.Api.csproj" />
@@ -35,7 +31,6 @@
         <PackageReference Include="Aspire.Hosting.Kubernetes" />
         <PackageReference Include="Aspire.Hosting.RabbitMQ" />
         <PackageReference Include="Aspire.Hosting.Redis" />
-        <PackageReference Include="Aspire.Hosting.Elasticsearch" />
     </ItemGroup>
 
 </Project>

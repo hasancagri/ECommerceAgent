@@ -19,7 +19,8 @@ pay-by-link: ödeme girişi CANLI** — Order S2S ile niyet + PG hosted link ür
    `X-Signature` HMAC doğrulanır (fail-closed), `pgPaymentRef` ile niyet eşlenir, tutar
    anti-tamper guard'ından geçer; `Paid`→`MarkSucceeded`→`PaymentSucceeded` /
    başarısız→`MarkFailed`→`PaymentFailed` fanout'u. İdempotent (çift webhook tek koreografi).
-3. 👤 **Kullanıcı ödemelerini okur** — kişi kendi GEÇMİŞ girişimlerini listeler.             `(GetAllPaymentsByUserId)`
+3. 👤 Kullanıcı ödemelerini okur _(planned)_ — kişi kendi GEÇMİŞ girişimlerini listeler;
+   okuma yüzeyi MCP'yle birlikte söküldü, REST first-party'de yeniden açılacak.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

@@ -37,9 +37,7 @@ public static class MartenExtensions
                 opts.Schema.For<Catalog.Api.Domains.Publishers.Publisher>()
                     .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.NormalizedName);
 
-                // özellik registry'si — NormalizedName teklik anahtarı (seed get-or-create güvencesi).
-                opts.Schema.For<Catalog.Api.Domains.SpecificationAttributes.SpecificationAttribute>()
-                    .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.NormalizedName);
+                // SpecificationAttribute registry SÖKÜLDÜ — facet sistemi kaldırıldı.
 
                 // 091: ISBN=Gtin kimlik — seed satır-satır lookup'ı index'ten döner (19.7k × tarama değil)
                 // + çift-ISBN'e DB-seviyesi guard (admin_create_product yarışı dahil). Null Gtin serbest

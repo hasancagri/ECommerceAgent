@@ -12,7 +12,7 @@ yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayı
 1. 👤 **Kullanıcı** → 🟦 **Fiyat alarmı kur** → 🟨 **Alarm doğar** — e-posta kuruluş           `(PriceAlarm.Create)`
    anında snapshot alınır (doğrulanmaz, boş olabilir); ürün adı + o anki fiyat
    bağlam olarak saklanır.
-2. 🟪 **Aynı kullanıcı × ürüne tek alarm** — mevcut kayıt varsa ikinci kurma                   `(CreatePriceAlarm)`
+2. 🟪 **Aynı kullanıcı × ürüne tek alarm** — mevcut kayıt varsa ikinci kurma
    isteği idempotent başarı döner, yeni kayıt yazılmaz.
 3. 🟧 **Ürün fiyatı değişti** ⇦ Catalog → 🟪 **değişim dinlenir** — eski             `(CatalogConsumers ← ProductChangedEvent)`
    fiyat doluysa VE yeni fiyattan farklıysa tetik doğar; yön bakılmaz.
@@ -20,7 +20,8 @@ yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayı
    bir tetik; mail'e yetecek her alan event'te (email snapshot dahil), worker kimseye sormaz.
 5. 🟪 **Alarm tetikte KAPANMAZ** — yaşayan abonelik: kullanıcı kaldırana dek her           `(PriceAlarm — mutator'suz)`
    fiyat değişimi yeni tetik üretir.
-6. 👤 **Kullanıcı** → 🟦 **Alarmı kaldır** — hard delete; yaşam döngüsü biter.                  `(RemovePriceAlarm)`
+6. 👤 **Kullanıcı** → 🟦 **Alarmı kaldır** — hard delete; yaşam döngüsü biter.
+   _(kur/kaldır MCP yazma tool'ları söküldü; giriş REST first-party'de yeniden açılacak.)_
 7. 🟧 **Bildirim gönderildi** ⇦ NotificationAgent → 🟩 **İz yazılır** —    `(NotificationAgentConsumers ← NotificationSent`
    worker'ın sonucu append-only kayda düşer (sent / no-email / hata özeti).                   ` → NotificationRecord)`
 8. 🟧 **Sipariş tamamlandı** ⇦ Order → 🟩 **Kişisel satın-alma kaydı** — kalem            `(OrderConsumers ← OrderCompleted`

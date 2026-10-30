@@ -24,7 +24,6 @@ global using Common.Utils.Authorization;
 global using Shared.Utils.Constants;
 global using Grpc.Core;
 global using System.ComponentModel;
-global using ModelContextProtocol.Server;
 global using Common.Results;
 global using Common.Dependencies;
 global using Shared.Grpc.Basket;

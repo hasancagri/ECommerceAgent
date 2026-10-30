@@ -19,29 +19,16 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.ReviewsWrite,
     AuthorizationScopes.OpsDeadletter);
-// RFC 9728 keşif (metadata + 401 challenge) — dış agent yorum MCP'si (get_reviews/eligibility/submit).
-builder.Services.AddMcpResourceMetadata(builder.Configuration, "reviews", AuthorizationScopes.ReviewsWrite, AuthorizationScopes.OpsDeadletter);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
 
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport()
-    .WithToolsFromAssembly()
-    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
-    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
+// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp yorum tool'ları + DLQ MCP kaldırıldı; REST first-party'ye.
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-
-// MCP korumalı — kimliksiz istek 401 + resource_metadata challenge (dış agent keşfi).
-// get_reviews login yeter (RequiredScope yok); eligibility/submit reviews.write (Wolverine middleware).
-app.MapMcp("/mcp");
-app.MapMcpResourceMetadata();
 
 await app.RunAsync();

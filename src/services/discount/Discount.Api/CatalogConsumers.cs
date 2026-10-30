@@ -1,5 +1,3 @@
-using Discount.Api.Domains.ProductCatalogRefs;
-
 namespace Discount.Api;
 
 // Catalog `ProductChangedEvent` → `ProductCatalogRef` upsert (süzgeç çözümü izdüşümü). Kaynak = Catalog

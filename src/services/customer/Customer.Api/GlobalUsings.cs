@@ -26,7 +26,6 @@ global using Common.Utils.Caching;
 global using Shared.Utils.Constants;
 global using Customer.Api.Domains.AddressBooks.Entities;
 global using System.ComponentModel;
-global using ModelContextProtocol.Server;
 global using Customer.Api.Extensions;
 global using System.Text.Json;
 global using Grpc.Core;
