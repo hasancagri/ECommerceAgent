@@ -18,12 +18,10 @@ public static class MartenExtensions
                         s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
                     });
 
-                // Gtin (barkod) ürün lookup/teklik anahtarıdır — lookup index'i.
-                // FamilyCode agent okumaları için ucuz lookup index'i (gruplama Storefront'ta).
-                opts.Schema.For<Product>().Index(x => x.Gtin).Index(x => x.FamilyCode);
+                // Gtin (ISBN) ürün kimlik/lookup anahtarıdır (095: Sku söküldü, FamilyCode kalktı).
+                opts.Schema.For<Product>().Index(x => x.Gtin);
 
-                // K9: ProductTag yeni aggregate — dış yüzeyi yok, şemada yaşar (besleyen akış 041+).
-                opts.Schema.For<ProductTag>();
+                // 095: ProductTag aggregate'i SÖKÜLDÜ (model + şema; eski tablo dev full-reset'le gider).
 
                 // fiyat geçmişi append-only kaydı — ürün bazlı okuma için lookup index'i.
                 opts.Schema.For<ProductPriceChange>().Index(x => x.ProductId);

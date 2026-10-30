@@ -28,7 +28,6 @@ global using Common.Dependencies;
 global using Grpc.Core;
 global using Shared.Grpc.Basket;
 global using Shared.Grpc.Customer;
-global using Shared.Grpc.Discount;
 global using Shared.Grpc.Payment;
 global using Order.Api.Domains.Checkout;
 global using System.ComponentModel;

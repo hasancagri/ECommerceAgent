@@ -67,14 +67,7 @@ builder.Services
     .AddHttpMessageHandler<SagaTokenHandler>();
 builder.Services.AddScoped<AddressClient>();
 
-// Discount.Api checkout gRPC istemcisi — start_payment aktif indirim yüzdesini canlı sorar (discount.read).
-var discountGrpcAddress = builder.Configuration["services:discount-api:https:0"]
-    ?? builder.Configuration["services:discount-api:http:0"]
-    ?? "https://discount-api";
-builder.Services
-    .AddGrpcClient<DiscountQuery.DiscountQueryClient>(o => o.Address = new Uri(discountGrpcAddress))
-    .AddHttpMessageHandler<SagaTokenHandler>();
-builder.Services.AddScoped<DiscountClient>();
+// Discount gRPC istemcisi SÖKÜLDÜ (095 branch'i) — kampanya/indirim modeli kalktı; tutar = liste fiyatı.
 
 // 094 pay-by-link: Payment.Api S2S istemcisi — start_payment ödeme niyeti + PG hosted link ister (payment.write).
 var paymentGrpcAddress = builder.Configuration["services:payment-api:https:0"]

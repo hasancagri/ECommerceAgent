@@ -17,7 +17,7 @@ public static class MessagingExtensions
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // Yayıncı yalnız exchange deklare eder; kuyruk + binding tüketicide (Library/Discount, 007).
+            // Yayıncı yalnız exchange deklare eder; kuyruk + binding tüketicide (Library, 007).
             // (Storefront binding'i SÖKÜLDÜ — o BC kaldırıldı.)
             rabbit.DeclareExchange(RabbitMqConstants.ProductChanged.Exchange, e =>
             {
@@ -52,6 +52,8 @@ public static class MessagingExtensions
                 typeof(ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+            // *Consumers son-eki taramayla BULUNMAZ → açık kayıt ZORUNLU (yoksa CoverIngested sessizce yutulur).
+            opts.Discovery.IncludeType(typeof(Catalog.Api.FileConsumers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
         });

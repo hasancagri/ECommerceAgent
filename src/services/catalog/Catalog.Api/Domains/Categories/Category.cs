@@ -1,24 +1,18 @@
 namespace Catalog.Api.Domains.Categories;
 
 /// <summary>
-/// Kategori — Catalog BC'nin aggregate kökü (040: staging alanları + ana repo NormalizedName birleşti).
-/// Ağaç yapılıdır (ParentCategoryId ile öz-referans). 016 düzeni sürer: feed'den get-or-create ile
-/// doğar, NormalizedName teklik anahtarıdır (computed unique index, Program.cs) — ingestion dedup
-/// buna dayanır (K5). Staging'den gelen: Description, hiyerarşi, sıralama, vitrin bayrağı, SEO.
+/// Kategori — kapalı 2 seviyeli ağacın düğümü (095, FR-006/007). Ağaç YALNIZ seed'den kurulur
+/// (books.json kanonik yolları); ebeveyn doğumda sabittir — taşıma/yeniden adlandırma/düzenleme
+/// davranışı YOKTUR. NormalizedName teklik anahtarıdır (computed unique index) ve ad ağaç-global
+/// unique varsayımına dayanır (ihlalde seed deterministik hata verir).
 /// </summary>
 public class Category : AggregateRoot
 {
     public string Name { get; private set; } = default!;
     public string NormalizedName { get; private set; } = default!;
-    public string Description { get; private set; } = string.Empty;
 
-    // Kök kategori için null. Öz-ebeveyn SetParent'ta engellenir; ingestion düz (parent'sız) yazar.
+    // Kök kategori için null; en fazla 2 seviye (kök → leaf). Doğumda sabit — mutator yok.
     public Guid? ParentCategoryId { get; private set; }
-    public int DisplayOrder { get; private set; }
-
-    public bool Published { get; private set; }
-    public bool ShowOnHomepage { get; private set; }
-    public SeoMetadata Seo { get; private set; } = SeoMetadata.Empty();
 
     private Category()
     {
@@ -26,10 +20,10 @@ public class Category : AggregateRoot
 
     // JasperFxIgnore: statik Create fabrikası event-sourcing evolver konvansiyonuyla çakışır;
     // bu bir domain fabrikasıdır, projection değil (source generator'ı devre dışı bırakır).
-    /// <summary>Ad'ı doğrular, normalize eder ve yeni bir Category üretir; ad boşsa hata döner.</summary>
+    /// <summary>Ad'ı doğrular, normalize eder ve yeni bir Category üretir; ad boşsa hata döner.
+    /// Ebeveyn doğumda sabitlenir (kapalı ağaç — FR-007).</summary>
     [JasperFx.Core.JasperFxIgnore]
-    public static ResultDomain<Category> Create(string name, string description = "",
-        Guid? parentCategoryId = null, int displayOrder = 0)
+    public static ResultDomain<Category> Create(string name, Guid? parentCategoryId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             return ResultDomain<Category>.Error(new MessageItem
@@ -38,57 +32,11 @@ public class Category : AggregateRoot
                 Code = CatalogResourceConstants.VALUE_EMPTY
             });
 
-        var normalized = NameNormalization.Normalize(name);
         return ResultDomain<Category>.Ok(new Category
         {
             Name = name.Trim(),
-            NormalizedName = normalized,
-            Description = description,
+            NormalizedName = NameNormalization.Normalize(name),
             ParentCategoryId = parentCategoryId,
-            DisplayOrder = displayOrder,
         });
-    }
-
-    /// <summary>Kategori adını değiştirir; teklik anahtarı (NormalizedName) adla birlikte güncellenir.</summary>
-    public ResultDomain Rename(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(name), Code = CatalogResourceConstants.CATEGORY_NAME_REQUIRED });
-        Name = name.Trim();
-        NormalizedName = NameNormalization.Normalize(name);
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Kategoriyi başka bir üst kategoriye taşır. Kendini ebeveyn yapmak reddedilir (döngü guard'ı).
-    /// NOT: tam ağaç döngü kontrolü (torunu ebeveyn yapma) handler'da ağaç yüklenerek yapılır — burada tekil guard.</summary>
-    public ResultDomain SetParent(Guid? parentCategoryId)
-    {
-        if (parentCategoryId is not null && parentCategoryId == Id)
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(parentCategoryId), Code = CatalogResourceConstants.CATEGORY_SELF_PARENT });
-        ParentCategoryId = parentCategoryId;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Vitrin sıralamasını değiştirir.</summary>
-    public ResultDomain Reorder(int displayOrder)
-    {
-        DisplayOrder = displayOrder;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Kategoriyi yayınlar/gizler (K8: ingestion yazımı publish eder).</summary>
-    public ResultDomain SetPublished(bool published)
-    {
-        Published = published;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>SEO meta verisini günceller (040: feed'den dolmaz, Empty varsayılanla yaşar).</summary>
-    public ResultDomain SetSeo(SeoMetadata seo)
-    {
-        Seo = seo;
-        return ResultDomain.Ok();
     }
 }

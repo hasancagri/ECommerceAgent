@@ -27,10 +27,7 @@ public static class AuthorizationScopes
 
     // storefront.read SÖKÜLDÜ — Storefront BC kaldırıldı (arama pg-hibrit'e taşınıyor).
 
-    // discount.api (079): kampanya indirimi. Checkout gRPC S2S okuma (Order makine token) +
-    // admin /mcp kampanya yönetimi (external-admin-agent). Müşteri yüzeyi indirimi vitrinde görür.
-    public const string DiscountRead = "discount.read";
-    public const string AdminDiscountWrite = "discount.admin.write";
+    // discount.read / discount.admin.write SÖKÜLDÜ (095) — Discount BC kaldırıldı (kampanya modeli öldü).
 
     // customer.api (022): kayitli kart (Wallet) + adres defteri (AddressBook)
     public const string CustomerRead = "customer.read";
