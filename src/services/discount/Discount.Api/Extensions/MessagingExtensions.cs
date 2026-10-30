@@ -17,10 +17,8 @@ public static class MessagingExtensions
 
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!).AutoProvision();
 
-            // kitap başına indirim penceresi (fanout) → Storefront tüketir. Yayıncı yalnız exchange deklare eder.
-            rabbit.DeclareExchange(RabbitMqConstants.ProductDiscountChanged.Exchange, e => e.ExchangeType = ExchangeType.Fanout);
-            opts.PublishMessage<IntegrationEvents.ProductDiscountChanged>()
-                .ToRabbitExchange(RabbitMqConstants.ProductDiscountChanged.Exchange);
+            // ProductDiscountChanged yayını SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı.
+            // İndirim yüzdesi Order'a checkout gRPC'siyle akar (ayrı kanal, bu dosyada değil).
 
             // Catalog ProductChangedEvent TÜKETİLİR (ProductCatalogRef besleme) — binding'i tüketici kurar (007).
             rabbit.DeclareExchange(RabbitMqConstants.ProductChanged.Exchange, e =>
@@ -41,8 +39,6 @@ public static class MessagingExtensions
             // "Consumers"/Process sınıfları taramada atlanabilir → açık kayıt garantili yol.
             opts.Discovery.IncludeType(typeof(Discount.Api.CatalogConsumers));
             opts.Discovery.IncludeType(typeof(Discount.Api.Process.CampaignScheduleHandler));
-            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
-            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

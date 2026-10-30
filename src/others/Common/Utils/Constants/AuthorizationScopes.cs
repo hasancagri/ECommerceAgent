@@ -25,8 +25,7 @@ public static class AuthorizationScopes
     // stock.api
     public const string StockWrite = "stock.write";
 
-    // storefront.api
-    public const string StorefrontRead = "storefront.read";
+    // storefront.read SÖKÜLDÜ — Storefront BC kaldırıldı (arama pg-hibrit'e taşınıyor).
 
     // discount.api (079): kampanya indirimi. Checkout gRPC S2S okuma (Order makine token) +
     // admin /mcp kampanya yönetimi (external-admin-agent). Müşteri yüzeyi indirimi vitrinde görür.

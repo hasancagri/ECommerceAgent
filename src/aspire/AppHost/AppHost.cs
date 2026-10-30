@@ -26,32 +26,13 @@ var rabbit = builder.AddRabbitMQ("rabbitmq")
 var redis = builder.AddRedis("redis")
     .WithLifetime(ContainerLifetime.Persistent);
 
-// 086: Storefront arama projeksiyonu = Elasticsearch (tek node dev). Kalıcı + data volume:
-// veri her zaman event-log'dan yeniden kurulabilir (rebuildable), ama reset'te boş-yeniden-kurma
-// maliyetinden kaçınmak için kalıcı. Yalnız storefront-api referanslar.
-var elasticsearch = builder.AddElasticsearch("elasticsearch")
-    .WithDataVolume()
-    .WithLifetime(ContainerLifetime.Persistent);
-
-// Kibana — ES'i gözle gezmek (Discover + Dev Tools): index içeriği, mapping, DSL deneme.
-// Dev-only görünürlük aracı; arama yolu programatik (Claude Desktop → ES DSL). Kibana 8.x elastic
-// superuser'ı reddeder (system indices) → service-account token şart. Token ES data volume'de
-// kalıcı (restart'ta ölmez, yalnız tam reset'te); secret parameter'dan (user-secrets) enjekte.
-// (Yeniden) üretim: scripts/kibana-service-token.sh çıktısını user-secrets'a yaz.
-var kibanaToken = builder.AddParameter("kibana-service-token", secret: true);
-builder.AddContainer("kibana", "docker.elastic.co/kibana/kibana", "8.17.3")
-    .WithEnvironment("ELASTICSEARCH_HOSTS", elasticsearch.GetEndpoint("http"))
-    .WithEnvironment("ELASTICSEARCH_SERVICEACCOUNTTOKEN", kibanaToken)
-    .WithHttpEndpoint(targetPort: 5601, name: "http")
-    .WaitFor(elasticsearch)
-    .WithLifetime(ContainerLifetime.Persistent);
+// Elasticsearch + Kibana SÖKÜLDÜ — tek tüketici Storefront BC'ydi, o kaldırıldı (arama pg-hibrit'e
+// taşınıyor: Catalog'da pg_search BM25 + pgvector + RRF). ES container/volume + Kibana görünürlük aracı gitti.
 
 var catalogDb = postgres.AddDatabase("catalogDb");
 var basketDb = postgres.AddDatabase("basketDb");
 var orderDb = postgres.AddDatabase("orderDb");
 var paymentDb = postgres.AddDatabase("paymentDb");
-var stockDb = postgres.AddDatabase("stockDb");
-var storefrontDb = postgres.AddDatabase("storefrontDb");
 var customerDb = postgres.AddDatabase("customerDb");
 var discountDb = postgres.AddDatabase("discountDb");
 var fileDb = postgres.AddDatabase("fileDb");
@@ -75,50 +56,29 @@ var catalogApi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
     .WaitFor(rabbit)
     .WaitFor(redis);
 
-var stockApi = builder.AddProject<Projects.Stock_Api>("stock-api")
-    .WithHttpHealthCheck("/health")
-    .WithReference(stockDb)
-    .WithReference(rabbit)
-    .WithReference(redis)
-    .WaitFor(stockDb)
-    .WaitFor(rabbit)
-    .WaitFor(redis);
-
-// Basket & Order, Stock'a senkron gRPC (rezervasyon Reserve/Release/Commit) çağırır.
+// dijital (PDF) pivot: Stock BC söküldü — sınırsız kopya, stok/rezervasyon yok.
 var basketApi = builder.AddProject<Projects.Basket_Api>("basket-api")
     .WithHttpHealthCheck("/health")
     .WithReference(basketDb)
     .WithReference(rabbit)
-    .WithReference(stockApi)
     .WithReference(redis)
     .WaitFor(basketDb)
     .WaitFor(rabbit)
-    .WaitFor(stockApi)
     .WaitFor(redis);
 
 var orderApi = builder.AddProject<Projects.Order_Api>("order-api")
     .WithHttpHealthCheck("/health")
     .WithReference(orderDb)
     .WithReference(rabbit)
-    .WithReference(stockApi)
     // start_payment sepet okuması Basket gRPC ucunu çağırır (GetBasketItems).
     .WithReference(basketApi)
     .WithReference(redis)
     .WaitFor(orderDb)
     .WaitFor(rabbit)
-    .WaitFor(stockApi)
     .WaitFor(basketApi)
     .WaitFor(redis);
 
-// 086: Redis SÖKÜLDÜ — yeni ES/event-log yüzeyinde cache'lenen slice yok (read-model REST kalıntısı gitti).
-var storefrontApi = builder.AddProject<Projects.Storefront_Api>("storefront-api")
-    .WithHttpHealthCheck("/health")
-    .WithReference(storefrontDb)
-    .WithReference(rabbit)
-    .WithReference(elasticsearch)
-    .WaitFor(storefrontDb)
-    .WaitFor(rabbit)
-    .WaitFor(elasticsearch);
+// Storefront.Api SÖKÜLDÜ — arama Catalog pg-hibrit'e taşınıyor; ES/event-log yüzeyi + storefrontDb gitti.
 
 var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithHttpHealthCheck("/health")
@@ -156,7 +116,7 @@ orderApi.WithReference(paymentApi).WaitFor(paymentApi);
 // event tüketicileri). Ayrı orkestrasyon servisi yok.
 
 // Reviews BC — satin-alma sartli yorum + puan ozeti. Satin-alma kaniti icin Order gRPC'sine
-// senkron sorar (fail-closed); ozet ReviewSummaryChanged fanout'uyla Storefront'a akar.
+// senkron sorar (fail-closed). ReviewSummaryChanged fanout'u SÖKÜLDÜ (tek tüketici Storefront'tu).
 var reviewsDb = postgres.AddDatabase("reviewsDb");
 var reviewsApi = builder.AddProject<Projects.Reviews_Api>("reviews-api")
     .WithReference(reviewsDb)
@@ -164,9 +124,7 @@ var reviewsApi = builder.AddProject<Projects.Reviews_Api>("reviews-api")
     .WithReference(orderApi)
     .WaitFor(reviewsDb)
     .WaitFor(rabbit)
-    .WaitFor(orderApi)
-    // Tuketici kuyrugu yayincidan once baglansin (007 dersi): Storefront reviews'tan once ayakta.
-    .WaitFor(storefrontApi);
+    .WaitFor(orderApi);
 
 // Library BC — fiyat alarmı (yaşayan abonelik) + bildirim izi. Catalog'un product.changed
 // fanout'unu dinler, alarm başına PriceAlarmTriggered yayınlar, NotificationSent izini yazar.
@@ -178,45 +136,21 @@ var libraryApi = builder.AddProject<Projects.Library_Api>("library-api")
     .WaitFor(rabbit);
 
 // Discount BC — admin kampanya indirimi. Catalog product.changed'i tüketir (ProductCatalogRef),
-// ProductDiscountChanged'i Storefront'a iter (tüketici binding'i önce kalksın → WaitFor storefront), checkout
-// gRPC ile Order'a aktif yüzde döner. Kendi discountDb'si.
+// checkout gRPC ile Order'a aktif yüzde döner. ProductDiscountChanged vitrin event'i SÖKÜLDÜ
+// (tek tüketici Storefront'tu). Kendi discountDb'si.
 var discountApi = builder.AddProject<Projects.Discount_Api>("discount-api")
     .WithHttpHealthCheck("/health")
     .WithReference(discountDb)
     .WithReference(rabbit)
     .WaitFor(discountDb)
-    .WaitFor(rabbit)
-    // Storefront discount exchange kuyruğunu bağlasın (007 soğuk-açılış dersi) — yayından önce ayakta.
-    .WaitFor(storefrontApi);
+    .WaitFor(rabbit);
 
 // Order.Api → Discount.Api checkout gRPC (start_payment aktif yüzde doğrulama, discount.read).
 // discountApi orderApi'den SONRA tanımlı → referans burada (paymentApi emsali).
 orderApi.WithReference(discountApi).WaitFor(discountApi);
 
-// Mailpit — dev posta kutusu (ham container; SMTP 1025 + web UI 8025).
-var mailpit = builder.AddContainer("mailpit", "axllent/mailpit")
-    .WithHttpEndpoint(targetPort: 8025, name: "http")
-    .WithEndpoint(targetPort: 1025, name: "smtp")
-    .WithLifetime(ContainerLifetime.Persistent);
-var mailpitSmtp = mailpit.GetEndpoint("smtp");
-
-// Mail.Mcp — ilk standalone MCP server (send_mail). SMTP hedefi Mailpit endpoint'inden
-// env ile (Options pattern SmtpOptions; IConfiguration'dan doğrudan okuma yok).
-var mailMcp = builder.AddProject<Projects.Mail_Mcp>("mail-mcp")
-    .WithEnvironment(ctx =>
-    {
-        ctx.EnvironmentVariables["Smtp__Host"] = mailpitSmtp.Property(EndpointProperty.Host);
-        ctx.EnvironmentVariables["Smtp__Port"] = mailpitSmtp.Property(EndpointProperty.Port);
-    })
-    .WaitFor(mailpit);
-
-// NotificationAgent — DB'siz worker (Reviews.Moderation emsali); PriceAlarmTriggered tüketir,
-// maili kişiselleştirip Mail.Mcp üzerinden gönderir. WebApp base-url env'i aşağıda (web tanımlanınca).
-var notificationAgent = builder.AddProject<Projects.NotificationAgent>("notification-agent")
-    .WithReference(rabbit)
-    .WithReference(mailMcp)
-    .WaitFor(rabbit)
-    .WaitFor(mailMcp);
+// Mailpit + Mail.Mcp + NotificationAgent SÖKÜLDÜ — tüm MCP temizlendi (Mail.Mcp standalone MCP
+// server'dı; NotificationAgent onu MCP client'la sürüyordu). Fiyat-alarmı mail hattı kalktı.
 
 // MCP fasadı AgentPlatform'a TAŞINDI — platform tek MCP girişini de barındırır (Anayasa İlke III).
 // EC ürün servislerinin /mcp uçları KORUNUR; fasad platform Aspire host'unda koşar ve buraya sabit
@@ -254,13 +188,13 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
 // platform MCP fasadına bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).
 
-// Tüm deploy edilebilir servisleri (13) ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
+// Tüm deploy edilebilir servisleri ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
 // bunların image'ini basıp ghcr.io/hasancagri/ecommerce/<servis>'e iter. Altyapı (postgres/rabbit/
-// redis/es/kibana/mailpit) public image → girmez.
+// redis/mailpit) public image → girmez.
 foreach (var svc in new[]
 {
-    catalogApi, stockApi, basketApi, orderApi, storefrontApi, paymentApi, customerApi,
-    reviewsApi, libraryApi, discountApi, mailMcp, notificationAgent,
+    catalogApi, basketApi, orderApi, paymentApi, customerApi,
+    reviewsApi, libraryApi, discountApi,
     fileApi
 })
 {

@@ -12,7 +12,6 @@ global using Common.Utils.Authorization;
 global using Marten;
 global using Marten.Newtonsoft;
 global using Microsoft.AspNetCore.Mvc;
-global using ModelContextProtocol.Server;
 global using Newtonsoft.Json;
 global using PagedList.Core;
 global using Reviews.Api.Constants;

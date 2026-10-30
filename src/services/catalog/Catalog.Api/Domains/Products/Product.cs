@@ -43,16 +43,20 @@ public class Product : AggregateRoot
     private readonly List<Guid> _tagIds = new();
     public IReadOnlyList<Guid> TagIds => _tagIds;
 
-    // kanonik özellik atamaları (Renk=Siyah...); upsert tam-değiştirme ile yazar.
-    private readonly List<ProductSpecificationAssignment> _specifications = new();
-    public IReadOnlyList<ProductSpecificationAssignment> Specifications => _specifications;
-
     // ⊕ 052: kitap künyesi — çok-yazar (Id listesi, çok-çok) + tek yayınevi (çok-bir). Yazarlar/yayınevi
     // Catalog aggregate'leri, Id ile referanslanır (İLKE II). Görsel URL feed'den gelir; serving servisi yok.
     private readonly List<Guid> _authorIds = new();
     public IReadOnlyList<Guid> AuthorIds => _authorIds;
     public Guid PublisherId { get; private set; }
     public string? ImageUrl { get; private set; }
+
+    // ⊕ Kitapyurdu kitap künyesi — yüksek-kardinalite, facet DEĞİL (düz alan, SpecificationAttribute değil).
+    // Dil kapalı-liste ama aggregate kurmadan düz string tutulur, yayında ProductSpec'e projekte edilir (B).
+    public int? PageCount { get; private set; }
+    public DateOnly? PublishedOn { get; private set; }
+    public string? Language { get; private set; }
+    private readonly List<string> _translators = new();
+    public IReadOnlyList<string> Translators => _translators;
 
     private Product()
     {
@@ -157,19 +161,6 @@ public class Product : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Özellik atamalarını TAM-DEĞİŞTİRME ile yazar (043; boş liste = temizleme). Aynı
-    /// attribute'un birden çok değeri reddedilir; hatada mevcut atamalar değişmez.</summary>
-    public ResultDomain SetSpecifications(IReadOnlyList<ProductSpecificationAssignment> assignments)
-    {
-        if (assignments.GroupBy(a => a.AttributeId).Any(g => g.Count() > 1))
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(assignments), Code = CatalogResourceConstants.SPEC_DUPLICATE_ATTRIBUTE });
-
-        _specifications.Clear();
-        _specifications.AddRange(assignments);
-        return ResultDomain.Ok();
-    }
-
     /// <summary>045: varyant ailesi kodunu yazar (null/boş = aileden çıkar). Feed'den akan opak kimlik.</summary>
     public ResultDomain SetFamilyCode(string? familyCode)
     {
@@ -205,6 +196,30 @@ public class Product : AggregateRoot
     public ResultDomain SetImage(string? imageUrl)
     {
         ImageUrl = imageUrl;
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>⊕ Kitap künyesi meta alanlarını yazar (sayfa/yayın tarihi/dil). Hepsi opsiyonel,
+    /// yoksa null; doğrulama yok (facet değil, kardinalite yüksek). Hep Ok.</summary>
+    public ResultDomain SetBookMeta(int? pageCount, DateOnly? publishedOn, string? language)
+    {
+        PageCount = pageCount;
+        PublishedOn = publishedOn;
+        Language = string.IsNullOrWhiteSpace(language) ? null : language.Trim();
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>⊕ Çevirmenleri TAM-DEĞİŞTİRME ile yazar (çevirmen aggregate DEĞİL — gözatma yok, bilinçli
+    /// asimetri). Trim + boş-ele + dedupe (sırayı korur); boş liste geçerli (çeviri değil). Hep Ok.</summary>
+    public ResultDomain SetTranslators(IEnumerable<string> translators)
+    {
+        var cleaned = translators
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim())
+            .Distinct()
+            .ToList();
+        _translators.Clear();
+        _translators.AddRange(cleaned);
         return ResultDomain.Ok();
     }
 

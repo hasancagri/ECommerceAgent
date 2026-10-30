@@ -17,9 +17,7 @@ builder.Services.AddApiVersioning(options =>
 });
 
 // Admin yüzeyi (TEK /mcp'de, scope-budamalı) scope demeti = Catalog.Api.Mcp.CatalogAdminSurface.Scopes (okuma + yazma).
-builder.Services.AddAuthenticationAndAuthorizationExtension(
-    builder.Configuration,
-    [.. Catalog.Api.Mcp.CatalogAdminSurface.SCOPES, AuthorizationScopes.OpsDeadletter]);
+
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -42,14 +40,7 @@ if (builder.Configuration.GetConnectionString("redis") is not null)
 builder.Services.AddCachingAspect("catalog");
 
 builder.Services.AddHttpContextAccessor();
-// TEK uç /mcp — müşteri + admin tool'ları tek assembly taramasıyla kaydedilir. Tool-görünürlük budaması
-// KALDIRILDI (admin MCP ayrımı sökülü); yetki tek katman: handler'daki [RequiredScope] (403 son savunma).
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport()
-    .WithToolsFromAssembly()
-    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
-    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
+// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — tüm /mcp tool'ları + DLQ MCP kaldırıldı; okuma/yazma REST first-party'ye.
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
@@ -62,11 +53,7 @@ app.UseAuthentication();
 app.UseApiKeyAuthentication();
 app.UseAuthorization();
 
-// domain iş REST yüzeyi söküldü — catalog admin/okuma tümüyle MCP (/mcp).
-// Ürün girişi = açılış seed'i (091, books.json) + admin_create_product (MCP). Kalan REST = MCP-infra.
-
-// TEK uç — anonim keşif + admin tool'lar scope-budamalı; scope katmanı handler'larda, tool-bazlı
-// ([RequiredScope(AdminCatalogWrite)] vb., 403 son savunma). /mcp-admin öldü.
-app.MapMcp("/mcp");
+// MCP /mcp ucu SÖKÜLDÜ (tertemiz sayfa). Ürün girişi = açılış seed'i (091, books.json). Dış yüzey
+// (okuma + admin) REST first-party'de yeniden kurulacak.
 
 await app.RunAsync();

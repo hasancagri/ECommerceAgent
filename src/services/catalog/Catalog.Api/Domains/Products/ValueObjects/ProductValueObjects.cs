@@ -87,19 +87,5 @@ public record ProductCategoryAssignment
         new() { CategoryId = categoryId, IsFeatured = isFeatured, DisplayOrder = displayOrder };
 }
 
-/// <summary>
-/// Ürünün bir kanonik özelliğe atanması (043; ör. Renk = Siyah). SpecificationAttribute
-/// aggregate'ine AttributeId + OptionId ile referans verir (İlke II — ad taşınmaz, adlar event
-/// yayınında registry'den çözülür). Product'ın child'ı; mutasyon yalnız
-/// Product.SetSpecifications üzerinden geçer (upsert tek yol — kategori atama emsali).
-/// </summary>
-public record ProductSpecificationAssignment
-{
-    public Guid AttributeId { get; private init; }
-    public Guid OptionId { get; private init; }
-
-    private ProductSpecificationAssignment() { }
-
-    public static ProductSpecificationAssignment Create(Guid attributeId, Guid optionId) =>
-        new() { AttributeId = attributeId, OptionId = optionId };
-}
+// ProductSpecificationAssignment SÖKÜLDÜ — SpecificationAttribute facet sistemi kaldırıldı
+// (downstream Storefront/ES gitti); ihtiyaç doğarsa 043 deseniyle geri eklenir.

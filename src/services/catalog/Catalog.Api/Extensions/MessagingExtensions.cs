@@ -17,10 +17,11 @@ public static class MessagingExtensions
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
+            // Yayıncı yalnız exchange deklare eder; kuyruk + binding tüketicide (Library/Discount, 007).
+            // (Storefront binding'i SÖKÜLDÜ — o BC kaldırıldı.)
             rabbit.DeclareExchange(RabbitMqConstants.ProductChanged.Exchange, e =>
             {
                 e.ExchangeType = ExchangeType.Fanout;
-                e.BindQueue(RabbitMqConstants.ProductChanged.Queues.Storefront);
             });
 
             opts.PublishMessage<Shared.IntegrationEvents.ProductChangedEvent>()
@@ -51,11 +52,6 @@ public static class MessagingExtensions
                 typeof(ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-            // TUZAK: Wolverine keşfi çoğul *Consumers sınıfını taramaz → yeni consumer/handler ekleyince
-            // buraya IncludeType ile EKLE (ZORUNLU; yoksa mesaj sessizce yutulur — dead-letter da yok).
-            opts.Discovery.IncludeType(typeof(Catalog.Api.FileConsumers));
-            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
-            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
         });

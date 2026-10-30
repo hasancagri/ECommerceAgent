@@ -20,8 +20,7 @@ src/ui/WebApp/keys/
 artifacts/behavior-logs/
 src/services/personalization/.venv/
 src/services/personalization/models/
-src/services/personalization/__pycache__/
-src/services/personalization/**/__pycache__/
+**/__pycache__/
 src/services/personalization/*.egg-info/
 
 # Aspire publish k8s çıktısı — üretilen Helm chart, lokal, her publish'te yeniden doğar (bkz. CI-CD Notları 04).

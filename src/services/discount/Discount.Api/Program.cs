@@ -17,11 +17,6 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.AdminDiscountWrite,
     AuthorizationScopes.OpsDeadletter);
 
-// R5: RFC 9728 keşfi (401 challenge + metadata) — /mcp slug'ında (admin scope'uyla). Anonim set YOK.
-builder.Services.AddMcpResourceMetadata(builder.Configuration, "discount",
-    AuthorizationScopes.AdminDiscountWrite,
-    AuthorizationScopes.OpsDeadletter);
-
 builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityOption))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptions<IdentityOption>>().Value);
@@ -31,14 +26,7 @@ builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddGrpc();
 
-// Tek MCP server, YALNIZ korumalı /mcp ucu (kampanya = admin işi, anonim set YOK). Tool-görünürlük
-// budaması KALDIRILDI; yetki tek katman: handler'daki [RequiredScope(AdminDiscountWrite)].
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport()
-    .WithToolsFromAssembly()
-    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
-    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
+// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp kampanya tool'ları + DLQ MCP kaldırıldı; yönetim REST first-party'ye.
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
@@ -48,9 +36,5 @@ app.UseAuthorization();
 
 // US3: checkout S2S — Order.Api canlı indirim doğrulaması (discount.read).
 app.MapGrpcService<Discount.Api.Grpc.Checkout.DiscountQueryGrpcService>().RequireAuthorization(AuthorizationScopes.DiscountRead);
-
-// R5: korumalı yönetim ucu — kimliksiz istek 401 + resource_metadata challenge. /mcp-admin öldü.
-app.MapMcp("/mcp");
-app.MapMcpResourceMetadata();
 
 await app.RunAsync();

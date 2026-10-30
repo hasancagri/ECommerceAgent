@@ -30,27 +30,8 @@ public static class MessagingExtensions
             opts.PublishMessage<IntegrationEvents.OrderCompleted>()
                 .ToRabbitExchange(RabbitMqConstants.OrderCompleted.Exchange);
 
-            // 092 checkout koreografisi: ödeme onaylanınca stok commit talep et (fanout; Stock tüketir).
-            rabbit.DeclareExchange(RabbitMqConstants.StockCommitRequested.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-            });
-            opts.PublishMessage<IntegrationEvents.StockCommitRequested>()
-                .ToRabbitExchange(RabbitMqConstants.StockCommitRequested.Exchange);
-
-            // Stock sonuç fanout'ları — tüketici (Order) kendi kuyruğunu bağlar + dinler (007 dersi).
-            rabbit.DeclareExchange(RabbitMqConstants.StockCommitted.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-                e.BindQueue(RabbitMqConstants.StockCommitted.Queues.Order);
-            });
-            opts.ListenToRabbitQueue(RabbitMqConstants.StockCommitted.Queues.Order);
-            rabbit.DeclareExchange(RabbitMqConstants.StockCommitFailed.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-                e.BindQueue(RabbitMqConstants.StockCommitFailed.Queues.Order);
-            });
-            opts.ListenToRabbitQueue(RabbitMqConstants.StockCommitFailed.Queues.Order);
+            // dijital (PDF) pivot: Stock BC söküldü → stok commit koreografisi kalktı. Ödeme sonucu
+            // doğrudan Order.Confirm/Cancel tetikler (PaymentConsumers).
 
             // Payment.Api hosted-CF sonuç fanout'ları — tüketici kendi kuyruğunu bağlar + dinler (007 dersi).
             rabbit.DeclareExchange(RabbitMqConstants.PaymentSucceeded.Exchange, e =>
@@ -79,9 +60,6 @@ public static class MessagingExtensions
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // Konvansiyonel keşif *Consumers (çoğul) sınıfını atlar → açık kayıt ZORUNLU (yoksa event sessiz yutulur).
             opts.Discovery.IncludeType(typeof(Order.Api.PaymentConsumers));
-            opts.Discovery.IncludeType(typeof(Order.Api.StockConsumers));
-            // 088: ölü-mesaj operatör handler'ları Common'da (assembly taraması dışı) — açık kayıt.
-            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
         });

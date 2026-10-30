@@ -22,7 +22,6 @@
         <PackageReference Include="Asp.Versioning.Http" />
         <PackageReference Include="Duende.IdentityModel" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-        <PackageReference Include="ModelContextProtocol.AspNetCore" />
         <PackageReference Include="Grpc.AspNetCore" />
         <PackageReference Include="Google.Protobuf" />
         <PackageReference Include="Grpc.Tools">

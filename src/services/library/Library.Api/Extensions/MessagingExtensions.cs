@@ -59,8 +59,6 @@ public static class MessagingExtensions
             opts.Discovery.IncludeType(typeof(Library.Api.CatalogConsumers));
             opts.Discovery.IncludeType(typeof(Library.Api.NotificationAgentConsumers));
             opts.Discovery.IncludeType(typeof(Library.Api.OrderConsumers));
-            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
-            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

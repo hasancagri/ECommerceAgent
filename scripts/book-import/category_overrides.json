@@ -1,0 +1,26 @@
+{
+  "_comment": "Kitapyurdu kategori kanonikleştirme elle-kararlar. Otomatik kurallar (generic-fold, çoğunluk-parent, leaf==üst, derinlik) script'te. Tam gerekçe: DevNotes/ECommerceAgent/reference/kitapyurdu-kanonik-kategori-agaci.md. 24k gelince yeni belirsizler buraya eklenir.",
+
+  "generic_leaves": ["Diğer", "Genel"],
+
+  "child_top": "Çocuk Kitapları",
+  "child_buckets": [
+    ["Okul Öncesi", ["Okul Öncesi"]],
+    ["Hikaye & Masal", ["Hikaye", "Masal"]],
+    ["Çizgi Roman", ["Çizgi Roman"]],
+    ["Roman", ["Roman"]],
+    ["Şiir", ["Şiir"]],
+    ["Boyama & Etkinlik", ["Boyama", "Fıkra", "Eğlence", "Oyun"]],
+    ["Eğitici", ["Eğitici", "Kaynak", "Yardımcı", "Dil Eğitimi", "Bilim"]]
+  ],
+
+  "junk_tops": ["Diğer"],
+  "junk_remap": {
+    "Söyleşi": ["Edebiyat", "Hitabet-Söyleşi"],
+    "Dilbilim": ["Edebiyat"],
+    "Mitoloji": ["Edebiyat"],
+    "İletişim-Medya": ["Sosyoloji"],
+    "Gençlik Kitapları": ["Edebiyat"]
+  },
+  "junk_default_top": "Edebiyat"
+}

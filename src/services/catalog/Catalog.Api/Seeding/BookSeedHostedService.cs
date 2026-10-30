@@ -111,12 +111,13 @@ public static class SeedBookRow
             var price = Money.Create(record.PriceTry)!; // Validate() fiyat>0'ı garantiledi
 
             var authors = await GetOrCreateAuthorsAsync(session, NormalizeAuthors(record.Authors), ct);
+            await ApplyAuthorBiosAsync(session, authors, record.AuthorBios);
             var publisher = await GetOrCreatePublisherAsync(session, Fallback(record.Publisher, "Unknown"), ct);
-            var mid = await GetOrCreateCategoryAsync(session, Fallback(record.CategoryMid, "Genel"), parentId: null, ct);
-            var leafName = Fallback(record.CategoryLeaf, mid.Name);
-            var leaf = NameNormalization.Normalize(leafName) == mid.NormalizedName
-                ? mid // leaf==mid tuzağı: aynı ada ikinci Store unique ihlali üretir
-                : await GetOrCreateCategoryAsync(session, leafName, parentId: mid.Id, ct);
+
+            // Kanonik kategori: [üst] ya da [üst, leaf] (canonicalize_categories.py). Zincir get-or-create
+            // → primary (leaf, yoksa üst). Boş yol → "Genel" fallback'i.
+            var (primary, primaryNames) = await GetOrCreateCategoryChainAsync(
+                session, record.CategoryPath.Count > 0 ? record.CategoryPath : ["Genel"], ct);
 
             // SKU=ISBN (ImportBook emsali). ImageUrl boş — kapak async File.Api'den (CoverIngested).
             var product = Product.Create(record.Title, record.Isbn, ProductType.Simple, price, "", record.Description).Data!;
@@ -124,21 +125,34 @@ public static class SeedBookRow
             product.SetAuthors(authors.Select(a => a.Id));
             product.SetPublisher(publisher.Id);
             product.SetImage(null);
-            product.AssignToCategory(leaf.Id, isFeatured: false, displayOrder: 0);
+            product.SetBookMeta(record.PageCount, record.PublishedOn, record.Language);
+            product.SetTranslators(record.Translators);
+            product.AssignToCategory(primary!.Id, isFeatured: false, displayOrder: 0);
+
+            // Çoklu kategori: ilgili yolları da ata (duplicate AssignToCategory içinde elenir).
+            var categoryNames = new List<string>(primaryNames);
+            foreach (var relatedPath in record.RelatedCategoryPaths)
+            {
+                if (relatedPath.Count == 0) continue;
+                var (related, relatedNames) = await GetOrCreateCategoryChainAsync(session, relatedPath, ct);
+                product.AssignToCategory(related!.Id, isFeatured: false, displayOrder: 0);
+                categoryNames.AddRange(relatedNames);
+            }
             session.Store(product);
 
             // Fiyat geçmişin ilk satırı (OldPrice=null) — fiyat>0 garantili.
             session.Store(ProductPriceChange.Create(product.Id, oldPrice: null, price.Amount, DateTime.UtcNow));
 
-            // İki event = iki hat (kullanıcı onayı): ProductAdded envanter/kimlik (Stock BarcodeLink+OnHand
-            // satır stok değeriyle doğar; File kapak çözer), ProductChangedEvent vitrin (Storefront/Library/Discount).
-            await bus.PublishAsync(new IntegrationEvents.ProductAdded(record.Isbn, product.Id, record.Stock));
+            // İki event = iki hat: ProductAdded kimlik/kapak (File kapak çözer), ProductChangedEvent
+            // vitrin (Library/Discount tüketir). Categories = primary+ilgili tüm kategori adları (çoklu-kategori).
+            await bus.PublishAsync(new IntegrationEvents.ProductAdded(record.Isbn, product.Id));
             await bus.PublishAsync(new IntegrationEvents.ProductChangedEvent(
                 product.Id, product.Name, product.FullDescription, price.Amount,
                 authors.Select(a => new IntegrationEvents.AuthorRef(a.Id, a.Name)).ToList(),
                 publisher.Id, publisher.Name,
-                leaf.Id, leaf.Name,
-                product.ImageUrl, IsDeleted: false, OldPrice: null));
+                primary.Id, primary.Name,
+                product.ImageUrl, IsDeleted: false,
+                Categories: categoryNames.Distinct().ToList()));
 
             // Tek idiom (090): boşaltma HER yazma yolunda handler-içi publish — yeni referans
             // doğduysa agent-lists boşaltılır; [Transactional] içinden publish = outbox atomikliği.
@@ -179,6 +193,43 @@ public static class SeedBookRow
                 result.Add(author);
             }
             return result;
+        }
+
+        // Yazar biyografisini uygular (Author.SetBio: boş/dolu no-op, ilk-dolu kazanır). Yalnız gerçekten
+        // değişen yazarı yeniden Store eder (mevcut yazar admin'inkiyse ve bio zaten varsa dokunmaz).
+        private static async Task ApplyAuthorBiosAsync(
+            IDocumentSession session, List<Author> authors, Dictionary<string, string> bios)
+        {
+            foreach (var author in authors)
+            {
+                if (!bios.TryGetValue(author.Name, out var bio) || string.IsNullOrWhiteSpace(bio))
+                    continue;
+                var before = author.Bio;
+                author.SetBio(bio);
+                if (author.Bio != before)
+                    session.Store(author);
+            }
+            await Task.CompletedTask;
+        }
+
+        // Kanonik kategori yolunu ([üst] ya da [üst, leaf]) zincirle get-or-create eder; (leaf-ya-üst, tüm
+        // segment adları) döner. leaf==üst savunma guard'ı (kanonik veri bunu üretmez ama ikinci Store
+        // unique ihlalini engeller).
+        private async Task<(Category Category, List<string> Names)> GetOrCreateCategoryChainAsync(
+            IDocumentSession session, List<string> path, CancellationToken ct)
+        {
+            var top = await GetOrCreateCategoryAsync(session, path[0].Trim(), parentId: null, ct);
+            var names = new List<string> { top.Name };
+            if (path.Count == 1)
+                return (top, names);
+
+            var leafName = path[1].Trim();
+            var leaf = NameNormalization.Normalize(leafName) == top.NormalizedName
+                ? top
+                : await GetOrCreateCategoryAsync(session, leafName, parentId: top.Id, ct);
+            if (leaf.Id != top.Id)
+                names.Add(leaf.Name);
+            return (leaf, names);
         }
 
         private async Task<Publisher> GetOrCreatePublisherAsync(

@@ -24,7 +24,6 @@ global using Shared.Utils.Constants;
 global using Common;
 global using Wolverine.Attributes;
 global using System.ComponentModel;
-global using ModelContextProtocol.Server;
 global using Common.Dependencies;
 global using Catalog.Api.Domains.Products.ValueObjects;
 global using Catalog.Api.Domains.ProductTags;

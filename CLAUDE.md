@@ -35,26 +35,21 @@ dotnet test --filter "FullyQualifiedName~BasketTests.AddItem"       # tek test
 dotnet build && dotnet test
 scripts/check-claude-spec-links.sh     # BC haritasındaki specs/* yolları gerçekten var mı
 scripts/check-flow-links.sh            # FLOW.md domain-süreç anchor'ları (Anayasa İlke VII)
-scripts/check-agent-query-schema.sh    # ES index mapping ↔ query_storefront description alan/tip drifti (086)
 ```
 
 Yardımcı script'ler:
 
 ```bash
-scripts/kibana-service-token.sh        # Kibana (dev) için ES service-account token → AppHost user-secrets
 python3 scripts/build-flow-wall.py     # FLOW.md'lerden EventStorming duvarı (flow-wall.html, git'e girmez)
 python3 scripts/build-miro-wall.py     # aynı duvarın Miro SVG'si (miro-wall.svg, git'e girmez); boarda basma Claude Miro MCP'yle
-scripts/book-import/                   # dev veri hazırlığı: OpenLibrary'den çek → temizle → şekillendir (3 .py);
+scripts/book-import/                   # dev veri hazırlığı: Kitapyurdu xlsx → kitapyurdu_to_books_json.py →
+                                       # canonicalize_categories.py (+ commit'li category_overrides.json);
                                        # nihai seed Catalog Seeding/Data/books.json'da COMMIT'Lİ (091) — açılışta kendiliğinden dolar
 ```
 
 - **Sistemi hep Aspire AppHost'tan başlat**, tek servis değil — servisler birbirini/DB/RabbitMQ'yu
   service discovery + conn-string enjeksiyonuyla bulur; tek API bağımsız açılmaz.
 - **Marten şeması otomatik kurulur** (`ApplyAllDatabaseChangesOnStartup`) — migration komutu yok.
-- **OpenAI kullanan servisler** (NotificationAgent, Storefront — embedding, 067) açılışta fail-fast:
-  `dotnet user-secrets set OpenAI:ApiKey <k> --project <proj>` (+ `OpenAI:Model`, ör. gpt-4o-mini).
-- **Kibana ES'e bağlanmıyorsa** service token yoktur veya ES volume'ü resetlenmiştir (Kibana 8.x
-  `elastic` superuser'ını reddeder) → AppHost ayaktayken `scripts/kibana-service-token.sh`.
 - **Paket sürümleri yalnız `Directory.Packages.props`'ta** (Central Package Management); `.csproj`
   `PackageReference`'ı sürümsüz listeler. Sürüm ekle/değiştir → yalnız props.
 
@@ -62,95 +57,77 @@ scripts/book-import/                   # dev veri hazırlığı: OpenLibrary'den
 
 .NET 10 (`Nullable`+`ImplicitUsings` açık) · **Marten** (Postgres = document/event store, Newtonsoft,
 non-public setter+ctor) · **Wolverine** (in-proc bus `IMessageBus` + RabbitMQ fanout; handler assembly
-taramasıyla) · **Elasticsearch** (storefront arama — turkish analyzer + dense_vector kNN, 086) +
-Kibana (dev-only görünürlük) · **HybridCache + Redis** (AOP cache L1/L2 yalnız okuma; boşaltma
+taramasıyla) · **HybridCache + Redis** (AOP cache L1/L2 yalnız okuma; boşaltma
 handler-içi atomik publish + epoch-key, 090 — native tag KULLANILMAZ, bkz. conventions) ·
 **OpenIddict + ASP.NET Identity** (IdP, bu repoda değil — bkz. BC haritası) ·
-**MCP** (her ürün servisi `/mcp`; tek dış giriş AgentPlatform fasadı) · **Microsoft Agent Framework** +
-`Microsoft.Extensions.AI` (NotificationAgent) · **Scrutor** (DI) · **xUnit + Shouldly**.
+**Scrutor** (DI) · **xUnit + Shouldly**. (MCP + Microsoft Agent Framework temiz-sayfa sökümüyle
+kalktı — yüzey REST first-party'ye dönüyor, bkz. Yüzey modeli.)
 
 ## BC haritası
 
 Her BC = kendi DB'si + şeması. Origin sütunu = BC'yi tanımlayan spec'in tam yolu (guard'lı); sonraki
 feature'lar o feature'ın kendi spec'inde. Servisler `src/services/*`; destek `src/others`
-(`Common`/`Shared`), `src/aspire` (`AppHost`/`ServiceDefaults`), `src/agents`.
+(`Common`/`Shared`), `src/aspire` (`AppHost`/`ServiceDefaults`).
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
-| `catalog` | catalogDb | Zengin `Product`+`Category`+`Author`+`Publisher`+`ProductTag`+`SpecificationAttribute` (kitap künyesi: çok-yazar + tek yayınevi); admin düzenleme + fiyat geçmişi (058: append-only `ProductPriceChange`). **091: taslak/yayın/gizleme YOK** — ürün CANLI doğar, fiyat>0 var oluş invariant'ı, Gtin unique-index. **Müşteri keşif yüzeyi** (envanter otoritesi — vitrin aramasından ayrı): `get_product` · `search_products` · `get_price_history` · `list_categories` · `list_authors` · `list_publishers`. **Admin:** ürün/kategori/yazar/tag/spec tool'ları + `AdminActionLog` izi (`specs/070-admin-mcp-surface`); `admin_republish_products` = yeni downstream BC ya da sıfırlanmış read-model için `ProductChangedEvent` backfill (replay; tüm tüketiciler idempotent, `OldPrice` hep null). **Seed doluşu (091):** commit'li `Seeding/Data/books.json` → `BookSeedHostedService` açılışta satır satır (Gtin varsa atlar; ürün+`ProductAdded`(satır stok)+`ProductChangedEvent` aynı commit). Kapağı File'dan `CoverIngested` ile alır (`FileConsumers`→`SetImage`) | `specs/040-catalog-domain-extract` · `specs/091-catalog-json-seed` |
-| `basket` | basketDb | Kalıcı sepet + kalem; anonim sahiplik (057) — `MergeFrom` domain'de VAR, yüzeyi YOK; stok tutmaz, süre yok (056: rezervasyonsuz), stok gerçeği checkout'ta; yüzey MCP-only + checkout gRPC | `specs/012-stock-reservation` |
-| `order` | orderDb | Sipariş aggregate + yaşam döngüsü; **094: `start_payment` CANLI (pay-by-link)** — sepet (Basket gRPC) + aktif indirim (Discount gRPC) ile tutar (liste−indirim) → Pending order (etkin fiyatlı kalem, `StartPayment`) → Payment BC'ye S2S intent+link (`PaymentIntentClient`) → `HostedUrl` döner; adres chat-only'de atlanır, başarısızda (boş sepet/mağaza kapalı/PG hata) order commit YOK; `/checkout/done` dönüş stub'ı. **092 checkout koreografisi** (orchestrator SÖKÜLDÜ; 094'ten beri `PaymentSucceeded` ile tetiklenir): `PaymentSucceeded`→`StockCommitRequested` yayar / `PaymentFailed`→Cancel; `StockCommitted`→`Order.Confirm`+`OrderCompleted` fanout (Reviews+Library+Basket) / `StockCommitFailed`→Cancel+manuel-iade log (`PaymentConsumers`+`StockConsumers`) | `specs/028-checkout-saga` · `specs/094-ec-pay-by-link-rewire` |
-| `payment` | paymentDb | `PaymentIntent` durum makinesi (kart alanı yok, TxRef unique) + ödeme geçmişi okuma (`get_all_payments`). **094: ödeme girişi pay-by-link ile CANLI** — Order S2S intent+link gRPC (`PaymentIntentGrpcService`) + EC→PG `POST /payment-links` REST (`PgPaymentLinkClient`, X-Api-Key; `STORE_NOT_LIVE` fail-fast) + PG→EC HMAC webhook (`ProcessPaymentCallback`+`CallbackSignatureValidator`: fail-closed, `pgPaymentRef` eşle, anti-tamper amount guard, idempotent) → `PaymentSucceeded`/`PaymentFailed` fanout (092 tetikler). Kart alanı HİÇ taşımaz (İlke VIII, yalnız opak `pgPaymentRef`). Merchant kimliği PG'de (bu BC config MerchantId'yi link isteğinde taşır) | `specs/077-hosted-cf-payment` · `specs/093-pg-pivot-teardown` · `specs/094-ec-pay-by-link-rewire` |
-| `stock` | stockDb | `ProductStock` (OnHand); ilk stok `ProductLinked`'ten doğar; checkout düşümü broker event'inden — **092: `StockCommitRequested` → TÜM kalem tek tx atomik `Commit` (ya hep ya hiç) → `StockCommitted`/`StockCommitFailed` (`OrderConsumers`); RevertCommit söküldü** (056); `get_stock` anonim; admin `admin_set_stock` (mutlak) / `admin_adjust_stock` (artır-azalt) / `admin_list_all_stock` + `AdminActionLog` izi (058, 070); negatif guard aggregate'te (`Adjust`/`SetQuantity` invariant'ı) | `specs/014-supplier-stock-authority` |
-| `storefront` | storefrontDb (Marten event-log) + Elasticsearch | **086: CQRS + Event Sourcing** — Postgres read-model DEĞİL, ürün-stream event-log (gerçek-kaynak); dört kaynak event (Catalog/Stock/Reviews/Discount) stream'e append, **async projection** (`StorefrontProjection`) katlayıp **Elasticsearch** doc'u yazar/siler (satılabilirse; FR-008 projeksiyon-zamanı dışlama). Okuma yolu asistan: TEK tool `query_storefront`, ham **ES Query DSL** alır (text+fuzzy+kNN+filtre tek sorguda; `{{EMBED}}`→knn vektör); minimal rail = sabit index + size≤50 + `_source` whitelist + timeout; `AgentQueryLog` izi; embedding ES `dense_vector`. Açılışta index yoksa kurulur (`EnsureAsync`); soğuk başlangıç = dev full-reset + Catalog `admin_republish_products`; ES-seviyesi elle reindex BACKLOG. 070 playbook'un kanonik evi bu tool'un Description'ı | `specs/003-storefront-read-model` · `specs/086-storefront-elasticsearch-search` |
-| `customer` | customerDb | AddressBook (≤1 varsayılan invariant'ı); izole, event YAYMAZ; Order'a varsayılan-adres gRPC'si. Müşteri: `list_addresses`/`add_address`/`update_address`/`remove_address`/`set_default_address`. **Wallet 076'da, merchant kimliği/onboarding makineleri (087) 093 PG pivotunda SÖKÜLDÜ** — admin tool'u kalmadı | `specs/022-wallet-address-book` · `specs/093-pg-pivot-teardown` |
-| `reviews` | reviewsDb | Satın-alma şartlı yorum (`check_review_eligibility` → `submit_review` → `get_reviews`); yorum HEMEN görünür, moderasyon YOK (088); özet event → Storefront | `specs/044-product-reviews` |
-| `discount` | discountDb | Admin kampanya indirimi (079): süzgeç (kategori/yazar/yayınevi/tek-kitap) → yüzde; kitap-başına TEK indirim, vitrine event'le iter, süre dolunca temizler; fiyat TUTMAZ (yüzde otoritesi — etkin fiyatı tüketici hesaplar); Order'a gRPC aktif-yüzde; `admin_create_campaign`/`admin_list_campaigns`/`admin_cancel_campaign`; müşteri yüzeyi YOK — indirim vitrinde `query_storefront`'tan görünür | `specs/079-discount-campaigns` |
-| `library` | libraryDb | Kullanıcı-ürün ilgi kayıtları; fiyat alarmı (yaşayan abonelik, email snapshot) + `NotificationRecord` izi; `ProductChangedEvent.OldPrice` tetiği → alarm başına `PriceAlarmTriggered`; `create_price_alarm`/`get_price_alarm`/`remove_price_alarm`; `UserPurchase` (kişisel satın-alma birikimi; 086'da Storefront'tan taşındı) `OrderCompleted` tüketir (`OrderConsumers`, idempotent upsert) | `specs/060-price-alarm-mail` |
-| `file` | fileDb | Kapak **kayıt defteri** (082); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2; byte DB'de DEĞİL); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base; full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **Kapak kablosu (083/091):** `ProductAdded` tüketir (`CatalogConsumers`; R2'de yoksa yerel staging'den yükle+kayıt) → `CoverIngested(isbn,url)` yayar → Catalog `Product.ImageUrl` doldurur; açılış kapak migration'ı kaynağı = commit'li seed `books.json` (`JsonCoverSource`; xlsx emekli). **MCP yüzeyi YOK** (tek BC) | `specs/081-cover-image-store` |
-| `notification-agent` | — | Fiyat alarmı maili (DB'siz worker); `PriceAlarmTriggered`→LLM compose→Mail.Mcp `send_mail`→`NotificationSent` | `specs/060-price-alarm-mail` |
-| `mail-mcp` | — | Standalone MCP server; tek tool `send_mail` (MailKit→Mailpit); yalnız NotificationAgent tüketir | `specs/060-price-alarm-mail` |
+| `catalog` | catalogDb | Zengin `Product`+`Category`+`Author`+`Publisher`+`ProductTag` (kitap künyesi: çok-yazar + tek yayınevi + sayfa/çevirmen/dil/tarih; `SpecificationAttribute` SÖKÜLDÜ) + fiyat geçmişi (058: append-only `ProductPriceChange`). **091: taslak/yayın/gizleme YOK** — ürün CANLI doğar, fiyat>0 var oluş invariant'ı, Gtin unique-index. **Dış yüzey ŞU AN YOK** — MCP keşif+admin tool'ları temiz-sayfa sökümüyle kalktı; okuma/yazma REST first-party + pg-hibrit aramayla gelecek. **Seed doluşu (091):** commit'li `Seeding/Data/books.json` (Kitapyurdu 11438) → `BookSeedHostedService` açılışta satır satır (Gtin varsa atlar; ürün+`ProductAdded`+`ProductChangedEvent` aynı commit; kategori adı `CategoryNaming` ile normalize). Kapağı File'dan `CoverIngested` ile alır (`FileConsumers`→`SetImage`) | `specs/040-catalog-domain-extract` · `specs/091-catalog-json-seed` |
+| `basket` | basketDb | Kalıcı sepet + kalem; anonim sahiplik (057) — `MergeFrom` domain'de VAR, yüzeyi YOK; stok kavramı yok (dijital pivot), süre yok (056); dış yüzey ŞU AN YOK (MCP söküldü) — kalan tüketici checkout gRPC + `OrderCompleted` temizliği | `specs/012-stock-reservation` |
+| `order` | orderDb | Sipariş aggregate + yaşam döngüsü. 094 pay-by-link akışı (giriş yüzeyi MCP'yle söküldü, REST first-party'de yeniden açılacak; gRPC istemcileri + davranış durur): sepet (Basket gRPC) + aktif indirim (Discount gRPC) ile tutar (liste−indirim) → Pending order → Payment BC'ye S2S intent+link (`PaymentIntentClient`) → `HostedUrl`; başarısızda order commit YOK; `/checkout/done` dönüş stub'ı. **Dijital pivot: stok ayağı KALKTI** — `PaymentSucceeded`→`Order.Confirm`+`OrderCompleted` fanout (Reviews+Library+Basket) / `PaymentFailed`→Cancel (`PaymentConsumers`, idempotent durum-guard) | `specs/028-checkout-saga` · `specs/094-ec-pay-by-link-rewire` |
+| `payment` | paymentDb | `PaymentIntent` durum makinesi (kart alanı yok, TxRef unique). 094 pay-by-link: Order S2S intent+link gRPC (`PaymentIntentGrpcService`) + EC→PG `POST /payment-links` REST (`PgPaymentLinkClient`, X-Api-Key; `STORE_NOT_LIVE` fail-fast) + PG→EC HMAC webhook (`ProcessPaymentCallback`+`CallbackSignatureValidator`: fail-closed, `pgPaymentRef` eşle, anti-tamper amount guard, idempotent) → `PaymentSucceeded`/`PaymentFailed` fanout. Kart alanı HİÇ taşımaz (İlke VIII, yalnız opak `pgPaymentRef`). Merchant kimliği PG'de. Ödeme geçmişi okuma yüzeyi MCP'yle söküldü | `specs/077-hosted-cf-payment` · `specs/093-pg-pivot-teardown` · `specs/094-ec-pay-by-link-rewire` |
+| `customer` | customerDb | AddressBook (≤1 varsayılan invariant'ı); izole, event YAYMAZ; Order'a varsayılan-adres gRPC'si (uykuda). Adres MCP tool'ları söküldü — dış yüzey ŞU AN YOK. **Wallet 076'da, merchant kimliği/onboarding (087) 093 PG pivotunda SÖKÜLDÜ** | `specs/022-wallet-address-book` · `specs/093-pg-pivot-teardown` |
+| `reviews` | reviewsDb | Satın-alma şartlı yorum (kanıt `OrderCompleted`-fed lokal read-model); yorum HEMEN görünür, moderasyon YOK (088); özet (ortalama+adet) okuma anında hesaplanır. Yazma/okuma MCP yüzeyi söküldü — aggregate davranışı durur, yüzey REST first-party'de | `specs/044-product-reviews` |
+| `discount` | discountDb | Admin kampanya indirimi (079): süzgeç (kategori/yazar/yayınevi/tek-kitap) → yüzde; kitap-başına TEK indirim (`ProductDiscount` store), süre dolunca temizler; fiyat TUTMAZ (yüzde otoritesi — etkin fiyatı tüketici hesaplar); Order'a gRPC aktif-yüzde. Admin MCP tool'ları söküldü — kampanya aç/iptal girişi REST first-party'de yeniden açılacak | `specs/079-discount-campaigns` |
+| `library` | libraryDb | Kullanıcı-ürün ilgi kayıtları; fiyat alarmı (yaşayan abonelik, email snapshot) + `NotificationRecord` izi; `ProductChangedEvent.OldPrice` tetiği → alarm başına `PriceAlarmTriggered` (tüketicisi NotificationAgent SÖKÜLDÜ — event şimdilik boşa yayılır, mail hattı ölü); alarm MCP tool'ları söküldü; `UserPurchase` (kişisel satın-alma birikimi) `OrderCompleted` tüketir (`OrderConsumers`, idempotent upsert) | `specs/060-price-alarm-mail` |
+| `file` | fileDb | Kapak **kayıt defteri** (082); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2; byte DB'de DEĞİL); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base; full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **Kapak kablosu (083/091):** `ProductAdded` tüketir (`CatalogConsumers`; R2'de yoksa yerel staging'den yükle+kayıt) → `CoverIngested(isbn,url)` yayar → Catalog `Product.ImageUrl` doldurur; açılış kapak migration'ı kaynağı = commit'li seed `books.json` (`JsonCoverSource`; xlsx emekli) | `specs/081-cover-image-store` |
 | `identity-server` | identityDb | **Bu repoda DEĞİL** — `AgentPlatform` repo'sunda uygulama-nötr platform IdP (084); ECommerce `AppRegistry` config'inde kayıtlı relying party ("app #1"). OpenIddict + ASP.NET Identity; OIDC/OAuth + RBAC; DCR + tek consent + revocation (061). Nötr auth kablosu (`IdentityOption` + `AddAuthenticationAndAuthorizationExtension`) = `Platform.Auth` NuGet paketi (yerel feed; namespace `Common.*` korunur). ECommerce IdP'ye dış servis olarak bakar (issuer URL `IdentityOption.Address`); AppHost proje-ref YOK | `../AgentPlatform` · `specs/084-platform-idp` |
-| _(MCP fasadı)_ | — | **Bu repoda DEĞİL** — tek müşteri+admin MCP fasadı (DB'siz proxy) AgentPlatform'ın kendi Aspire host'unda koşar. EC servislerinin `/mcp` uçları KORUNUR, fasada sabit mutlak URL'lerle downstream olur. Dış AI istemcisi platform MCP girişine bağlanır (Anayasa İlke III: tek MCP girişi). Tarihsel tasarım `specs/073-customer-mcp-facade` + `specs/085-single-mcp-surface`; taşıma AgentPlatform 001 | `specs/073-customer-mcp-facade` · `specs/085-single-mcp-surface` |
+
+(Söküldü — 2026-10-30 temiz-sayfa: `stock` [dijital/PDF pivotu — envanter kavramı kalktı],
+`storefront`+ES [arama Catalog pg-hibrit'e katlanacak], `notification-agent`+`mail-mcp` [MCP sökümüyle],
+EC'deki TÜM `/mcp` uçları + AgentPlatform fasat aboneliği [yüzey REST first-party'ye dönüyor].
+Gerekçeler ADR + `specs/*` tarihinde durur.)
 
 ## Yüzey modeli
 
-- **Agent-only / BYO-agent.** Mağaza ne görsel ekran ne kendi sohbet agent'ı host eder. Müşteri
-  **kendi AI istemcisiyle** (Claude Desktop vb.) AgentPlatform MCP fasadının **TEK `/mcp` ucuna**
-  bağlanır (`specs/085-single-mcp-surface`: tek login, upfront); tool'lar alt BC `/mcp`'lerinden toplanır, çağrı sahibi BC'ye
-  kullanıcı token'ıyla proxy'lenir. Login/OIDC doğrudan Identity (agent OAuth); web cookie-login yok.
-- **Admin aynı `/mcp`'de görünür.** BC'de tool-görünürlük budaması YOK — görünürlük fasadın işi
-  (`ScopeResolver`). Yetki **tek katman**: admin slice handler'ındaki `[RequiredScope]` (403 son
-  savunma). Ayrı allowlist/görünürlük listesi YOK. Her admin yazma kendi BC'sinde salt-append
-  `AdminActionLog`'a yazar. `CatalogAdminSurface.SCOPES` (tek örnek) yalnız auth kaydı + PRM demeti için kalır.
-- **MCP uçlarının auth matrisi** (`Program.cs`'teki `MapMcp` çağrısı kanonik):
-  **korumalı** (`RequireAuthorization` + RFC 9728 PRM keşfi, `Common/Extensions/McpResourceMetadataExtension`) —
-  basket · order · payment · customer · reviews · library · discount;
-  **anonim kalır** — catalog · stock · storefront · mail-mcp.
-  UserKey (`X-User-Key`) yan yoldur, Bearer'la çakışmaz.
-- **Ölü-mesaj (DLQ) operatör yüzeyi (088):** `admin_list_dead_letters` · `admin_get_dead_letter` ·
-  `admin_replay_dead_letter` · `admin_discard_dead_letter` — scope `ops.deadletter`, **File hariç her
-  BC'nin `/mcp`'sinde** (`Common/Utils/DeadLetters/DeadLetterAdmin.cs`; BC tarafı kablo
-  `Extensions/MessagingExtensions.cs` + `Program.cs`). Admin "hata var mı / tekrar dene" akışını kendi
-  AI istemcisinden yürütür — ayrı ops ekranı yok.
-- **Kalan REST** = auth (Identity OIDC) + MCP-infra (PRM) + File kapak serve/S2S (`/files/v1/covers`,
-  `/internal/files`). **Kalan senkron kontrat** = Order→Basket `GetBasketItems` gRPC + Discount→Order
-  aktif-yüzde gRPC + **Order→Payment `CreateIntentAndLink` S2S gRPC** + **EC→PG `POST /payment-links` REST
-  + PG→EC `/payments/callback` HMAC webhook** (094 pay-by-link; webhook = dış-sağlayıcı callback istisnası)
-  — `start_payment` ile 094'te CANLANDI (Order→Customer varsayılan-adres gRPC chat-only'de atlanır, uykuda).
-  Eski "her aggregate bir REST penceresi" kuralı EMEKLİ. (092: checkout koreografi; 093 söküğü 094'te
-  pay-by-link kontratıyla geri geldi — merchant-key hariç, o PG tarafında.)
-- **Scope zorlaması AgentPlatform'da (085 R3/R5):** DCR tavanı değişmedi, **zorlama yeri** değişti —
-  `ScopeResolver` `talep ∩ istemci-tavanı ∩ (rol ∪ her-zaman-izinli)` kesişimini kurar
-  (`ClientCeilingResolver`; OpenIddict scope-izin ön-validasyonu `IgnoreScopePermissions()` ile
-  gevşetildi). Tavan-üstü talep RED değil **sessiz eleme** — union PRM müşteri bağlantısını kırmaz.
-  Seed istemciler `external-admin-agent` + `external-customer-agent` AYNI `/mcp`'ye bağlanır (fasat tek
-  union PRM ilan eder); Claude Desktop'ta iki kayıt aynı URL'e düşerse cache/kimlik ayrışması mcp-remote
-  `--static-oauth-client-info` ile (her kayıt kendi `client_id`'ini sabitler; `~/.mcp-auth` hash'i
-  buradan türer — sunucuda ek kod YOK).
+**Temiz-sayfa geçişi (2026-10-30):** BYO-agent/MCP duruşu TERK EDİLDİ — EC'deki tüm `/mcp` uçları,
+tool sabitleri (`McpToolNames/Descriptions`), PRM keşfi ve DLQ admin tool'ları söküldü. Hedef yüzey:
+**first-party React ekran + REST API'ler + local LLM danışman** (kişiselleştirilmiş keşif sitesi);
+arama Catalog'da pg-hibrit (pg_search BM25 + pgvector + RRF). İkisi de HENÜZ YOK — bugün dış
+müşteri/admin yüzeyi kapalı, domain davranışları aggregate'lerde duruyor.
+
+- **Yaşayan HTTP yüzey:** File kapak serve/S2S (`/files/v1/covers`, `/internal/files`, `/resolve`) ·
+  PG→EC `/payments/callback` HMAC webhook (dış-sağlayıcı callback istisnası) · Order `/checkout/done`
+  dönüş stub'ı · auth (Identity OIDC — dış repo).
+- **Yaşayan senkron kontratlar (S2S):** Order→Basket `GetBasketItems` gRPC · Order→Discount aktif-yüzde
+  gRPC · Order→Payment `CreateIntentAndLink` gRPC · EC→PG `POST /payment-links` REST (X-Api-Key) ·
+  Order→Customer varsayılan-adres gRPC (uykuda).
+- **Yetki iskeleti korunur:** `Platform.Auth` kablosu + `[RequiredScope]` + `AuthorizationScopes`
+  kapalı registry yerinde — REST first-party açılınca aynı scope'larla korunacak. IdP ve rol→scope
+  yönetimi AgentPlatform'da (084/085 düzeni değişmedi).
+- **Ölü-mesaj (DLQ):** Wolverine retry→error-queue davranışı sürer; operatör TOOL yüzeyi söküldü —
+  inceleme/replay şimdilik elle (RabbitMQ UI / DB), REST admin yüzeyiyle geri gelebilir.
 
 ## Ürün yazım yolu (050: first-party — mallar mağazanın)
 
-İki giriş var (091: Excel import + yayın makinesi SÖKÜLDÜ):
+Tek giriş kaldı (091: Excel import + yayın makinesi, temiz-sayfa: admin MCP tool'ları SÖKÜLDÜ):
 
-1. **Açılış seed'i (091):** commit'li `Seeding/Data/books.json` → `BookSeedHostedService` satır satır
-   (Gtin varsa ATLAR — admin düzenlemesi ezilmez, upsert bilinçli reddedildi); ürün CANLI doğar.
-2. **Elle oluşturma (074/091):** `admin_create_product` — CANLI doğar, ISBN=Gtin çakışması reddedilir,
-   ayrı yayın adımı YOK.
+1. **Açılış seed'i (091):** commit'li `Seeding/Data/books.json` (Kitapyurdu 11438) →
+   `BookSeedHostedService` satır satır (Gtin varsa ATLAR — admin düzenlemesi ezilmez, upsert bilinçli
+   reddedildi); ürün CANLI doğar.
+2. Elle oluşturma/düzenleme: yüzey ŞU AN YOK — REST first-party admin'le yeniden açılacak
+   (aggregate davranışları duruyor).
 
 **Taslak/yayın/gizleme ekseni yok (091):** fiyat>0 var oluş invariant'ı (`Product.Create`/`SetPrice`);
-her değişim vitrine akar; `ProductChangedEvent.IsDeleted` kontratta durur, hep `false`.
-Düzenleme = MCP admin tool'ları (`admin_update_product` / dimensions / seo / tag / category / author /
-spec). Yeni üründe Catalog `ProductLinked` → Stock, `ProductChangedEvent` → Storefront.
-**Silme YOK** (016).
+`ProductChangedEvent.IsDeleted` kontratta durur, hep `false`. Yeni üründe Catalog `ProductChangedEvent`
+yayar → Library (fiyat alarmı) + Discount (taksonomi izdüşümü) tüketir. **Silme YOK** (016).
 
 ## Test
 
-Testler **saf unit** — xUnit + Shouldly, `tests/<Servis>.Api.Tests` (12 proje, hepsi `.slnx`'te).
+Testler **saf unit** — xUnit + Shouldly, `tests/<Servis>.Api.Tests` (10 proje, hepsi `.slnx`'te).
 Host ayağa kaldırılmaz: `WebApplicationFactory` yok, Testcontainers yok, integration/E2E harness YOK
 (Anayasa İlke VI bunu açıkça kurmaz der). Kapsam: aggregate davranış metotları, saga `On*` karar
 metotları, value object'ler ve mock'suz test edilebilir saf birimler (ör. `CacheKeyFactory`).
-Marten/RabbitMQ/ES'e giden yollar test edilmez — Aspire'da elle doğrulanır.
+Marten/RabbitMQ'ya giden yollar test edilmez — Aspire'da elle doğrulanır.
 
 Yeni test: ilgili `tests/<Servis>.Api.Tests` köküne `<Konu>Tests.cs` (alt klasör yok). Prod sorgu/komut
 tipine bağlanmak gerekmiyorsa test-yerli `record` tanımla (`CachingAspectTests` deseni). Saf domain
@@ -158,23 +135,12 @@ mantığı **test-first** yazılır ve `tasks.md`'de test task'ı implementasyon
 
 ## Yeni şey ekleme
 
-**Yeni admin MCP tool'u:**
-
-1. **Ad** → `src/others/Shared/McpToolNames.cs`'teki ilgili `*AdminTools` sınıfına const.
-   Ad **dış sözleşmedir** (Claude Desktop vb. dışarıdan görür) — değiştirmek dış kırılmadır.
-2. **Description** → `src/others/Shared/McpToolDescriptions.cs` const'ı (standart: Yapma listesi).
-3. **Slice** → `src/services/<bc>/<Bc>.Api/Domains/<Aggregate>/Features/Agents/{Commands,Queries}/Admin<Ad>.cs`:
-   `[RequiredScope(...)]` **record command/query üzerinde**, `FeatureObjectResultModel<T>` dönen
-   `[Transactional]` handler, aynı dosyada `[McpServerToolType]` sınıf +
-   `[McpServerTool(Name = Shared.<Bc>AdminTools.<Ad>)]` metot.
-4. Yazma ise `AdminActionLog` izi.
-
-Yeni scope gerekiyorsa `AuthorizationScopes`'a ekle (+ Catalog'da `CatalogAdminSurface.SCOPES`, auth
-kaydı + PRM demeti için). Başka liste YOK.
+**Yeni yüzey (REST first-party):** desen henüz kurulmadı — ilk REST feature'ı spec-kit'ten geçer ve
+deseni kurar (slice + endpoint-extension + `[RequiredScope]`; conventions.md VSA kuralları aynen geçerli).
 
 **Yeni BC:** `src/services/<bc>/<Bc>.Api` + kendi Postgres DB'si/şeması + `tests/<Bc>.Api.Tests`
 (ikisi de `.slnx`'e) · AppHost'ta servis + DB kaydı · sürümler `Directory.Packages.props` ·
-`Extensions/MessagingExtensions.cs` (Wolverine + DLQ tool kablosu) · entegrasyon event'lerle, senkron
+`Extensions/MessagingExtensions.cs` (Wolverine kablosu) · entegrasyon event'lerle, senkron
 çağrı EKLEME (meşru istisnalar yukarıda sayılı) · FLOW.md domain süreci (İlke VII) · Origin spec'i BC
 haritasına ekle (`check-claude-spec-links.sh` doğrular).
 
@@ -194,27 +160,22 @@ haritasına ekle (`check-claude-spec-links.sh` doğrular).
   ürettiği kısa-ömürlü TEK KULLANIMLIK token-link, insan-tarayıcı gerektiren tek-amaçlı ekranı
   koruyabilir. Son yaşayan örnek (083 Excel import ekranı) 091'de söküldü — istisna kaldırılmadı,
   ihtiyaç doğunca aynı koşullarla geçerli: gizli değer ekrandan OKUNAMAZ (yazma-only).
-- **NotificationAgent (060):** TEK singleton `MailAgent` (workflow da compose/send ayrımı da YOK —
-  kullanıcı kararları); tek LLM çağrısı maili yazar + `send_mail` tool'unu çağırır; her hata
-  `NotificationException`→retry→error queue. Mailpit ham container (SMTP 1025 / UI 8025); Mail.Mcp
-  SMTP hedefini env'den alır (`SmtpOptions`).
-
 ## Yapma listesi
 
 - **Çok-tedarikçi feed zincirini geri getirme:** Procurement + Supplier (+ Supplier.Gateway /
   IngestionAgent) 050'de söküldü — model first-party, mallar mağazanın. Ürün girişi = ürün-CRUD.
+- **Storefront BC + Elasticsearch/Kibana'yı geri getirme:** söküldü — arama Catalog pg-hibrit'e
+  (pg_search BM25 + pgvector + RRF) katlanıyor. `query_storefront`/`search_products`/ES-DSL + vitrin
+  event'leri (`ReviewSummaryChanged`/`ProductDiscountChanged`) GERİ EKLEME; keşif pg-hibrit'le gelir.
+- **MCP yüzeyini parça parça geri getirme:** temiz-sayfa sökümüyle EC'den MCP tamamen çıktı
+  (tool sabitleri, PRM, DLQ tool'ları, fasat aboneliği). Yüzey kararı REST first-party — tek tük
+  tool geri ekleme yok; MCP dönerse bilinçli mimari karar + spec'le döner (tarihsel kurallar
+  073/085 spec'lerinde ve AgentPlatform tool-description standardında durur).
 - **`IConfiguration`'dan doğrudan okuma** (Options pattern istisnaları hariç).
-- **MCP'yi agent-dışı koddan imperatif çağırma** (Anayasa İlke I) — yapısal servisler-arası ihtiyaç
-  REST/gRPC sözleşmesiyle karşılanır.
-- **Hassas kimlik/sır değerini insan-yüzeyde render etme** — ekrana/chat'e/MCP dönüşüne ve
+- **Hassas kimlik/sır değerini insan-yüzeyde render etme** — ekrana/chat'e/API dönüşüne ve
   log/trace'e yazma. Kural ve gerekçe **Anayasa İlke VIII**'de (+ ADR
   [`adr-mcp-control-plane-no-secret-return.md`](docs/adr/adr-mcp-control-plane-no-secret-return.md));
   tarihsel örnek 087 makine-handoff onboarding'di (093'te söküldü; kural yaşıyor, örneksiz).
-- **Tool description'ı standart-dışı yazma:** expose edilen her MCP tool description'ı
-  [MCP Tool Description Standardı](../AgentPlatform/docs/mcp-tool-description-standard.md)'na uyar
-  (eylem-önce, Türkçe tetikleyici ifade "'...' gibi istekler için", kısıt/PII sonda, prose prefix yok)
-  ve `src/others/Shared/McpToolDescriptions.cs` const'ından referanslanır — inline `[Description("...")]`
-  string bırakma.
 - **Yeni saga için ayrı orchestration servisi açma** (god-service) — saga sürecin sahibi BC'de host
   edilir. (049 Checkout.Orchestrator istisnası 092'de SÖKÜLDÜ — checkout artık koreografi; repoda
   orkestre saga örneği KALMADI. Gerçekten çok-adım/dallanan süreç gerekirse önce koreografiyi değerlendir.)

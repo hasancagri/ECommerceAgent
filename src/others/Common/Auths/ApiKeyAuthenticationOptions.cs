@@ -1,4 +1,3 @@
-
 namespace Common.Auths;
 
 public static class ApiKeyAuthenticationDefaults

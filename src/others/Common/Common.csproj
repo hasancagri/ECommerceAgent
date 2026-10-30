@@ -21,7 +21,6 @@
         <PackageReference Include="StackExchange.Redis" />
         <PackageReference Include="WolverineFx" />
         <!-- 088: ölü-mesaj operatör tool'u ([McpServerTool]) Common'da (çapraz-kesen infra). -->
-        <PackageReference Include="ModelContextProtocol.Core" />
         <!-- 084: nötr auth kablosu (IdentityOption + AddAuthenticationAndAuthorizationExtension) buradan
              ayrıldı → Platform.Auth paketi. Namespace artık Platform.Auth (eski Common.* bırakıldı);
              tüketiciler `using Platform.Auth` kullanır (AgentPlatform Mcp.Gateway ile hizalı). -->

@@ -18,14 +18,7 @@ public static class MessagingExtensions
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // Yayinci yalniz exchange'i deklare eder; kuyruk + binding TUKETICIDE (007 dersi).
-            rabbit.DeclareExchange(RabbitMqConstants.ReviewSummaryChanged.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-            });
-
-            opts.PublishMessage<Shared.IntegrationEvents.ReviewSummaryChanged>()
-                .ToRabbitExchange(RabbitMqConstants.ReviewSummaryChanged.Exchange);
+            // ReviewSummaryChanged yayını SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı.
 
             // Order 'OrderCompleted' tüketilir → satın-alma kanıtı read-model. Tüketici kendi kuyruğunu
             // deklare edilen exchange'e bağlar (007) + dinler. Durable → Reviews kapalıyken kaybolmaz.
@@ -45,8 +38,6 @@ public static class MessagingExtensions
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // *Consumers Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et (Stock/Catalog emsali).
             opts.Discovery.IncludeType(typeof(Reviews.Api.OrderConsumers));
-            // 088: ölü-mesaj operatör handler'ları Common'da — açık kayıt.
-            opts.Discovery.IncludeType(typeof(Common.Utils.DeadLetters.DeadLetterAdminHandlers));
         });
 
         return builder;

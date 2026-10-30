@@ -17,6 +17,5 @@ global using StackExchange.Redis;
 global using Common.Utils.Caching;
 global using System.ComponentModel;
 global using Common.Utils.Authorization;
-global using ModelContextProtocol.Server;
 global using Wolverine.Persistence.Durability;
 global using Wolverine.Persistence.Durability.DeadLetterManagement;

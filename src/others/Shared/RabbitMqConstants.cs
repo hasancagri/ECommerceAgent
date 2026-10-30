@@ -3,14 +3,7 @@ namespace Shared;
 public static class RabbitMqConstants
 {
     // OrderCreated exchange kaldirildi — sepet temizligi artik CheckoutSaga'nin gRPC adimidir.
-
-    // Storefront TEK kuyruk dinler: üç exchange de aynı kuyruğa bağlanır ve Sequential işlenir.
-    // Aynı StorefrontView satırına eşzamanlı yazım yapısal olarak imkânsızlaşır (ConcurrencyException
-    // kaynağı yok edilir; Program.cs'teki retry kuralı yedek güvence olarak durur).
-    public static class StorefrontEvents
-    {
-        public const string Queue = "storefront.events";
-    }
+    // StorefrontEvents kuyruğu SÖKÜLDÜ — Storefront BC kaldırıldı (arama pg-hibrit'e taşınıyor).
 
     public static class ProductChanged
     {
@@ -18,8 +11,6 @@ public static class RabbitMqConstants
 
         public static class Queues
         {
-            public const string Storefront = StorefrontEvents.Queue;
-
             // Library fiyat değişimini dinler (alarm tetiği); binding'i tüketici kurar (007).
             public const string Library = "library.events";
 
@@ -28,28 +19,15 @@ public static class RabbitMqConstants
         }
     }
 
-    public static class StockChanged
-    {
-        public const string Exchange = "stock.changed";
-
-        public static class Queues
-        {
-            public const string Storefront = StorefrontEvents.Queue;
-        }
-    }
-
-
-    // 050/051: Catalog yeni ürün YAYINLANINCA yayınlar, Stock barkod↔ProductId eşlemesini kurar + ilk OnHand.
-    // Tüketici başına TEK sıralı kuyruk (aynı barkod sıralı işlenir); binding'i tüketici kurar (007).
+    // 050/051: Catalog yeni ürün YAYINLANINCA yayınlar. Dijital pivot: Stock BC söküldü → tek tüketici File
+    // (kapak çözümü). Tüketici başına TEK sıralı kuyruk; binding'i tüketici kurar (007).
     public static class ProductAdded
     {
         public const string Exchange = "catalog.product-added";
 
         public static class Queues
         {
-            public const string Stock = "stock.product-added";
-
-            // File.Api aynı fanout exchange'e kendi kuyruğunu bağlar (kapak çözümü); binding tüketici kurar.
+            // File.Api fanout exchange'e kendi kuyruğunu bağlar (kapak çözümü); binding tüketici kurar.
             public const string File = "file.product-added";
         }
     }
@@ -66,17 +44,7 @@ public static class RabbitMqConstants
         }
     }
 
-    // Reviews yayınlar, Storefront satırına RatingAverage/RatingCount yazar.
-    // Storefront TEK kuyruk deseni: mevcut storefront.events kuyruğuna bağlanır (Sequential).
-    public static class ReviewSummaryChanged
-    {
-        public const string Exchange = "reviews.summary-changed";
-
-        public static class Queues
-        {
-            public const string Storefront = StorefrontEvents.Queue;
-        }
-    }
+    // ReviewSummaryChanged exchange SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı.
 
     // Order yayınlar (checkout başarı = Confirm pivotu). Reviews tüketir (satın-alma kanıtı projeksiyonu).
     // 086: Library tüketir (kişisel UserPurchase birikimi — Storefront'tan taşındı); Storefront artık DİNLEMEZ.
@@ -138,47 +106,9 @@ public static class RabbitMqConstants
         }
     }
 
-    // Discount yayınlar (kitap başına indirim penceresi / temizlik), Storefront tüketir.
-    // Storefront TEK kuyruk deseni: mevcut storefront.events kuyruğuna bağlanır (Sequential).
-    public static class ProductDiscountChanged
-    {
-        public const string Exchange = "discount.product-discount-changed";
+    // ProductDiscountChanged exchange SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı.
+    // İndirim yüzdesi Order'a checkout gRPC'siyle akar (ayrı kanal).
 
-        public static class Queues
-        {
-            public const string Storefront = StorefrontEvents.Queue;
-        }
-    }
-
-    // 092 checkout koreografisi (orchestration söküldü). Order stok commit talep eder (fanout; tek tüketici
-    // Stock, tutarlılık için fanout). Stock sonucu Order'a fanout'la döner. Binding'i TÜKETİCİ kurar (007).
-    public static class StockCommitRequested
-    {
-        public const string Exchange = "stock.commit-requested";
-
-        public static class Queues
-        {
-            public const string Stock = "stock.commit-requested";
-        }
-    }
-
-    public static class StockCommitted
-    {
-        public const string Exchange = "stock.committed";
-
-        public static class Queues
-        {
-            public const string Order = "order.stock-committed";
-        }
-    }
-
-    public static class StockCommitFailed
-    {
-        public const string Exchange = "stock.commit-failed";
-
-        public static class Queues
-        {
-            public const string Order = "order.stock-commit-failed";
-        }
-    }
+    // dijital (PDF) pivot: Stock BC söküldü → checkout stok-commit koreografisi (StockCommitRequested/
+    // Committed/Failed) kalktı. Ödeme sonucu doğrudan Order.Confirm/Cancel tetikler (Order PaymentConsumers).
 }

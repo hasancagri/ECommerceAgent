@@ -3,10 +3,12 @@ namespace Catalog.Api.Domains.Authors;
 // Brand→Author rename. Kitapyurdu künyesi dilinde marka değil "Yazar"dır; Brand zaten yazarı
 // tutuyordu, isim yanlıştı. 016 düzeni sürer: yalnız import get-or-create ile doğar; ad immutable,
 // rename yok. NormalizedName teklik anahtarıdır (computed unique index, Program.cs).
+// ⊕ Kitapyurdu: Bio (yazar açıklaması) — get-or-create'te ilk-dolu kazanır (overwrite yok).
 public class Author : AggregateRoot
 {
     public string Name { get; private set; }
     public string NormalizedName { get; private set; }
+    public string? Bio { get; private set; }
 
     private Author()
     {
@@ -31,5 +33,14 @@ public class Author : AggregateRoot
             Name = name.Trim(),
             NormalizedName = normalized
         });
+    }
+
+    /// <summary>⊕ Yazar biyografisini yazar. Boş gelirse DOKUNMAZ; zaten doluysa DOKUNMAZ
+    /// (ilk-dolu kazanır — seed get-or-create aynı yazarı çok kez görür, overwrite yok). Hep Ok.</summary>
+    public ResultDomain SetBio(string? bio)
+    {
+        if (!string.IsNullOrWhiteSpace(bio) && string.IsNullOrWhiteSpace(Bio))
+            Bio = bio.Trim();
+        return ResultDomain.Ok();
     }
 }

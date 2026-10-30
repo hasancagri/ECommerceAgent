@@ -20,14 +20,6 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.CustomerWrite,
     // 088: ölü-mesaj operatör tool'ları (admin_list/get/replay/discard_dead_letter).
     AuthorizationScopes.OpsDeadletter);
-// RFC 9728 keşif (metadata dokümanı + 401 challenge parametreleri) — dış agent OAuth zinciri.
-// fix: 062 adres YAZMA tool'ları açıldığında bu liste bayat kalmıştı — scope'unu PRM'den türeten
-// istemciler (mcp-remote köprüsü) customer.write'sız token alıp add_address'te düşüyordu.
-// /mcp TEK uç — PRM TAM demeti ilan eder.
-builder.Services.AddMcpResourceMetadata(builder.Configuration, "customer",
-    AuthorizationScopes.CustomerRead, AuthorizationScopes.CustomerWrite,
-    AuthorizationScopes.OpsDeadletter);
-// logout: `logout` MCP tool'unun Identity.Server agent-logout ucuna forward client'ı.
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -40,14 +32,8 @@ builder.Services.AddCachingAspect("customer");
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddGrpc();
-// TEK korumalı uç /mcp — müşteri + merchant-admin tool'ları birlikte, tek assembly taramasıyla.
-// Tool-görünürlük budaması KALDIRILDI; yetki tek katman: handler'daki [RequiredScope] (403 son savunma).
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport()
-    .WithToolsFromAssembly()
-    // 088: ölü-mesaj operatör tool'ları Common'da — açık kayıt.
-    .WithTools<Common.Utils.DeadLetters.DeadLetterAdminMcpTools>();
+
+// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp adres tool'ları + DLQ MCP kaldırıldı; REST first-party'ye.
 
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
@@ -67,10 +53,5 @@ app.UseAuthorization();
 // performans için REST'ten gRPC'ye taşındı (İlke I — BC-arası S2S artık gRPC, dış webhook hariç).
 app.MapGrpcService<Customer.Api.Grpc.HostedPayment.AddressGrpcService>()
     .RequireAuthorization(AuthorizationScopes.CustomerRead);
-
-// MCP korumalı — kimliksiz istek 401 + resource_metadata challenge alır (dış agent keşfi).
-// TEK uç — merchant admin tool'lar scope-budamalı aynı ucta (scope katmanı handler'larda). /mcp-admin öldü.
-app.MapMcp("/mcp");
-app.MapMcpResourceMetadata();
 
 await app.RunAsync();

@@ -1,9 +1,5 @@
 <Solution>
   <Folder Name="/src/" />
-  <Folder Name="/src/agents/">
-    <Project Path="src/agents/Mail.Mcp/Mail.Mcp.csproj" />
-    <Project Path="src/agents/NotificationAgent/NotificationAgent.csproj" />
-  </Folder>
   <Folder Name="/src/aspire/">
     <Project Path="src/aspire/AppHost/AppHost.csproj" />
     <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
@@ -22,8 +18,6 @@
     <Project Path="src/services/discount/Discount.Api/Discount.Api.csproj" />
     <Project Path="src/services/file/File.Api/File.Api.csproj" />
     <Project Path="src/services/reviews/Reviews.Api/Reviews.Api.csproj" />
-    <Project Path="src/services/stock/Stock.Api/Stock.Api.csproj" />
-    <Project Path="src/services/storefront/Storefront.Api/Storefront.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Basket.Api.Tests/Basket.Api.Tests.csproj" />
@@ -36,7 +30,5 @@
     <Project Path="tests/Order.Api.Tests/Order.Api.Tests.csproj" />
     <Project Path="tests/Payment.Api.Tests/Payment.Api.Tests.csproj" />
     <Project Path="tests/Reviews.Api.Tests/Reviews.Api.Tests.csproj" />
-    <Project Path="tests/Stock.Api.Tests/Stock.Api.Tests.csproj" />
-    <Project Path="tests/Storefront.Api.Tests/Storefront.Api.Tests.csproj" />
   </Folder>
 </Solution>
