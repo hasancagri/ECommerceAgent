@@ -184,5 +184,5 @@ haritasına ekle (`check-claude-spec-links.sh` doğrular).
 - **Kimlik makamını ECommerce'e geri gömme (084):** IdP `AgentPlatform`'da. AppHost'a IdP proje-ref'i
   EKLEME, scope/client/rol'ü koda gömme (yenisi `AgentPlatform` `AppRegistry` config'ine). Nötr auth
   kablosu `Platform.Auth` paketinde — `Common`'a geri taşıma.
-- **`src/otherProjects/CustomNopCommerce`'e dokunma** — `.slnx` dışı referans/deneme kodu
-  (git-takipli ama çözümün parçası değil). Genel kural: çözüme dahil olmayan klasör kapsam dışıdır.
+- Genel kural: çözüme (`.slnx`) dahil olmayan klasör kapsam dışıdır. (Son örnek `CustomNopCommerce`
+  referans kodu — 2026-10-31'de silindi; tarihçe git'te.)
