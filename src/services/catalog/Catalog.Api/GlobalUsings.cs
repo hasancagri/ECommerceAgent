@@ -28,7 +28,6 @@ global using System.ComponentModel;
 global using Common.Dependencies;
 global using Catalog.Api.Domains.Products.ValueObjects;
 global using Marten.Linq.MatchesSql;
-global using Catalog.Api.Domains.Products.Entities;
 global using Common.Utils.Caching;
 global using Common.Auths;
 global using Catalog.Api.Helpers;

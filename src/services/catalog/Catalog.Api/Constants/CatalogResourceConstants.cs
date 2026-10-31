@@ -11,7 +11,7 @@ public static class CatalogResourceConstants
     public static readonly string PRODUCT_NAME_REQUIRED = "CATALOG_PRODUCT_NAME_REQUIRED";
     // 095: kimlik Gtin (ISBN) — Sku söküldü, var oluş guard'ı Gtin'e taşındı.
     public static readonly string PRODUCT_GTIN_REQUIRED = "CATALOG_PRODUCT_GTIN_REQUIRED";
-    // 091: fiyat>0 var oluş invariant'ı (Create/SetPrice).
+    // 091: fiyat>0 var oluş invariant'ı (Create; fiyat doğumda sabit — 097).
     public static readonly string PRODUCT_PRICE_REQUIRED = "CATALOG_PRODUCT_PRICE_REQUIRED";
     // 095: tek leaf kategori zorunlu (SetCategory boş Id guard'ı; seed "Genel" fallback'iyle doldurur).
     public static readonly string PRODUCT_CATEGORY_REQUIRED = "CATALOG_PRODUCT_CATEGORY_REQUIRED";

@@ -170,7 +170,7 @@ public static class SeedBookRow
             var product = Product.Create(record.Title, record.Isbn, price, record.Description).Data!;
             product.SetAuthors(authors.Select(a => a.Id));
             product.SetPublisher(publisher.Id);
-            product.SetImage(null); // kapak async File.Api'den (CoverIngested)
+            product.SetImage(null); // kapak hattı Catalog ayağı söküldü (097 serisi) — ImageUrl boş kalır
             product.SetBookMeta(record.PageCount, record.PublishedOn, record.Language);
             product.SetTranslators(record.Translators);
             product.SetCategory(leaf.Id);
@@ -186,10 +186,7 @@ public static class SeedBookRow
             product.SetRelatedCategories(relatedIds); // dedup + primary'yi eleme aggregate'te
             session.Store(product);
 
-            // Fiyat geçmişin ilk satırı (OldPrice=null) — fiyat>0 garantili.
-            session.Store(ProductPriceChange.Create(product.Id, oldPrice: null, price.Amount, DateTime.UtcNow));
-
-            // Yayın-anı zincir çözümü (leaf + ata; ad VE id) — FileConsumers ile ortak tek kaynak.
+            // Yayın-anı zincir çözümü (leaf + ata; ad VE id) — tek kaynak CategoryNaming.
             var chainMap = new Dictionary<Guid, Category> { [leaf.Id] = leaf };
             if (leaf.ParentCategoryId is Guid parentId
                 && await session.LoadAsync<Category>(parentId, ct) is { } parent)

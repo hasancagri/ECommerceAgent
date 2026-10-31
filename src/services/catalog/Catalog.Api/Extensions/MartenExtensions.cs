@@ -30,8 +30,8 @@ public static class MartenExtensions
 
                 // 095: ProductTag aggregate'i SÖKÜLDÜ (model + şema; eski tablo dev full-reset'le gider).
 
-                // fiyat geçmişi append-only kaydı — ürün bazlı okuma için lookup index'i.
-                opts.Schema.For<ProductPriceChange>().Index(x => x.ProductId);
+                // 097: ProductPriceChange şeması SÖKÜLDÜ (fiyat doğumda sabit — 058 geçmişi öldü).
+                // Eski tablo dev full-reset'le gider (ApplyAllDatabaseChangesOnStartup tablo düşürmez).
 
                 // NormalizedName teklik anahtarıdır (R4) — computed unique index son güvence.
                 // Legacy Brand migrasyonu YOK (kullanıcı kararı): DB sıfırlanarak başlatılır, katalog feed'den dolar.

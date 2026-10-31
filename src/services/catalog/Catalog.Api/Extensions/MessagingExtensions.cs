@@ -36,14 +36,8 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ProductAdded>()
                 .ToRabbitExchange(RabbitMqConstants.ProductAdded.Exchange);
 
-            // T022: File.Api'nin CoverIngested'ini tüket (Catalog'un İLK consumer'ı). Binding'i tüketici
-            // kurar (007 dersi); FileConsumers.Handle → Product.SetImage → ProductChangedEvent.
-            rabbit.DeclareExchange(RabbitMqConstants.CoverIngested.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-                e.BindQueue(RabbitMqConstants.CoverIngested.Queues.Catalog);
-            });
-            opts.ListenToRabbitQueue(RabbitMqConstants.CoverIngested.Queues.Catalog);
+            // 097 serisi: CoverIngested tüketimi SÖKÜLDÜ (kullanıcı kararı — kapak hattının Catalog
+            // ayağı öldü; FileConsumers silindi). File hâlâ yayınlar, tüketicisi yok (boşa fanout).
 
             opts.Policies.UseDurableLocalQueues();
             // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
@@ -52,8 +46,6 @@ public static class MessagingExtensions
                 typeof(ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-            // *Consumers son-eki taramayla BULUNMAZ → açık kayıt ZORUNLU (yoksa CoverIngested sessizce yutulur).
-            opts.Discovery.IncludeType(typeof(Catalog.Api.FileConsumers));
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
         });

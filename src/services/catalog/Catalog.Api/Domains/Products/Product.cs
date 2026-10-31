@@ -81,16 +81,8 @@ public class Product : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Liste fiyatını değiştirir. Fiyat>0 invariant'ı (negatif guard Money VO'da, sıfır guard'ı
-    /// burada — satılamaz kart doğamaz/kalamaz). Fiyat geçmişi append'i çağıran yazma yolunda.</summary>
-    public ResultDomain SetPrice(Money price)
-    {
-        if (price.Amount <= 0)
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(Price), Code = CatalogResourceConstants.PRODUCT_PRICE_REQUIRED });
-        Price = price;
-        return ResultDomain.Ok();
-    }
+    // SetPrice SÖKÜLDÜ (097): fiyat doğumda sabit — doğum sonrası fiyat mutasyonu yok
+    // (fiyat>0 guard'ı Create'te yaşar).
 
     /// <summary>Ürünü TEK leaf kategoriye bağlar (tam-değiştirme). Boş Id reddedilir; üst kategori
     /// bilgisi ürüne yazılmaz, yayın anında ağaçtan çözülür (FR-004).</summary>
@@ -140,7 +132,7 @@ public class Product : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Kapak URL'ini atar/temizler (File BC `CoverIngested` hattından dolar).</summary>
+    /// <summary>Kapak URL'ini atar/temizler (tüketicisi kalmadı — 097 serisi; davranış durur).</summary>
     public ResultDomain SetImage(string? imageUrl)
     {
         ImageUrl = imageUrl;

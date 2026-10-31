@@ -15,13 +15,8 @@ public static class MessagingExtensions
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // Tüketici: Catalog'un product.changed fanout'una kendi kuyruğunu bağlar (007 dersi) + dinler.
-            rabbit.DeclareExchange(RabbitMqConstants.ProductChanged.Exchange, e =>
-            {
-                e.ExchangeType = ExchangeType.Fanout;
-                e.BindQueue(RabbitMqConstants.ProductChanged.Queues.Library);
-            });
-            opts.ListenToRabbitQueue(RabbitMqConstants.ProductChanged.Queues.Library);
+            // 097: ProductChanged tüketimi SÖKÜLDÜ — fiyat doğumda sabit, alarm tetiği (OldPrice) öldü;
+            // PriceAlarm aggregate'i tetiksiz UYUR. Eski kuyruk kalıntısı dev reset'le gider.
 
             // 086: Tüketici: Order 'OrderCompleted' → UserPurchase birikimi (Storefront'tan taşındı).
             // Binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi) + kendi kuyruğunu dinler.
@@ -56,7 +51,6 @@ public static class MessagingExtensions
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // *Consumers (çoğul) Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et (Reviews emsali).
-            opts.Discovery.IncludeType(typeof(Library.Api.CatalogConsumers));
             opts.Discovery.IncludeType(typeof(Library.Api.NotificationAgentConsumers));
             opts.Discovery.IncludeType(typeof(Library.Api.OrderConsumers));
         });

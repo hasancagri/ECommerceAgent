@@ -95,7 +95,7 @@ public class ProductTests
         product.Description.ShouldBe("yeni açıklama");
     }
 
-    // --- Money VO + SetPrice ---
+    // --- Money VO (SetPrice 097'de söküldü — fiyat doğumda sabit) ---
 
     [Fact]
     public void MoneyCreate_NegativeAmount_ReturnsNull()
@@ -110,27 +110,6 @@ public class ProductTests
 
         money.Amount.ShouldBe(149.90m);
         money.Currency.ShouldBe("TRY");
-    }
-
-    [Fact]
-    public void SetPrice_ReplacesPrice()
-    {
-        var product = NewProduct();
-
-        product.SetPrice(Money.Create(250m)!).IsSuccess.ShouldBeTrue();
-        product.Price.Amount.ShouldBe(250m);
-    }
-
-    [Fact]
-    public void SetPrice_ZeroAmount_ReturnsError()
-    {
-        var product = NewProduct();
-
-        var result = product.SetPrice(Money.Zero());
-
-        result.IsSuccess.ShouldBeFalse();
-        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_PRICE_REQUIRED);
-        product.Price.Amount.ShouldBe(100m); // hatada fiyat değişmez
     }
 
     // --- SetCategory (tek leaf; üst kategori ürüne yazılmaz — ağaçtan çözülür) ---

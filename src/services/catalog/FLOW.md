@@ -28,24 +28,21 @@ değişimi fat event'le duyurur. Ürünler **first-party**: kaynak commit'li `bo
    uyarıyla atlanır; dosya yoksa seed sessiz atlanır, parse hatası durdurur.
 2. 🟦 **Ürünü oluştur/güncelle** → 🟨 **Ürün doğar** — ad/ISBN/fiyat/açıklama;       `(Product.Create, Product.Rename,`
    fiyat>0 var oluş invariant'ı. _(giriş yüzeyi yok, REST planlı.)_                 ` Product.SetDescription)`
-2a. 🟪 **Fiyat her gerçek değişimde geçmişe yazılır (058)** — ilk fiyat             `(Product.SetPrice,`
-   ilk satırdır (append-only).                                                      ` ProductPriceChange)`
 3. 🟨 **Yazar(lar) + yayınevi bulun-veya-doğur** — her yazar adı                    `(Author.Create, Product.SetAuthors,`
    normalize+aranır (çok-çok, Id listesi); yayınevi tek (çok-bir).                  ` Publisher.Create, Product.SetPublisher)`
 4. 🟦 **Tek leaf kategoriye bağla** — leaf kapalı ağaçtan adla çözülür              `(NameNormalization.Normalize,`
    (çözülemeyen → "Genel"); üst kategori ürüne YAZILMAZ. İlgili                     ` Product.SetCategory,`
    kategoriler editoryal liste olarak ayrı atanır (çözülemeyen atlanır).            ` Product.SetRelatedCategories)`
-5. 🟧⭐ **Ürün değişti** ⇨ Library — değişim KANONİK yayınlanır:                     `(ProductChangedEvent,`
-   fiyat decimal; kategori AD+ID zinciri = leaf + ata (yayın anında ağaçtan         ` CategoryNaming.ResolveChain)`
-   çözülür — related GİRMEZ); yazarlar (Id+ad) + yayınevi ADLA (fat event;
-   tüketici lookup yapmaz). `IsDeleted` kontratta kalır, hep `false` gider;
-   `CategoryIds` additive (eski tüketici `CategoryId` fallback'ine düşer).
+5. 🟧⭐ **Ürün değişti** — değişim KANONİK yayınlanır: fiyat decimal;                `(ProductChangedEvent,`
+   kategori AD+ID zinciri = leaf + ata (yayın anında ağaçtan çözülür —              ` CategoryNaming.ResolveChain)`
+   related GİRMEZ); yazarlar (Id+ad) + yayınevi ADLA (fat event). `IsDeleted`
+   kontratta kalır, hep `false` gider. **Tüketicisi ŞU AN YOK (097):** Library
+   aboneliği söküldü (alarm tetiği öldü) — event ileriye dönük kontrat olarak
+   yayılmaya devam eder (keşif/ML tüketicileri gelecek).
 6. 🟧 **Ürün doğdu** ⇨ File — yalnız kapak hattını tetikler (ISBN→ürün):            `(ProductAdded)`
    File `ProductAdded`'i tüketir, kapağı çözer. YALNIZ doğumda yayılır.
-7. 🟧 **Kapak alındı (083/095)** ⇦ File → 🟪 **kapak ürüne yazılır** → 🟧            `(FileConsumers, CoverIngested,`
-   **Ürün değişti** — File kapağı R2'de çözer, `CoverIngested(isbn,url)`            ` Product.SetImage, ProductChangedEvent)`
-   yayar; Catalog `FileConsumers` tüketir → `Product.SetImage` →
-   `ProductChangedEvent`. Kapak yoksa event yok — ürün placeholder'da kalır.
+   **Kapak dönüş ayağı öldü (097 serisi):** Catalog `CoverIngested` tüketmez —
+   `Product.ImageUrl` dolmaz (kapaksızlık kullanıcı kararı); File yayını tüketicisiz.
 8. 🟪 **Embedding reconcile süreci (096)** — BC-içi dayanıklı döngü: vektörü                `(EmbeddingReconcileProcess,`
    eksik/bayat (içerik-hash ∨ model farkı) kitapları KENDİ DB'sinden bulur, LOCAL           ` EmbeddingText,`
    embedding modeliyle (Ollama) toplu vektörleştirir, yan dokümana yazar (broker            ` ProductEmbedding)`
@@ -63,12 +60,11 @@ değişimi fat event'le duyurur. Ürünler **first-party**: kaynak commit'li `bo
 - **Tek leaf kategori zorunlu.** Ürün TEK leaf'e bağlanır `(Product.SetCategory)`; üst kategori ürüne denormalize edilmez — "üst kategorideki tüm kitaplar" ağaçtan cevaplanır. Kategorisiz seed satırı "Genel"e düşer.
 - **İlgili kategoriler editoryal (095).** `RelatedCategoryIds` yalnız "bu kategoriyle DE ilgili" ilişkisi; primary/ata zinciriyle karışmaz, event zincirine girmez `(Product.SetRelatedCategories)`.
 - **Kategori ağacı kapalı + doğumda sabit (095).** Ağaç yalnız seed'den (`CategoryTreeSeed.Build` → ≤2 seviye); ebeveyn doğumda sabit, taşı/yeniden adlandır davranışı yok; ad ağaç-global unique — ihlalde seed deterministik hata verir.
-- **Fiyat>0 = var oluş invariant'ı (091).** Fiyatsız ürün DOĞAMAZ, fiyat sıfıra ÇEKİLEMEZ `(Product.Create, Product.SetPrice)`.
+- **Fiyat doğumda sabit (097).** Fiyat yalnız doğumda atanır (fiyat>0 invariant'ı — 091) ve sonradan DEĞİŞMEZ `(Product.Create)`; fiyat geçmişi (058) ve "eski fiyat" kavramı söküldü.
 - **Ürün var = canlı (091).** Taslak/yayın/gizleme yok; her ürün doğduğu an keşfedilebilir.
-- **Fiyat geçmişi append-only (058).** İlk fiyat dahil her değişim aynı transaction'da satıra döner `(ProductPriceChange)`.
 - **Silme yok (016 sürer).** `ProductChangedEvent.IsDeleted` kontratta durur, hep `false` gider.
 - **Seed var olana dokunmaz (091).** Yalnız EKSİK ISBN eklenir; admin düzenlemesi ezilmez.
-- **Dış dünyaya iki yol = event.** `ProductChangedEvent` (her değişim → Library; ad+id zinciri yayın anında `CategoryNaming.ResolveChain` ile), `ProductAdded` (yalnız doğumda → File kapak hattı).
+- **Dış dünyaya iki yol = event.** `ProductChangedEvent` (her değişim; ad+id zinciri yayın anında `CategoryNaming.ResolveChain` ile — tüketicisi ŞU AN yok, 097), `ProductAdded` (yalnız doğumda → File kapak kayıt hattı).
 
 ## Sınır (bu BC'nin dokunmadığı)
 
