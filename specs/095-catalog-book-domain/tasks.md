@@ -55,7 +55,7 @@ Görev yok — yeni proje/paket/klasör gerekmiyor; mevcut BC yerleşimi korunuy
 - [X] T011 [US1] Faz A impl: `src/services/catalog/Catalog.Api/Seeding/BookSeedHostedService.cs` — books.json tek tarama → saf ağaç kurucu (Seeding içinde) → Category.Create ile kapalı ağaç; T010 yeşil
 - [X] T012 [P] [US1] `SeedBookRecord` hizası: `src/services/catalog/Catalog.Api/Seeding/SeedBookRecord.cs` + `tests/Catalog.Api.Tests/SeedBookRecordTests.cs` — alan seti aynı; Validate (ISBN/fiyat) korunur, derleme hizası
 - [X] T013 [US1] Faz B impl: `BookSeedHostedService` satır işleme — Gtin-varsa-atla, `Create(name, gtin, price, description)`, tek leaf `SetCategory` ("Genel" fallback), `SetRelatedCategories` (çözülemeyen related atlanır), SetAuthors/SetPublisher/SetBookMeta/SetTranslators, ProductPriceChange append, `ProductAdded` + fat `ProductChangedEvent` (T008 helper'la Categories+CategoryIds) AYNI commit
-- [ ] T014 [US1] Canlı doğrulama: quickstart §2 — temiz DB açılış sayımları + "Popüler Kültür" örneği + ikinci açılış idempotensi
+- [X] T014 [US1] Canlı doğrulama: quickstart §2 — temiz DB açılış sayımları + "Popüler Kültür" örneği + ikinci açılış idempotensi
 
 **Checkpoint**: Katalog yeni modelle doluyor — MVP.
 
@@ -72,7 +72,7 @@ Görev yok — yeni proje/paket/klasör gerekmiyor; mevcut BC yerleşimi korunuy
 - [X] T017 [US2] Resolver impl: `src/services/discount/Discount.Api/Domains/Campaigns/CampaignSelectionResolver.cs` — saf çekirdek + Marten sorgusu `CategoryIds.Contains(scopeRef)`; T015 yeşil
 - [X] T018 [US2] Tüketici map: `src/services/discount/Discount.Api/CatalogConsumers.cs` — `evt.CategoryIds ?? [evt.CategoryId]` (null-dayanıklı, eski event kırılmaz)
 - [X] T019 [US2] FileConsumers GERİ YAZ: `src/services/catalog/Catalog.Api/FileConsumers.cs` — CoverIngested → Gtin lookup → SetImage → fat ProductChangedEvent (T008 helper; referans `git show 7c641d9~1:src/services/catalog/Catalog.Api/FileConsumers.cs`); Wolverine keşfi: sınıf adı `*Consumers` — `MessagingExtensions`'taki `IncludeAssembly` yeter mi doğrula, gerekirse `IncludeType` ekle (TUZAK: sessiz yutma)
-- [ ] T020 [US2] Canlı doğrulama: quickstart §3-§5 — RabbitMQ event örneği, discountDb `ProductCatalogRef`, kapak dolumu, CoverIngested kuyruğu birikmiyor
+- [X] T020 [US2] Canlı doğrulama: quickstart §3-§5 — RabbitMQ event örneği, discountDb `ProductCatalogRef`, kapak dolumu, CoverIngested kuyruğu birikmiyor
 
 **Checkpoint**: US1 + US2 birlikte canlı doğrulanmış.
 
@@ -96,7 +96,7 @@ Görev yok — yeni proje/paket/klasör gerekmiyor; mevcut BC yerleşimi korunuy
 
 - [X] T024 [P] FLOW.md hizası (FR-013, İlke VII): `src/services/catalog/FLOW.md` — tek-leaf + kapalı ağaç + iki-fazlı seed + FileConsumers as-built; `src/services/discount/FLOW.md` izdüşüm satırı (CategoryIds); `scripts/check-flow-links.sh` yeşil
 - [X] T025 [P] CLAUDE.md BC haritası catalog satırı güncelle (ProductTag söküldü, tek-leaf model, origin'e `specs/095-catalog-book-domain` ekle); `scripts/check-claude-spec-links.sh` yeşil
-- [ ] T026 quickstart.md tam koşu (§1-§6) — SC-001..004 kapanış kanıtı
+- [X] T026 quickstart.md tam koşu (§1-§6) — SC-001..004 kapanış kanıtı
 
 ---
 

@@ -1,4 +1,4 @@
-namespace Catalog.Api.Domains.Categories;
+namespace Catalog.Api.Helpers;
 
 // 095: yayın-anı kategori zincir çözümü — fat ProductChangedEvent'in Categories (adlar) + CategoryIds
 // (id'ler) alanlarının TEK kaynağı (seed Faz B + FileConsumers paylaşır; drift riski kapanır).
