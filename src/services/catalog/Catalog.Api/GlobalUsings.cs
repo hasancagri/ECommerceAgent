@@ -5,6 +5,7 @@ global using Common.Domains;
 global using Common.Exceptions;
 global using Common.Extensions;
 global using Marten.Newtonsoft;
+global using Marten.PgVector;
 global using Marten;
 global using Shared;
 global using System.Reflection;

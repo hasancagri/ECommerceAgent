@@ -18,6 +18,13 @@ public static class MartenExtensions
                         s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
                     });
 
+                // 096: pgvector extension kaydı + Npgsql vector type handler. Embedding JSONB içinde
+                // float[] yaşar; HNSW/kNN index BİLİNÇLİ YOK (R2 — tüketici yüzey yok, 11.4k satırda
+                // exact scan ms mertebesi; index kararı arama spec'inin işi).
+                opts.UsePgVector();
+                // Üretim/yenileme tek yazardan (EmbeddingReconcileProcess) — concurrency kaydı gerekmez.
+                opts.Schema.For<Catalog.Api.Embeddings.ProductEmbedding>();
+
                 // Gtin (ISBN) ürün kimlik/lookup anahtarıdır (095: Sku söküldü, FamilyCode kalktı).
                 opts.Schema.For<Product>().Index(x => x.Gtin);
 

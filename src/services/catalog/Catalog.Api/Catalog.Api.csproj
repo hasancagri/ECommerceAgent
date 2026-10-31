@@ -11,6 +11,8 @@
         <PackageReference Include="Grpc.AspNetCore" />
         <PackageReference Include="Marten" />
         <PackageReference Include="Marten.Newtonsoft" />
+        <PackageReference Include="Marten.PgVector" />
+        <PackageReference Include="Pgvector" />
         <PackageReference Include="Newtonsoft.Json" />
         <PackageReference Include="Scrutor" />
         <PackageReference Include="WolverineFx" />

@@ -46,8 +46,16 @@ değişimi fat event'le duyurur. Ürünler **first-party**: kaynak commit'li `bo
    **Ürün değişti** — File kapağı R2'de çözer, `CoverIngested(isbn,url)`            ` Product.SetImage, ProductChangedEvent)`
    yayar; Catalog `FileConsumers` tüketir → `Product.SetImage` →
    `ProductChangedEvent`. Kapak yoksa event yok — ürün placeholder'da kalır.
-8. 🟩 Keşif yüzeyi _(planned)_ — okuma yüzeyi REST first-party + pg-hibrit arama
-   (096) ile açılacak (yayın filtresi yok — her ürün keşfedilebilir).
+8. 🟪 **Embedding reconcile süreci (096)** — BC-içi dayanıklı döngü: vektörü                `(EmbeddingReconcileProcess,`
+   eksik/bayat (içerik-hash ∨ model farkı) kitapları KENDİ DB'sinden bulur, LOCAL           ` EmbeddingText,`
+   embedding modeliyle (Ollama) toplu vektörleştirir, yan dokümana yazar (broker            ` ProductEmbedding)`
+   yok; seed'den bağımsız, eventual). Model değişimi toplu tazelemeyi aynı
+   döngüden tetikler; Ollama kapalıyken hiçbir akış bloklanmaz (kendi kendini onarır).
+   🟥 Hotspot (closed: ad + açıklama + yazar adları + kategori zinciri — 096 FR-003):
+   embed edilen metnin bileşimi.
+9. 🟩 Keşif/arama yüzeyi _(planned, 096-sonrası)_ — vektörlerin tüketicisi (hibrit
+   arama, benzer-kitap, danışman agent) SONRAKİ spec'ler; 096 yalnız omurgayı döşer.
+   Yayın filtresi yok — her ürün keşfedilebilir olacak.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

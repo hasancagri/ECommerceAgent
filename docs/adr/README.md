@@ -23,5 +23,6 @@ başka karar geçti) · `Tarihsel` (anlattığı pratik söküldü; kayıt öğr
 | [adr-k3s-push-cd-deployment](adr-k3s-push-cd-deployment.md) | Canlı Dağıtım — k3s + Push-tabanlı CD (SSH), sslip.io, in-cluster altyapı (dev) | Kabul |
 | [adr-mcp-control-plane-no-secret-return](adr-mcp-control-plane-no-secret-return.md) | MCP Kontrol Düzlemidir — Hassas Veri Tool Dönüşüne / LLM'e Girmez | Kabul |
 | [adr-moderation-agent-extraction](adr-moderation-agent-extraction.md) | Reviews moderasyonu ayrı broker-worker'a taşındı | Tarihsel |
+| [adr-search-fold-to-postgres](adr-search-fold-to-postgres.md) | Arama Postgres'e katlandı + embedding local (096, 086 tersine) | Kabul |
 
 > Yeni ADR → bu tabloya bir satır ekle (yaşayan indeks).

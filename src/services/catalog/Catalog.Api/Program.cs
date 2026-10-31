@@ -29,8 +29,20 @@ builder.Services.AddOptions<Catalog.Api.Options.SeedOptions>()
 builder.Services.AddSingleton<Catalog.Api.Options.SeedOptions>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Options.SeedOptions>>().Value);
 
+// 096: local embedding üretimi (Ollama) config'i — section "EmbeddingOptions".
+builder.Services.AddOptions<Catalog.Api.Options.EmbeddingOptions>()
+    .BindConfiguration(nameof(Catalog.Api.Options.EmbeddingOptions))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Catalog.Api.Options.EmbeddingOptions>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Options.EmbeddingOptions>>().Value);
+
 // 091: commit'li books.json'dan tek-seferlik açılış seed'i (051 deseninin dönüşü; Excel import söküldü).
 builder.Services.AddHostedService<Catalog.Api.Seeding.BookSeedHostedService>();
+
+// 096: local embedding omurgası — Ollama istemcisi (typed HttpClient) + reconcile döngüsü.
+builder.Services.AddHttpClient<Catalog.Api.Embeddings.OllamaEmbeddingClient>((sp, http) =>
+    http.BaseAddress = new Uri(sp.GetRequiredService<Catalog.Api.Options.EmbeddingOptions>().BaseUrl.TrimEnd('/') + "/"));
+builder.Services.AddHostedService<Catalog.Api.Process.EmbeddingReconcileProcess>();
 
 // L2 (paylaşımlı) önbellek katmanı — Redis IDistributedCache; opsiyonel (yoksa HybridCache yalnız L1).
 if (builder.Configuration.GetConnectionString("redis") is not null)
@@ -49,9 +61,10 @@ var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
 app.MapDefaultEndpoints();
 
-app.UseAuthentication();
+// Temiz-sayfa sökümünde JWT auth kaydı (AddAuthenticationAndAuthorizationExtension) MCP yüzeyiyle
+// birlikte gitti; kayıtsız UseAuthentication/UseAuthorization açılışta fırlatır (096 canlı koşusunda
+// yakalandı). Kalan tek şema ApiKey (S2S) — basket/order/payment ile aynı desen.
 app.UseApiKeyAuthentication();
-app.UseAuthorization();
 
 // MCP /mcp ucu SÖKÜLDÜ (tertemiz sayfa). Ürün girişi = açılış seed'i (091, books.json). Dış yüzey
 // (okuma + admin) REST first-party'de yeniden kurulacak.
