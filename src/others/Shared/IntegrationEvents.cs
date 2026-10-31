@@ -29,9 +29,7 @@ public static class IntegrationEvents
         bool IsDeleted,
         // varyant ailesi kodu (opsiyonel; null = ailesiz).
         string? FamilyCode = null,
-        // YALNIZ fiyat değişiminde dolu (eski fiyat); null = fiyat-dışı değişiklik.
-        // Additive default'lu — eski tüketici (Storefront) kırılmaz. Library tetik kararını bundan verir.
-        decimal? OldPrice = null,
+        // OldPrice SÖKÜLDÜ (097): fiyat doğumda sabit — "eski fiyat" kavramı kontrattan çıktı.
         // 095: kategori AD zinciri = leaf + ata adları (yayın anında ağaçtan çözülür; related GİRMEZ).
         // null/boş = yalnız tekil Category kullan (eski tüketici kırılmaz; CategoryId hâlâ primary leaf).
         List<string>? Categories = null,
@@ -47,8 +45,8 @@ public static class IntegrationEvents
         Guid ProductId);
 
     // File.Api → Catalog. Kapak R2'de hazır + registry upsert sonrası yayılır. Url = r2.dev public
-    // (CoverUrlResolver çıktısı; r2.dev base Catalog'a sızmaz — İLKE I). Catalog FileConsumers tüketir →
-    // Product.SetImage → ProductChangedEvent. Kapak yoksa event YOK (ürün placeholder ImageUrl'süz kalır).
+    // (CoverUrlResolver çıktısı; r2.dev base Catalog'a sızmaz — İLKE I). Tüketicisi YOK (097 serisi:
+    // Catalog ayağı söküldü, kullanıcı kararı — ürünler kapaksız); kontrat ileriye dönük durur.
     public record CoverIngested(string Isbn, string Url);
 
     // ReviewSummaryChanged SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı. Rating özeti

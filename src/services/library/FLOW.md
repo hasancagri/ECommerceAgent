@@ -1,7 +1,11 @@
 # Library — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Kullanıcının ürünle kalıcı ilgi kayıtlarını tutar; ilk dilim fiyat alarmı —
-yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayınlar, gönderim izini saklar.
+yaşayan abonelik olarak kurulur, gönderim izini saklar.
+
+> **097 notu (fiyat değişmezliği):** fiyat doğumda sabitlendi — alarm TETİKSİZ UYUR: model/kayıtlar
+> durur, `ProductChangedEvent` aboneliği söküldü, `PriceAlarmTriggered` yayıncısız. Aşağıdaki 3-4-5-7
+> adımları uykudaki tasarımın kaydıdır (fiyat değişimi geri gelirse aynı modelle uyanır).
 
 > Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot · 🟩 read-model ·
 > 👤 aktör · ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
@@ -14,10 +18,10 @@ yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayı
    bağlam olarak saklanır.
 2. 🟪 **Aynı kullanıcı × ürüne tek alarm** — mevcut kayıt varsa ikinci kurma
    isteği idempotent başarı döner, yeni kayıt yazılmaz.
-3. 🟧 **Ürün fiyatı değişti** ⇦ Catalog → 🟪 **değişim dinlenir** — eski             `(CatalogConsumers ← ProductChangedEvent)`
-   fiyat doluysa VE yeni fiyattan farklıysa tetik doğar; yön bakılmaz.
-4. 🟧⭐ **Bildirim tetiği yayınlandı** ⇨ NotificationAgent — üründeki HER alarm için          `(→ PriceAlarmTriggered)`
-   bir tetik; mail'e yetecek her alan event'te (email snapshot dahil), worker kimseye sormaz.
+3. 🟧 Ürün fiyatı değişti ⇦ Catalog → 🟪 değişim dinlenir _(uykuda, 097 — tüketici söküldü;
+   tetik kuralı: eski fiyat dolu VE farklı)_
+4. 🟧⭐ Bildirim tetiği yayınlandı ⇨ NotificationAgent _(uykuda, 097 — yayıncısı yok; kontrat
+   `PriceAlarmTriggered` Shared'da durur)_
 5. 🟪 **Alarm tetikte KAPANMAZ** — yaşayan abonelik: kullanıcı kaldırana dek her           `(PriceAlarm — mutator'suz)`
    fiyat değişimi yeni tetik üretir.
 6. 👤 **Kullanıcı** → 🟦 **Alarmı kaldır** — hard delete; yaşam döngüsü biter.
@@ -31,7 +35,7 @@ yaşayan abonelik olarak kurulur, her fiyat değişiminde bildirim tetiği yayı
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **E-posta snapshot'tır.** Kuruluş anındaki cookie claim değeri; sonradan değişen e-posta alarmı etkilemez.
-- **Tetik = gerçek fiyat değişimi.** Eski fiyat yoksa (fiyat-dışı düzenleme) tetik yok; alarm yoksa sessiz.
+- **Tetik = gerçek fiyat değişimi** _(uykuda, 097 — fiyat değişimi kavramı söküldü)_.
 - **Tek alarm kuralı idempotent.** İkinci kurma isteği hata değil, başarı (düğme durumu bozulmaz).
 - **İz append-only.** `NotificationRecord` davranışsız dokümandır; alarm silinse de iz kalır.
 - **Satın-alma kaydı idempotent + append-only.** `UserPurchase` read-model'dir (aggregate değil); Id = "{userId}:{productId}" → tekrar alım aynı satır; backfill/revoke yok.
