@@ -42,4 +42,8 @@
       <None Include="..\FLOW.md" Link="FLOW.md" />
     </ItemGroup>
 
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Seeding\Data\books.json" />
+    </ItemGroup>
+
 </Project>

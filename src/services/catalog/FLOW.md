@@ -1,7 +1,8 @@
 # Catalog — Domain Süreci (EventStorming)
 
 **BC ne yapar:** Kitap künyesini (ad/açıklama/fiyat/yazar/yayınevi/tek-leaf kategori/kapak) tutar ve
-değişimi fat event'le duyurur. Ürünler **first-party**: kaynak commit'li `books.json` seed'i (feed yok).
+değişimi fat event'le duyurur. Ürünler **first-party** (feed yok); 091 JSON seed'i SÖKÜLDÜ (098) —
+giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yok).
 
 > Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot · 🟩 read-model ·
 > ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
@@ -16,16 +17,10 @@ değişimi fat event'le duyurur. Ürünler **first-party**: kaynak commit'li `bo
 
 ## Süreç
 
-0. 🟪 **Açılışta kapalı kategori ağacı seed'den kurulur (095 Faz A)** —              `(BookSeedHostedService,`
-   `books.json`'daki TÜM kanonik yollar (primary+related) tek taramada               ` CategoryTreeSeed.Build,`
-   deterministik ağaca döner (kök → leaf, ≤2 seviye); var olan düğüme               ` SeedCategoryTree, Category.Create)`
-   dokunulmaz. Ad ağaç-global unique varsayımı İHLALDE açılış durur
-   (fail-fast — sessiz çift kayıt yok). "Genel" kökü hep kurulur (fallback).
-1. 🟪 **Katalog satır satır dolar (091/095 Faz B)** → 🟧 **Ürün doğdu** —            `(SeedBookRecord, SeedBookRow)`
-   ISBN=Gtin lookup → varsa ATLANIR (admin düzenlemesi ezilmez — upsert
-   bilinçli reddedildi), yoksa ürün CANLI doğar; ürün+`ProductAdded`+
-   `ProductChangedEvent` AYNI commit. Geçersiz satır (ISBN boş/fiyat≤0)
-   uyarıyla atlanır; dosya yoksa seed sessiz atlanır, parse hatası durdurur.
+0. 🟪 Excel import katalogu doldurur _(planned, 098 — 091 JSON seed'in yerine)_ —
+   21-alan Kitapyurdu yeniden-kazıması (Kitapyurdu_Katalog_v2.xlsx) kategori ağacını
+   kurup ürünleri satır satır doğurur; "Gtin varsa atla" + fail-fast ilkeleri
+   091'den devralınır, ayrıntı spec'te. Bugün ürün/kategori doğuran yol YOK.
 2. 🟦 **Ürünü oluştur/güncelle** → 🟨 **Ürün doğar** — ad/ISBN/fiyat/açıklama;       `(Product.Create, Product.Rename,`
    fiyat>0 var oluş invariant'ı. _(giriş yüzeyi yok, REST planlı.)_                 ` Product.SetDescription)`
 3. 🟨 **Yazar(lar) + yayınevi bulun-veya-doğur** — her yazar adı                    `(Author.Create, Product.SetAuthors,`
@@ -57,13 +52,13 @@ değişimi fat event'le duyurur. Ürünler **first-party**: kaynak commit'li `bo
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **ISBN = kimlik (095).** Ürün Gtin'iyle doğar ve bulunur (`Gtin` unique-index — DB-seviyesi guard); Sku yok.
-- **Tek leaf kategori zorunlu.** Ürün TEK leaf'e bağlanır `(Product.SetCategory)`; üst kategori ürüne denormalize edilmez — "üst kategorideki tüm kitaplar" ağaçtan cevaplanır. Kategorisiz seed satırı "Genel"e düşer.
+- **Tek leaf kategori zorunlu.** Ürün TEK leaf'e bağlanır `(Product.SetCategory)`; üst kategori ürüne denormalize edilmez — "üst kategorideki tüm kitaplar" ağaçtan cevaplanır. Kategorisiz giriş satırı "Genel"e düşer.
 - **İlgili kategoriler editoryal (095).** `RelatedCategoryIds` yalnız "bu kategoriyle DE ilgili" ilişkisi; primary/ata zinciriyle karışmaz, event zincirine girmez `(Product.SetRelatedCategories)`.
-- **Kategori ağacı kapalı + doğumda sabit (095).** Ağaç yalnız seed'den (`CategoryTreeSeed.Build` → ≤2 seviye); ebeveyn doğumda sabit, taşı/yeniden adlandır davranışı yok; ad ağaç-global unique — ihlalde seed deterministik hata verir.
+- **Kategori ağacı kapalı + doğumda sabit (095).** Ağaç yalnız toplu girişle kurulur (≤2 seviye; 091 seed'i söküldü, 098 Excel import devralacak); ebeveyn doğumda sabit, taşı/yeniden adlandır davranışı yok; ad ağaç-global unique — ihlalde kuruluş deterministik hata verir.
 - **Fiyat doğumda sabit (097).** Fiyat yalnız doğumda atanır (fiyat>0 invariant'ı — 091) ve sonradan DEĞİŞMEZ `(Product.Create)`; fiyat geçmişi (058) ve "eski fiyat" kavramı söküldü.
 - **Ürün var = canlı (091).** Taslak/yayın/gizleme yok; her ürün doğduğu an keşfedilebilir.
 - **Silme yok (016 sürer).** `ProductChangedEvent.IsDeleted` kontratta durur, hep `false` gider.
-- **Seed var olana dokunmaz (091).** Yalnız EKSİK ISBN eklenir; admin düzenlemesi ezilmez.
+- **Toplu giriş var olana dokunmaz (091 ilkesi sürer).** Yalnız EKSİK ISBN eklenir; admin düzenlemesi ezilmez (upsert bilinçli reddedildi).
 - **Dış dünyaya iki yol = event.** `ProductChangedEvent` (her değişim; ad+id zinciri yayın anında `CategoryNaming.ResolveChain` ile — tüketicisi ŞU AN yok, 097), `ProductAdded` (yalnız doğumda → File kapak kayıt hattı).
 
 ## Sınır (bu BC'nin dokunmadığı)

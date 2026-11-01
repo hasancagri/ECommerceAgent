@@ -40,17 +40,13 @@ var fileDb = postgres.AddDatabase("fileDb");
 // IdP'yi IdentityOption.Address (sabit issuer URL, https://localhost:5001) ile bulur — proje-ref/
 // service-discovery değil. identityDb de AgentPlatform'da; buradaki identityDb kaydı söküldü.
 
-// 091: commit'li seed verisi (tek dosya, iki tüketici — Catalog seeder + File kapak migration'ı;
-// sözleşme specs/091-catalog-json-seed/contracts/seed-record.md).
-var seedBooksJson = Path.GetFullPath(Path.Combine(
-    builder.AppHostDirectory, "..", "..", "services", "catalog", "Catalog.Api", "Seeding", "Data", "books.json"));
+// 091 JSON seed'i SÖKÜLDÜ (098: katalog girişi Excel import'la gelecek; kapak migration kaynağı da gitti).
 
 var catalogApi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
     .WithHttpHealthCheck("/health")
     .WithReference(catalogDb)
     .WithReference(rabbit)
     .WithReference(redis)
-    .WithEnvironment("SeedOptions__SourceJsonPath", seedBooksJson)
     .WaitFor(catalogDb)
     .WaitFor(rabbit)
     .WaitFor(redis);
@@ -154,9 +150,8 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
     .WithReference(rabbit).WaitFor(rabbit)   // kapak akışı (ProductAdded tüket → CoverIngested yay)
     .WithHttpHealthCheck("/health")
     .WithEnvironment("CoverStore__RootPath", coverRootPath)
-    .WithEnvironment("CoverMigration__Enabled", "true")
-    .WithEnvironment("CoverMigration__SourceJsonPath", seedBooksJson)
-    .WithEnvironment("CoverMigration__DownloadTimeoutSeconds", "30")
+    // Kapak migration kaynağı (091 books.json) silindi — kapalı; R2'deki mevcut kapaklar duruyor.
+    .WithEnvironment("CoverMigration__Enabled", "false")
     // R2 backend (credential user-secrets'te; AccountId/Bucket non-secret). Serve+backfill R2'den.
     .WithEnvironment("CoverStore__Backend", "R2")
     .WithEnvironment("R2__AccountId", "92f68fb7048d6312c566a6c28e08dcdb")

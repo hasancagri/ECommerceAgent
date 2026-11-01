@@ -21,13 +21,7 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// 091: açılış katalog seed'i config'i (yol + anahtar) — section "SeedOptions"; yol AppHost env'den.
-// Tüketici düz T enjekte eder (IOptions<T> değil).
-builder.Services.AddOptions<Catalog.Api.Options.SeedOptions>()
-    .BindConfiguration(nameof(Catalog.Api.Options.SeedOptions))
-    .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Catalog.Api.Options.SeedOptions>(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Options.SeedOptions>>().Value);
+// 091 JSON seed'i SÖKÜLDÜ (098 yolu: katalog girişi Excel import'la gelecek).
 
 // 096: local embedding üretimi (Ollama) config'i — section "EmbeddingOptions".
 builder.Services.AddOptions<Catalog.Api.Options.EmbeddingOptions>()
@@ -35,9 +29,6 @@ builder.Services.AddOptions<Catalog.Api.Options.EmbeddingOptions>()
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<Catalog.Api.Options.EmbeddingOptions>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Options.EmbeddingOptions>>().Value);
-
-// 091: commit'li books.json'dan tek-seferlik açılış seed'i (051 deseninin dönüşü; Excel import söküldü).
-builder.Services.AddHostedService<Catalog.Api.Seeding.BookSeedHostedService>();
 
 // 096: local embedding omurgası — Ollama istemcisi (typed HttpClient) + reconcile döngüsü.
 builder.Services.AddHttpClient<Catalog.Api.Embeddings.OllamaEmbeddingClient>((sp, http) =>
