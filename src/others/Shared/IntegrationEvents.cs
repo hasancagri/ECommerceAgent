@@ -99,6 +99,8 @@ public static class IntegrationEvents
     // bundan beslenir. Checkout stok-commit koreografisi HÂLÂ sökük (dönüşü ayrı dilim).
     public record StockChanged(Guid ProductId, int OnHand);
 
-    // ProductDiscountChanged SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı. İndirim yüzdesi
-    // Order'a checkout gRPC'siyle (ayrı kanal) akmaya devam eder; vitrin event'i artık yayılmaz.
+    // Discount → Catalog (003, dönüş). Ürünün ETKİN indirim oranı değişince YÜRÜRLÜK anında yayılır
+    // (CampaignWindowProcess); Rate null = indirim yok (kopya temizlenir). İndirimli fiyat TAŞINMAZ —
+    // okuyan liste fiyatından hesaplar (fiyat değişse de tutarlı). Mutlak değer → tüketici idempotent.
+    public record ProductDiscountChanged(Guid ProductId, decimal? Rate);
 }

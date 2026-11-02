@@ -273,6 +273,52 @@ public class ProductTests
         product.IsSalable.ShouldBeFalse(); // sayaçlar kriter DEĞİL
     }
 
+    // --- SetDiscountRate (003: ProductDiscountChanged-fed oran kopyası; IsSalable'a GİRMEZ) ---
+
+    [Fact]
+    public void SetDiscountRate_Valid_SetsRate()
+    {
+        var product = NewProduct();
+
+        product.SetDiscountRate(0.25m).IsSuccess.ShouldBeTrue();
+        product.DiscountRate.ShouldBe(0.25m);
+    }
+
+    [Fact]
+    public void SetDiscountRate_Null_ClearsRate()
+    {
+        var product = NewProduct();
+        product.SetDiscountRate(0.25m);
+
+        product.SetDiscountRate(null).IsSuccess.ShouldBeTrue();
+
+        product.DiscountRate.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-0.1)]
+    [InlineData(0.91)]
+    public void SetDiscountRate_OutOfRange_ReturnsError(decimal rate)
+    {
+        var product = NewProduct();
+
+        product.SetDiscountRate(rate).IsSuccess.ShouldBeFalse();
+        product.DiscountRate.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SetDiscountRate_DoesNotAffectSalability()
+    {
+        var product = SalableProduct();
+
+        product.SetDiscountRate(0.5m);
+        product.IsSalable.ShouldBeTrue();
+
+        product.SetDiscountRate(null);
+        product.IsSalable.ShouldBeTrue(); // indirim kriter DEĞİL
+    }
+
     // --- Money VO ---
 
     [Fact]

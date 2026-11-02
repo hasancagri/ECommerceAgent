@@ -31,6 +31,10 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 2c. 🟧 **Adet değişti** ⇦ Stock — StockChanged tüketilir, üründeki adet KOPYASI            `(StockConsumers,`
    güncellenir (otorite Stock, tek yazar; mutlak değer → idempotent). Anomali              ` Product.SetStockCount)`
    yutulmaz: retry merdiveni → error-queue (DLQ, 088 deseni).
+2d. 🟧 **Etkin indirim değişti** ⇦ Discount — ProductDiscountChanged tüketilir,            `(DiscountConsumers,`
+   üründeki ORAN kopyası güncellenir/temizlenir (null = indirim yok; liste                 ` Product.SetDiscountRate)`
+   fiyatı EZİLMEZ, indirimli fiyat okuyanda hesaplanır). DLQ deseni aynı.
+   IsSalable'a GİRMEZ. _(Yayıncı yürürlük süreci Discount'ta sonraki dilim.)_
 3. 🟨 **Yazar(lar) + yayınevi bulun-veya-doğur** — her yazar adı                    `(Author.Create, Product.SetAuthors,`
    normalize+aranır (çok-çok, Id listesi); yayınevi tek (çok-bir).                  ` Publisher.Create, Product.SetPublisher)`
 4. 🟦 **Tek leaf kategoriye bağla** — leaf kapalı ağaçtan adla çözülür              `(NameNormalization.Normalize,`

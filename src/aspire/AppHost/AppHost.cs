@@ -140,6 +140,16 @@ var stockApi = builder.AddProject<Projects.Stock_Api>("stock-api")
     .WaitFor(stockDb)
     .WaitFor(rabbit);
 
+// Discount BC (003, dönüş) — kampanya modeli; indirim liste fiyatını EZMEZ. Yürürlük süreci
+// sonraki dilim; etkin oran değişimi discount.product-discount-changed fanout'uyla Catalog'a akacak.
+var discountDb = postgres.AddDatabase("discountDb");
+var discountApi = builder.AddProject<Projects.Discount_Api>("discount-api")
+    .WithHttpHealthCheck("/health")
+    .WithReference(discountDb)
+    .WithReference(rabbit)
+    .WaitFor(discountDb)
+    .WaitFor(rabbit);
+
 // Discount BC SÖKÜLDÜ (095 branch'i, 2026-10-31) — kampanya/indirim modeli kullanıcı kararıyla
 // kalktı; checkout tutarı = liste fiyatı. İndirim dönerse bilinçli mimari karar + spec'le döner.
 
@@ -187,7 +197,7 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
 foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
-    reviewsApi, libraryApi, stockApi,
+    reviewsApi, libraryApi, stockApi, discountApi,
     fileApi
 })
 {

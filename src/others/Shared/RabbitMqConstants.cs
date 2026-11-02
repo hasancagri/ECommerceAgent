@@ -105,8 +105,17 @@ public static class RabbitMqConstants
         }
     }
 
-    // ProductDiscountChanged exchange SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı.
-    // İndirim yüzdesi Order'a checkout gRPC'siyle akar (ayrı kanal).
+    // Discount yayınlar (etkin oran değişimi, yürürlük anında), Catalog tüketir (oran kopyası).
+    // Binding'i tüketici kurar (007 soğuk-açılış dersi).
+    public static class ProductDiscountChanged
+    {
+        public const string Exchange = "discount.product-discount-changed";
+
+        public static class Queues
+        {
+            public const string Catalog = "catalog.product-discount-changed";
+        }
+    }
 
     // Stock yayınlar (her adet değişimi, mutlak değer), Catalog tüketir (adet kopyası + IsSalable bacağı).
     // Binding'i tüketici kurar (007 soğuk-açılış dersi).

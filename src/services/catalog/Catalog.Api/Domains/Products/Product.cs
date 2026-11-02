@@ -23,6 +23,10 @@ public class Product : AggregateRoot
     // (saniyeler bayat olabilir; vitrin için yeter, para alınan an Stock'tan otoriter düşülür).
     public int StockCount { get; private set; }
 
+    // 003: ProductDiscountChanged-fed ETKİN ORAN kopyası — otorite Discount BC; null = indirim yok.
+    // İndirimli fiyat SAKLANMAZ: okuyan Price*(1-DiscountRate) hesaplar (liste fiyatı ezilmez).
+    public decimal? DiscountRate { get; private set; }
+
     // Tek leaf kategori (zorunlu — seed "Genel" fallback'iyle garanti eder).
     public Guid CategoryId { get; private set; }
 
@@ -175,6 +179,18 @@ public class Product : AggregateRoot
         PageCount = pageCount;
         PublishedOn = publishedOn;
         Language = string.IsNullOrWhiteSpace(language) ? null : language.Trim();
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>Etkin indirim oranı kopyasını yazar/temizler (003). Çağıranı YALNIZ
+    /// ProductDiscountChanged tüketici kablosu; otorite Discount BC. null = indirim yok;
+    /// değer %1-%90 aralığında olmalı. Satışa-uygunluğa girmez; idempotent (mutlak değer).</summary>
+    public ResultDomain SetDiscountRate(decimal? discountRate)
+    {
+        if (discountRate is <= 0 or > 0.90m)
+            return ResultDomain.Error(new MessageItem
+            { Property = nameof(DiscountRate), Code = CatalogResourceConstants.VALUE_INVALID });
+        DiscountRate = discountRate;
         return ResultDomain.Ok();
     }
 
