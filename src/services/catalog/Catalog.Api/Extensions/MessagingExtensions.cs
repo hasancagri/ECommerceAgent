@@ -39,6 +39,16 @@ public static class MessagingExtensions
             // 097 serisi: CoverIngested tüketimi SÖKÜLDÜ (kullanıcı kararı — kapak hattının Catalog
             // ayağı öldü; FileConsumers silindi). File hâlâ yayınlar, tüketicisi yok (boşa fanout).
 
+            // 002: Tüketici — Stock 'StockChanged' → Product.StockCount kopyası (IsSalable stok bacağı).
+            // Binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi) + kendi kuyruğunu dinler. Hatada
+            // aşağıdaki uniform retry→error-queue policy'si geçerli (DLQ — 088).
+            rabbit.DeclareExchange(RabbitMqConstants.StockChanged.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.StockChanged.Queues.Catalog);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.StockChanged.Queues.Catalog);
+
             opts.Policies.UseDurableLocalQueues();
             // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
             opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
@@ -48,6 +58,8 @@ public static class MessagingExtensions
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // Durable cache boşaltma handler'ı Common'da — açık kayıt.
             opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
+            // *Consumers (çoğul) Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et.
+            opts.Discovery.IncludeType(typeof(Catalog.Api.StockConsumers));
         });
 
         return builder;

@@ -19,6 +19,10 @@ public class Product : AggregateRoot
     // 001: null = fiyatsız (satış-dışı doğum); değer varsa Amount > 0 (Create/SetPrice guard'ları).
     public Money? Price { get; private set; }
 
+    // 002: StockChanged-fed adet KOPYASI — otorite Stock BC (tek yazar), buradaki değer türetilmiş
+    // (saniyeler bayat olabilir; vitrin için yeter, para alınan an Stock'tan otoriter düşülür).
+    public int StockCount { get; private set; }
+
     // Tek leaf kategori (zorunlu — seed "Genel" fallback'iyle garanti eder).
     public Guid CategoryId { get; private set; }
 
@@ -49,10 +53,20 @@ public class Product : AggregateRoot
     private readonly List<string> _translators = new();
     public IReadOnlyList<string> Translators => _translators;
 
-    /// <summary>Satışa-uygunluk — TEK tanım (001): fiyat>0 VE stok>0 VE ≥1 yazar. Türetilmiş saf
-    /// getter, DB'ye yazılmaz, hiçbir yere kopyalanmaz. STOK AYAĞI: stok kavramı sisteme dönene dek
-    /// değerlendirme dışı (Stock dönüşünde StockChanged-fed adet kopyası buraya "> 0" olarak eklenir).</summary>
-    public bool IsSalable => Price is { Amount: > 0 } && _authorIds.Count > 0;
+    /// <summary>Satışa-uygunluk — TEK tanım (001+002): fiyat>0 VE stok>0 VE ≥1 yazar. Türetilmiş
+    /// saf getter, hiçbir yere kopyalanmaz; stok bacağı StockChanged-fed kopyadan okunur.</summary>
+    public bool IsSalable => Price is { Amount: > 0 } && StockCount > 0 && _authorIds.Count > 0;
+
+    /// <summary>Stok adet kopyasını yazar (002). Çağıranı YALNIZ StockChanged tüketici kablosu —
+    /// kullanıcı/admin yolu değildir; otorite Stock BC. Negatif reddedilir; idempotent (mutlak değer).</summary>
+    public ResultDomain SetStockCount(int stockCount)
+    {
+        if (stockCount < 0)
+            return ResultDomain.Error(new MessageItem
+            { Property = nameof(StockCount), Code = CatalogResourceConstants.VALUE_INVALID });
+        StockCount = stockCount;
+        return ResultDomain.Ok();
+    }
 
     private Product()
     {

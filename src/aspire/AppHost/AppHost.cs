@@ -130,6 +130,16 @@ var libraryApi = builder.AddProject<Projects.Library_Api>("library-api")
     .WaitFor(libraryDb)
     .WaitFor(rabbit);
 
+// Stock BC (002, fiziki kitaba dönüş) — kurgusal envanter; adedin TEK yazarı. Her adet değişiminde
+// stock.changed fanout yayınlar (tüketici Catalog: adet kopyası + IsSalable bacağı).
+var stockDb = postgres.AddDatabase("stockDb");
+var stockApi = builder.AddProject<Projects.Stock_Api>("stock-api")
+    .WithHttpHealthCheck("/health")
+    .WithReference(stockDb)
+    .WithReference(rabbit)
+    .WaitFor(stockDb)
+    .WaitFor(rabbit);
+
 // Discount BC SÖKÜLDÜ (095 branch'i, 2026-10-31) — kampanya/indirim modeli kullanıcı kararıyla
 // kalktı; checkout tutarı = liste fiyatı. İndirim dönerse bilinçli mimari karar + spec'le döner.
 
@@ -177,7 +187,7 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
 foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
-    reviewsApi, libraryApi,
+    reviewsApi, libraryApi, stockApi,
     fileApi
 })
 {

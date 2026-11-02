@@ -23,11 +23,14 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    091'den devralınır, ayrıntı spec'te. Bugün ürün/kategori doğuran yol YOK.
 2. 🟦 **Ürünü oluştur/güncelle** → 🟨 **Ürün doğar** — ad/ISBN/fiyat/açıklama;       `(Product.Create,`
    fiyat>0 var oluş invariant'ı. _(giriş yüzeyi yok, REST planlı.)_                 ` Product.SetDescription)`
-2b. 🟪 **Satışa-uygunluk türetilir (001)** — ürün fiyatsız/yazarsız da doğabilir           `(Product.IsSalable,`
-   (KATALOGDA görünür); satışa-uygun = fiyat>0 ∧ stok>0 ∧ ≥1 yazar (stok ayağı             ` Product.SetPrice,`
-   Stock BC dönene dek boş geçer). Fiyat sonradan atanır/serbest değişir (097              ` Product.SetBinding,`
-   revizesi); künyede cilt tipi + popülerlik sayaçları (dış kaynak anlık                   ` Product.SetPopularity)`
-   görüntüsü — satışa-uygunluğa etkisiz). "Satışa çıktı" event'i/bildirimi SONRAKİ dilim.
+2b. 🟪 **Satışa-uygunluk türetilir (001/002)** — ürün fiyatsız/yazarsız da doğabilir       `(Product.IsSalable,`
+   (KATALOGDA görünür); satışa-uygun = fiyat>0 ∧ stok>0 ∧ ≥1 yazar. Fiyat                  ` Product.SetPrice,`
+   sonradan atanır/serbest değişir (097 revizesi); künyede cilt tipi +                     ` Product.SetBinding,`
+   popülerlik sayaçları (dış kaynak anlık görüntüsü — satışa-uygunluğa                     ` Product.SetPopularity)`
+   etkisiz). "Satışa çıktı" event'i/bildirimi SONRAKİ dilim.
+2c. 🟧 **Adet değişti** ⇦ Stock — StockChanged tüketilir, üründeki adet KOPYASI            `(StockConsumers,`
+   güncellenir (otorite Stock, tek yazar; mutlak değer → idempotent). Anomali              ` Product.SetStockCount)`
+   yutulmaz: retry merdiveni → error-queue (DLQ, 088 deseni).
 3. 🟨 **Yazar(lar) + yayınevi bulun-veya-doğur** — her yazar adı                    `(Author.Create, Product.SetAuthors,`
    normalize+aranır (çok-çok, Id listesi); yayınevi tek (çok-bir).                  ` Publisher.Create, Product.SetPublisher)`
 4. 🟦 **Tek leaf kategoriye bağla** — leaf kapalı ağaçtan adla çözülür              `(NameNormalization.Normalize,`
