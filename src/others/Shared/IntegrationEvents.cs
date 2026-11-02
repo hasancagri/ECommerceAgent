@@ -94,8 +94,10 @@ public static class IntegrationEvents
     public record PaymentSucceeded(Guid OrderId, Guid UserId, Guid PaymentIntentId, string TxRef, decimal Amount);
     public record PaymentFailed(Guid OrderId, Guid PaymentIntentId, string TxRef, string ReasonCode);
 
-    // dijital (PDF) pivot: Stock BC + checkout stok-commit koreografisi (StockCommitRequested/Committed/
-    // Failed) söküldü. PaymentSucceeded → doğrudan Order.Confirm + OrderCompleted (Order PaymentConsumers).
+    // Stock → Catalog (002, fiziki dönüş). Her adet değişiminde (atama/düşüm) MUTLAK değerle yayılır;
+    // Catalog üründeki adet kopyasını günceller (idempotent — son değer kazanır), IsSalable stok bacağı
+    // bundan beslenir. Checkout stok-commit koreografisi HÂLÂ sökük (dönüşü ayrı dilim).
+    public record StockChanged(Guid ProductId, int OnHand);
 
     // ProductDiscountChanged SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı. İndirim yüzdesi
     // Order'a checkout gRPC'siyle (ayrı kanal) akmaya devam eder; vitrin event'i artık yayılmaz.

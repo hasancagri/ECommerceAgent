@@ -108,6 +108,18 @@ public static class RabbitMqConstants
     // ProductDiscountChanged exchange SÖKÜLDÜ — tek tüketici Storefront'tu, o BC kaldırıldı.
     // İndirim yüzdesi Order'a checkout gRPC'siyle akar (ayrı kanal).
 
-    // dijital (PDF) pivot: Stock BC söküldü → checkout stok-commit koreografisi (StockCommitRequested/
-    // Committed/Failed) kalktı. Ödeme sonucu doğrudan Order.Confirm/Cancel tetikler (Order PaymentConsumers).
+    // Stock yayınlar (her adet değişimi, mutlak değer), Catalog tüketir (adet kopyası + IsSalable bacağı).
+    // Binding'i tüketici kurar (007 soğuk-açılış dersi).
+    public static class StockChanged
+    {
+        public const string Exchange = "stock.changed";
+
+        public static class Queues
+        {
+            public const string Catalog = "catalog.stock-changed";
+        }
+    }
+
+    // Checkout stok-commit koreografisi (StockCommitRequested/Committed/Failed) HÂLÂ sökük — Stock'un
+    // sipariş akışına bağlanması ayrı dilim. Ödeme sonucu doğrudan Order.Confirm/Cancel tetikler.
 }

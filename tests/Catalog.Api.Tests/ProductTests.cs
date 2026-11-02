@@ -114,15 +114,29 @@ public class ProductTests
 
     // SetAuthors testleri Products/ProductAuthorsTests.cs'te (001: boş liste geçerli).
 
-    // --- IsSalable (001: TEK tanım — fiyat>0 ∧ stok>0 ∧ ≥1 yazar; stok ayağı Stock dönene dek boş geçer) ---
+    // --- IsSalable (001+002: TEK tanım — fiyat>0 ∧ stok>0 ∧ ≥1 yazar; stok = StockChanged-fed kopya) ---
 
-    [Fact]
-    public void IsSalable_PricedAndAuthored_ReturnsTrue()
+    private static Product SalableProduct()
     {
         var product = NewProduct(); // fiyatlı
         product.SetAuthors(new[] { Guid.NewGuid() });
+        product.SetStockCount(10);
+        return product;
+    }
 
-        product.IsSalable.ShouldBeTrue();
+    [Fact]
+    public void IsSalable_PricedAuthoredAndStocked_ReturnsTrue()
+    {
+        SalableProduct().IsSalable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsSalable_WithoutStock_ReturnsFalse()
+    {
+        var product = NewProduct(); // fiyatlı
+        product.SetAuthors(new[] { Guid.NewGuid() }); // stok kopyası 0 (default)
+
+        product.IsSalable.ShouldBeFalse();
     }
 
     [Fact]
@@ -130,6 +144,7 @@ public class ProductTests
     {
         var product = Product.Create("Kitap", "9789750000001", null, "a").Data!;
         product.SetAuthors(new[] { Guid.NewGuid() });
+        product.SetStockCount(10);
 
         product.IsSalable.ShouldBeFalse();
     }
@@ -138,6 +153,7 @@ public class ProductTests
     public void IsSalable_WithoutAuthors_ReturnsFalse()
     {
         var product = NewProduct(); // fiyatlı, yazarsız
+        product.SetStockCount(10);
 
         product.IsSalable.ShouldBeFalse();
     }
@@ -147,6 +163,7 @@ public class ProductTests
     {
         var product = Product.Create("Kitap", "9789750000001", null, "a").Data!;
         product.SetAuthors(new[] { Guid.NewGuid() });
+        product.SetStockCount(5);
 
         product.SetPrice(Money.Create(120m)!);
 
@@ -156,12 +173,35 @@ public class ProductTests
     [Fact]
     public void IsSalable_AfterAuthorsCleared_ReturnsFalse()
     {
-        var product = NewProduct();
-        product.SetAuthors(new[] { Guid.NewGuid() });
+        var product = SalableProduct();
 
         product.SetAuthors(Array.Empty<Guid>());
 
         product.IsSalable.ShouldBeFalse();
+    }
+
+    // --- SetStockCount (002: StockChanged-fed adet kopyası — yazarı yalnız tüketici kablosu) ---
+
+    [Fact]
+    public void SetStockCount_Zero_ClosesSalability()
+    {
+        var product = SalableProduct();
+
+        product.SetStockCount(0).IsSuccess.ShouldBeTrue();
+
+        product.StockCount.ShouldBe(0);
+        product.IsSalable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void SetStockCount_Negative_ReturnsErrorAndKeepsCurrent()
+    {
+        var product = SalableProduct(); // 10
+
+        var result = product.SetStockCount(-1);
+
+        result.IsSuccess.ShouldBeFalse();
+        product.StockCount.ShouldBe(10);
     }
 
     // --- SetBinding + SetPopularity (001: künye genişlemesi; satışa-uygunluğa etkisiz) ---
