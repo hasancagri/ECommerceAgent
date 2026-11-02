@@ -1,6 +1,7 @@
 namespace Catalog.Api.Tests.Products;
 
-// 052 T004: Product.SetAuthors — çok-yazar, dedup, boş liste reddi (invariant: yayınlanan ürün ≥1 yazar).
+// 052: Product.SetAuthors — çok-yazar, dedup. 001: boş liste GEÇERLİ (yazarsız kitap katalogda
+// yaşar, satışa uygun sayılmaz — ≥1 yazar kuralı artık IsSalable kriterinde).
 public class ProductAuthorsTests
 {
     private static Product NewProduct() =>
@@ -31,14 +32,13 @@ public class ProductAuthorsTests
     }
 
     [Fact]
-    public void SetAuthors_EmptyList_ReturnsError()
+    public void SetAuthors_EmptyList_ClearsAuthors()
     {
         var product = NewProduct();
+        product.SetAuthors(new[] { Guid.NewGuid() });
 
-        var result = product.SetAuthors(Array.Empty<Guid>());
+        product.SetAuthors(Array.Empty<Guid>()).IsSuccess.ShouldBeTrue();
 
-        result.IsSuccess.ShouldBeFalse();
-        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.VALUE_EMPTY);
         product.AuthorIds.ShouldBeEmpty();
     }
 
