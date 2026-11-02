@@ -27,7 +27,8 @@ public static class AuthorizationScopes
 
     // storefront.read SÖKÜLDÜ — Storefront BC kaldırıldı (arama pg-hibrit'e taşınıyor).
 
-    // discount.read / discount.admin.write SÖKÜLDÜ (095) — Discount BC kaldırıldı (kampanya modeli öldü).
+    // discount.api (003, dönüş): kampanya tanımlama/iptal — admin yüzeyi açılınca kullanılacak.
+    public const string DiscountWrite = "discount.write";
 
     // customer.api (022): kayitli kart (Wallet) + adres defteri (AddressBook)
     public const string CustomerRead = "customer.read";

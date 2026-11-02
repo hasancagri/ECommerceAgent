@@ -49,6 +49,15 @@ public static class MessagingExtensions
             });
             opts.ListenToRabbitQueue(RabbitMqConstants.StockChanged.Queues.Catalog);
 
+            // 003: Tüketici — Discount 'ProductDiscountChanged' → Product.DiscountRate kopyası.
+            // Binding'i TÜKETİCİ kurar; hatada uniform retry→error-queue policy'si (DLQ — 088).
+            rabbit.DeclareExchange(RabbitMqConstants.ProductDiscountChanged.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.ProductDiscountChanged.Queues.Catalog);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.ProductDiscountChanged.Queues.Catalog);
+
             opts.Policies.UseDurableLocalQueues();
             // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
             opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
@@ -60,6 +69,7 @@ public static class MessagingExtensions
             opts.Discovery.IncludeType(typeof(Common.Utils.Caching.CacheInvalidationRequestedHandler));
             // *Consumers (çoğul) Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et.
             opts.Discovery.IncludeType(typeof(Catalog.Api.StockConsumers));
+            opts.Discovery.IncludeType(typeof(Catalog.Api.DiscountConsumers));
         });
 
         return builder;
