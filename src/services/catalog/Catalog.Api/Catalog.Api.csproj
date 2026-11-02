@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>2198346b-ea78-463c-a877-612b820d10c7</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Grpc.AspNetCore" />
+        <PackageReference Include="Marten" />
+        <PackageReference Include="Marten.Newtonsoft" />
+        <PackageReference Include="Newtonsoft.Json" />
+        <PackageReference Include="Scrutor" />
+        <PackageReference Include="WolverineFx" />
+        <PackageReference Include="WolverineFx.RuntimeCompilation" />
+        <PackageReference Include="WolverineFx.Http" />
+        <PackageReference Include="WolverineFx.Marten" />
+        <PackageReference Include="WolverineFx.Postgresql" />
+        <PackageReference Include="WolverineFx.RabbitMQ" />
+        <PackageReference Include="Asp.Versioning.Http" />
+        <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+        <PackageReference Include="Duende.IdentityModel" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\others\Common\Common.csproj" />
+      <ProjectReference Include="..\..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
+      <ProjectReference Include="..\..\..\others\Shared\Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Domains\Products\Features\" />
+      <Folder Include="Domains\Products\Features\Agents\Queries\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\FLOW.md" Link="FLOW.md" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Seeding\Data\books.json" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,60 @@
+namespace Library.Api.Extensions;
+
+// Library mesajlaşma kurulumu: Wolverine + RabbitMQ broker topolojisi (exchange/binding/publish/listen)
+// + handler keşfi. Program.cs orkestrasyon dışı tutulur.
+public static class MessagingExtensions
+{
+    public static WebApplicationBuilder AddLibraryMessaging(this WebApplicationBuilder builder)
+    {
+        builder.Host.UseWolverine(opts =>
+        {
+            // Dev: tek dugum (Solo) — repo konvansiyonu (hayalet-node gurultusunu onler).
+            if (builder.Environment.IsDevelopment())
+                opts.Durability.Mode = DurabilityMode.Solo;
+
+            var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
+                .AutoProvision();
+
+            // 097: ProductChanged tüketimi SÖKÜLDÜ — fiyat doğumda sabit, alarm tetiği (OldPrice) öldü;
+            // PriceAlarm aggregate'i tetiksiz UYUR. Eski kuyruk kalıntısı dev reset'le gider.
+
+            // 086: Tüketici: Order 'OrderCompleted' → UserPurchase birikimi (Storefront'tan taşındı).
+            // Binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi) + kendi kuyruğunu dinler.
+            rabbit.DeclareExchange(RabbitMqConstants.OrderCompleted.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.OrderCompleted.Queues.Library);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.OrderCompleted.Queues.Library);
+
+            // Tüketici: NotificationAgent'ın gönderim sonucu → NotificationRecord izi.
+            rabbit.DeclareExchange(RabbitMqConstants.NotificationSent.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.NotificationSent.Queues.Library);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.NotificationSent.Queues.Library);
+
+            // Yayıncı: alarm tetiği — yalnız exchange deklare eder (binding tüketici NotificationAgent'ta).
+            rabbit.DeclareExchange(RabbitMqConstants.PriceAlarmTriggered.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+            });
+            opts.PublishMessage<Shared.IntegrationEvents.PriceAlarmTriggered>()
+                .ToRabbitExchange(RabbitMqConstants.PriceAlarmTriggered.Exchange);
+
+            opts.Policies.UseDurableLocalQueues();
+            // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
+            opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
+            opts.Policies.AddMiddleware(
+                typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
+                chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
+            opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+            // *Consumers (çoğul) Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et (Reviews emsali).
+            opts.Discovery.IncludeType(typeof(Library.Api.NotificationAgentConsumers));
+            opts.Discovery.IncludeType(typeof(Library.Api.OrderConsumers));
+        });
+
+        return builder;
+    }
+}

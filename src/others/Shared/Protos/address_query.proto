@@ -1,0 +1,27 @@
+// Varsayılan Adres Okuma — 077 hosted-CF start_payment. Order.Api siparişi kullanıcının varsayılan
+// adresine bağlar; adresi SUNUCU tarafında (S2S, makine token customer.read) okur. Adres MCP/agent
+// yüzeyinden AYRI — yalnız bu kanaldan döner.
+// Sunucu: Customer.Api (GrpcServices=Server). Istemci: Order.Api (GrpcServices=Client).
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Grpc.Customer";
+
+package addressquery;
+
+service AddressQuery {
+  // Yetki: customer.read scope (Order makine token'i). Yok/erişilemez -> NotFound.
+  rpc GetDefaultAddress (GetDefaultAddressRequest) returns (GetDefaultAddressReply);
+}
+
+message GetDefaultAddressRequest {
+  string user_id = 1;   // Guid; sepet/sipariş sahibi
+}
+
+message GetDefaultAddressReply {
+  bool found = 1;
+  string province = 2;
+  string district = 3;
+  string street = 4;
+  string zip_code = 5;
+  string line = 6;
+}

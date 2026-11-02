@@ -1,0 +1,101 @@
+# Altyapı — namespace + Postgres (tüm BC DB'leri init ile) + RabbitMQ + Elasticsearch.
+# ÖĞRENME/DEV kurulumu: tek Postgres instance (çok DB), ephemeral depo (PVC yok), security kapalı ES.
+# PROD NOTU: PG parolası burada düz (dev-içi, cluster-only, ufw-kapalı 5432); prod'da Secret + PVC + managed.
+# ES host şartı: node'da `vm.max_map_count=262144` (sysctl, /etc/sysctl.conf'a kalıcı — manifest'te değil).
+---
+apiVersion: v1
+kind: Namespace
+metadata: { name: ecommerce }
+---
+# Postgres init: ilk açılışta tüm BC veritabanlarını oluşturur (idempotent değil — yalnız boş volume'da koşar).
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: postgres-init, namespace: ecommerce }
+data:
+  init.sql: |
+    CREATE DATABASE "catalogDb";
+    CREATE DATABASE "basketDb";
+    CREATE DATABASE "orderDb";
+    CREATE DATABASE "paymentDb";
+    CREATE DATABASE "stockDb";
+    CREATE DATABASE "storefrontDb";
+    CREATE DATABASE "customerDb";
+    CREATE DATABASE "checkoutDb";
+    CREATE DATABASE "discountDb";
+    CREATE DATABASE "fileDb";
+    CREATE DATABASE "reviewsDb";
+    CREATE DATABASE "libraryDb";
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: postgres, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_USER, value: postgres }
+            - { name: POSTGRES_PASSWORD, value: CatalogPg2026 }   # DEV-only; prod'da Secret
+          ports: [ { containerPort: 5432 } ]
+          volumeMounts:
+            - { name: init, mountPath: /docker-entrypoint-initdb.d }
+      volumes:
+        - { name: init, configMap: { name: postgres-init } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: postgres, namespace: ecommerce }
+spec: { selector: { app: postgres }, ports: [ { port: 5432, targetPort: 5432 } ] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: rabbitmq, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: rabbitmq } }
+  template:
+    metadata: { labels: { app: rabbitmq } }
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13-management
+          ports: [ { containerPort: 5672 }, { containerPort: 15672 } ]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: rabbitmq, namespace: ecommerce }
+spec:
+  selector: { app: rabbitmq }
+  ports: [ { name: amqp, port: 5672, targetPort: 5672 }, { name: mgmt, port: 15672, targetPort: 15672 } ]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: elasticsearch, namespace: ecommerce }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: elasticsearch } }
+  template:
+    metadata: { labels: { app: elasticsearch } }
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.19.4
+          ports: [ { containerPort: 9200 } ]
+          env:
+            - { name: discovery.type, value: single-node }
+            - { name: xpack.security.enabled, value: "false" }
+            - { name: ES_JAVA_OPTS, value: "-Xms512m -Xmx512m" }
+            - { name: bootstrap.memory_lock, value: "false" }
+          resources:
+            requests: { memory: "1Gi" }
+            limits: { memory: "1536Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: elasticsearch, namespace: ecommerce }
+spec: { selector: { app: elasticsearch }, ports: [ { port: 9200, targetPort: 9200 } ] }

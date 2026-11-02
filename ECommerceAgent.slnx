@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/aspire/">
+    <Project Path="src/aspire/AppHost/AppHost.csproj" />
+    <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/others/">
+    <Project Path="src/others/Common/Common.csproj" />
+    <Project Path="src/others/Shared/Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/services/">
+    <Project Path="src/services/basket/Basket.Api/Basket.Api.csproj" />
+    <Project Path="src/services/catalog/Catalog.Api/Catalog.Api.csproj" />
+    <Project Path="src/services/customer/Customer.Api/Customer.Api.csproj" />
+    <Project Path="src/services/library/Library.Api/Library.Api.csproj" />
+    <Project Path="src/services/order/Order.Api/Order.Api.csproj" />
+    <Project Path="src/services/payment/Payment.Api/Payment.Api.csproj" />
+    <Project Path="src/services/file/File.Api/File.Api.csproj" />
+    <Project Path="src/services/reviews/Reviews.Api/Reviews.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Basket.Api.Tests/Basket.Api.Tests.csproj" />
+    <Project Path="tests/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
+    <Project Path="tests/Customer.Api.Tests/Customer.Api.Tests.csproj" />
+    <Project Path="tests/Common.Tests/Common.Tests.csproj" />
+    <Project Path="tests/File.Api.Tests/File.Api.Tests.csproj" />
+    <Project Path="tests/Library.Api.Tests/Library.Api.Tests.csproj" />
+    <Project Path="tests/Order.Api.Tests/Order.Api.Tests.csproj" />
+    <Project Path="tests/Payment.Api.Tests/Payment.Api.Tests.csproj" />
+    <Project Path="tests/Reviews.Api.Tests/Reviews.Api.Tests.csproj" />
+  </Folder>
+</Solution>

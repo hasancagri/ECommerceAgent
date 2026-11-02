@@ -1,0 +1,45 @@
+# GHCR registry overlay — aspire publish ÇIPLAK ad üretir (basket-api:latest); bu dosya tam
+# GHCR adresini enjekte eder. Kullanım: helm install store ./k8s-artifacts -f deploy/helm/values-ghcr.yaml
+# NOT: imagePullSecrets template'te YOK → private GHCR için ServiceAccount yolu (04 notu).
+parameters:
+  catalog_api:
+    catalog_api_image: "ghcr.io/hasancagri/ecommerce/catalog-api:latest"
+  stock_api:
+    stock_api_image: "ghcr.io/hasancagri/ecommerce/stock-api:latest"
+  basket_api:
+    basket_api_image: "ghcr.io/hasancagri/ecommerce/basket-api:latest"
+  order_api:
+    order_api_image: "ghcr.io/hasancagri/ecommerce/order-api:latest"
+  storefront_api:
+    storefront_api_image: "ghcr.io/hasancagri/ecommerce/storefront-api:latest"
+  payment_api:
+    payment_api_image: "ghcr.io/hasancagri/ecommerce/payment-api:latest"
+  customer_api:
+    customer_api_image: "ghcr.io/hasancagri/ecommerce/customer-api:latest"
+  checkout_orchestrator:
+    checkout_orchestrator_image: "ghcr.io/hasancagri/ecommerce/checkout-orchestrator:latest"
+  reviews_api:
+    reviews_api_image: "ghcr.io/hasancagri/ecommerce/reviews-api:latest"
+  library_api:
+    library_api_image: "ghcr.io/hasancagri/ecommerce/library-api:latest"
+  discount_api:
+    discount_api_image: "ghcr.io/hasancagri/ecommerce/discount-api:latest"
+  mail_mcp:
+    mail_mcp_image: "ghcr.io/hasancagri/ecommerce/mail-mcp:latest"
+  notification_agent:
+    notification_agent_image: "ghcr.io/hasancagri/ecommerce/notification-agent:latest"
+  file_api:
+    file_api_image: "ghcr.io/hasancagri/ecommerce/file-api:latest"
+  gateway:
+    gateway_image: "ghcr.io/hasancagri/ecommerce/gateway:latest"
+
+# Üretilen chart bug'ı workaround: publisher `discovery.type`/`xpack.security.enabled`'ı values'a DÜZ
+# noktalı anahtar yazar ama template nested (.discovery.type) erişir → nil pointer, render kilitlenir.
+# Nested karşılığını burada veririz (düz anahtar yok sayılır). Bu olmadan helm --set ile elle verilmeli.
+config:
+  elasticsearch:
+    discovery:
+      type: "single-node"
+    xpack:
+      security:
+        enabled: "true"

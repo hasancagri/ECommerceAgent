@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 049: checkout reply mesajları [SagaIdentity] taşır (broker saga korelasyonu). -->
+    <PackageReference Include="WolverineFx" />
+  </ItemGroup>
+
+</Project>

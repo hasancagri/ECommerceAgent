@@ -1,0 +1,31 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+*.DotSettings.user
+.DS_Store
+.idea/
+
+# Claude Code local settings (spec-kit skills under .claude/skills stay tracked)
+.claude/settings.local.json
+
+# File.Api runtime-generated product images (upload output; not source)
+src/services/file/File.Api/Images/
+
+# ASP.NET Core Data Protection keys (dev-local, not for VCS)
+src/ui/WebApp/keys/
+
+# 042 Personalization: davranis loglari + Python venv + model dosyalari (runtime uretimi)
+src/services/personalization/.venv/
+src/services/personalization/models/
+**/__pycache__/
+src/services/personalization/*.egg-info/
+
+# Aspire publish k8s çıktısı — üretilen Helm chart, lokal, her publish'te yeniden doğar (bkz. CI-CD Notları 04).
+# deploy/helm/ overlay COMMIT'li (ignore DEĞİL) — registry prefix'i o dosyada yaşar.
+k8s-artifacts/
+aspire-manifest.json
+src/aspire/AppHost/aspire-manifest.json
+flow-wall.html
+miro-wall.svg

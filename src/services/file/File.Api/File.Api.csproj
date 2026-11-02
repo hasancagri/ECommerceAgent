@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Namespace kökü FileApi: "File.Api" namespace'i System.IO.File (BCL) ile çakışır
+             (LocalDiskFileStore/migration System.IO.File kullanır). RootNamespace çakışmayı keser. -->
+        <RootNamespace>FileApi</RootNamespace>
+        <UserSecretsId>file-api-r2-secrets</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Scrutor" />
+        <PackageReference Include="AWSSDK.S3" />
+        <!-- 082: DB'siz proxy → Marten fileDb'li BC (kayıt defteri). Wolverine.Marten =
+             IntegrateWithWolverine + [Transactional] (in-proc IMessageBus; broker YOK). -->
+        <PackageReference Include="Marten" />
+        <PackageReference Include="Marten.Newtonsoft" />
+        <PackageReference Include="Newtonsoft.Json" />
+        <PackageReference Include="WolverineFx.Marten" />
+        <PackageReference Include="WolverineFx.RuntimeCompilation" />
+        <!-- 083: kapak akışı BC-arası async event → RabbitMQ transport (bugüne dek in-proc only). -->
+        <PackageReference Include="WolverineFx.RabbitMQ" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\others\Common\Common.csproj" />
+        <!-- 082: SchemaConstants.FileSchemaName (Marten şema adı). -->
+        <ProjectReference Include="..\..\..\others\Shared\Shared.csproj" />
+        <ProjectReference Include="..\..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- İLKE VII: FLOW.md BC kökünde; .csproj bir alt → Solution Explorer'da linked-file göster. -->
+        <None Include="FLOW.md" Link="FLOW.md" />
+    </ItemGroup>
+
+</Project>

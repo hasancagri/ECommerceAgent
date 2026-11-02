@@ -1,0 +1,29 @@
+// Sepet Kalemleri Okuma — 039 chat siparis tamamlama. Order.Api sepet kalemlerini SUNUCU tarafinda
+// okur (kalem sunucu-otoritesi; LLM'e girmez, fiyat manipulasyonu imkansiz).
+// Sunucu: Basket.Api (GrpcServices=Server). Istemci: Order.Api (GrpcServices=Client).
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Grpc.Basket";
+
+package basketitems;
+
+service BasketQuery {
+  // Yetki: basket.read scope (Order makine token'i). Sepet yoksa bos liste + 0 total.
+  rpc GetBasketItems (GetBasketItemsRequest) returns (GetBasketItemsReply);
+}
+
+message GetBasketItemsRequest {
+  string user_id = 1;   // Guid; sepet sahibi
+}
+
+message GetBasketItemsReply {
+  repeated BasketLine items = 1;
+  double total_price = 2;
+}
+
+message BasketLine {
+  string product_id = 1;
+  string name = 2;
+  double unit_price = 3;
+  int32 quantity = 4;
+}
