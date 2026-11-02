@@ -21,8 +21,13 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    21-alan Kitapyurdu yeniden-kazıması (Kitapyurdu_Katalog_v2.xlsx) kategori ağacını
    kurup ürünleri satır satır doğurur; "Gtin varsa atla" + fail-fast ilkeleri
    091'den devralınır, ayrıntı spec'te. Bugün ürün/kategori doğuran yol YOK.
-2. 🟦 **Ürünü oluştur/güncelle** → 🟨 **Ürün doğar** — ad/ISBN/fiyat/açıklama;       `(Product.Create, Product.Rename,`
+2. 🟦 **Ürünü oluştur/güncelle** → 🟨 **Ürün doğar** — ad/ISBN/fiyat/açıklama;       `(Product.Create,`
    fiyat>0 var oluş invariant'ı. _(giriş yüzeyi yok, REST planlı.)_                 ` Product.SetDescription)`
+2b. 🟪 **Satışa-uygunluk türetilir (001)** — ürün fiyatsız/yazarsız da doğabilir           `(Product.IsSalable,`
+   (KATALOGDA görünür); satışa-uygun = fiyat>0 ∧ stok>0 ∧ ≥1 yazar (stok ayağı             ` Product.SetPrice,`
+   Stock BC dönene dek boş geçer). Fiyat sonradan atanır/serbest değişir (097              ` Product.SetBinding,`
+   revizesi); künyede cilt tipi + popülerlik sayaçları (dış kaynak anlık                   ` Product.SetPopularity)`
+   görüntüsü — satışa-uygunluğa etkisiz). "Satışa çıktı" event'i/bildirimi SONRAKİ dilim.
 3. 🟨 **Yazar(lar) + yayınevi bulun-veya-doğur** — her yazar adı                    `(Author.Create, Product.SetAuthors,`
    normalize+aranır (çok-çok, Id listesi); yayınevi tek (çok-bir).                  ` Publisher.Create, Product.SetPublisher)`
 4. 🟦 **Tek leaf kategoriye bağla** — leaf kapalı ağaçtan adla çözülür              `(NameNormalization.Normalize,`
@@ -49,8 +54,9 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 - **Tek leaf kategori zorunlu.** Ürün TEK leaf'e bağlanır `(Product.SetCategory)`; üst kategori ürüne denormalize edilmez — "üst kategorideki tüm kitaplar" ağaçtan cevaplanır. Kategorisiz giriş satırı "Genel"e düşer.
 - **İlgili kategoriler editoryal (095).** `RelatedCategoryIds` yalnız "bu kategoriyle DE ilgili" ilişkisi; primary/ata zinciriyle karışmaz, event zincirine girmez `(Product.SetRelatedCategories)`.
 - **Kategori ağacı kapalı + doğumda sabit (095).** Ağaç yalnız toplu girişle kurulur (≤2 seviye; 091 seed'i söküldü, 098 Excel import devralacak); ebeveyn doğumda sabit, taşı/yeniden adlandır davranışı yok; ad ağaç-global unique — ihlalde kuruluş deterministik hata verir.
-- **Fiyat doğumda sabit (097).** Fiyat yalnız doğumda atanır (fiyat>0 invariant'ı — 091) ve sonradan DEĞİŞMEZ `(Product.Create)`; fiyat geçmişi (058) ve "eski fiyat" kavramı söküldü.
-- **Ürün var = canlı (091).** Taslak/yayın/gizleme yok; her ürün doğduğu an keşfedilebilir.
+- **Fiyat opsiyonel, atanırsa >0 (001 — 097 revizesi).** Ürün fiyatsız doğabilir; fiyat sonradan atanır ve serbest değişir, her değer >0 `(Product.Create, Product.SetPrice)`. Fiyatı geri "fiyatsız"a çeviren yol yok; fiyat geçmişi (058) sökük kalır.
+- **Satışa-uygunluk TEK tanım (001).** Satılabilir = fiyat>0 ∧ stok>0 ∧ ≥1 yazar `(Product.IsSalable)`; stok ayağı Stock dönene dek değerlendirme dışı. Kural hiçbir yüzeye kopyalanmaz.
+- **Ürün var = keşfedilebilir (091 + 001 nüansı).** Taslak/yayın/gizleme yok; her ürün doğduğu an katalogda görünür — görünür ≠ satın alınabilir (IsSalable ayrı).
 - **Silme yok (016 sürer).** `ProductChangedEvent.IsDeleted` kontratta durur, hep `false` gider.
 - **Toplu giriş var olana dokunmaz (091 ilkesi sürer).** Yalnız EKSİK ISBN eklenir; admin düzenlemesi ezilmez (upsert bilinçli reddedildi).
 - **Dış dünyaya iki yol = event.** `ProductChangedEvent` (her değişim; ad+id zinciri yayın anında `CategoryNaming.ResolveChain` ile — tüketicisi ŞU AN yok, 097), `ProductAdded` (yalnız doğumda → File kapak kayıt hattı).

@@ -7,6 +7,8 @@ public static class CatalogResourceConstants
 {
     public static readonly string RECORD_NOT_FOUND = "COMMON_MESSAGE_RECORD_NOT_FOUND";
     public static readonly string VALUE_EMPTY = "COMMON_MESSAGE_VALUE_EMPTY";
+    // 001: popülerlik sayaç guard'ları (negatif sayaç / 0-5 dışı puan).
+    public static readonly string VALUE_INVALID = "COMMON_MESSAGE_VALUE_INVALID";
 
     public static readonly string PRODUCT_NAME_REQUIRED = "CATALOG_PRODUCT_NAME_REQUIRED";
     // 095: kimlik Gtin (ISBN) — Sku söküldü, var oluş guard'ı Gtin'e taşındı.
