@@ -57,27 +57,6 @@ public class Basket : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    // login aninda anonim sepet hesaba tasinir; adetler toplanir, tavan asilamaz.
-    /// <summary>Diger sepetin kalemlerini bu sepete katar: ortak urunde adetler toplanir, MaxItemQuantity'ye sabitlenir.</summary>
-    public ResultDomain MergeFrom(Basket other)
-    {
-        foreach (var incoming in other.Items)
-        {
-            var existing = _items.FirstOrDefault(x => x.Id == incoming.Id);
-            if (existing is null)
-            {
-                existing = new BasketItem(incoming.Id, incoming.Name, incoming.ImageUrl, incoming.Price);
-                existing.SetQuantity(Math.Min(incoming.Quantity, MaxItemQuantity));
-                _items.Add(existing);
-                continue;
-            }
-
-            existing.SetQuantity(Math.Min(existing.Quantity + incoming.Quantity, MaxItemQuantity));
-        }
-
-        return ResultDomain.Ok();
-    }
-
     /// <summary>Satiri siler; yoksa NotFound doner.</summary>
     public FeatureResultModel RemoveItem(Guid itemId)
     {

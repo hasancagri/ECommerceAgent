@@ -1,8 +1,8 @@
 # Basket — Domain Süreci (EventStorming)
 
-**BC ne yapar:** Kullanıcının kalıcı sepetini + kalemlerini tutar. Sahip login kullanıcı YA DA
-anonim ziyaretçi olabilir (057); ikisi aynı modeldir, fark yalnız kimliğin kaynağı. Sepet süre
-İŞLETMEZ (056); stok kavramı yok (dijital PDF pivotu — Stock BC söküldü).
+**BC ne yapar:** Login kullanıcının kalıcı sepetini + kalemlerini tutar (anonim sahiplik 057
+SÖKÜLDÜ — sepete atmak login ister). Sepet süre İŞLETMEZ (056); stok kavramı yok
+(dijital PDF pivotu — Stock BC söküldü).
 
 > Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot ·
 > ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
@@ -25,9 +25,8 @@ anonim ziyaretçi olabilir (057); ikisi aynı modeldir, fark yalnız kimliğin k
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **Sepet kalıcıdır (056).** Zamana bağlı hiçbir üye/temizlik yok; terk edilmiş sepet süresiz durur.
-- **Anonim sahiplik meşrudur (057).** Ekleme/okuma/adet/silme kimlik doğrulama İSTEMEZ; sahip tahmin
-  edilemez Guid'dir (token `sub` ya da anonim kimlik). Login-merge yüzeyi 066 sonrası söküldü;
-  `Basket.MergeFrom` davranışı domain'de durur, yüzey açılırsa buradan döner.
+- **Sahip = login kullanıcı (057 söküldü).** Sepete atmak kimlik ister; sahip token `sub` Guid'idir.
+  Anonim sepet olmadığından login-merge kavramı da öldü — `Basket.MergeFrom` silindi.
 - **Sepet stok tutmaz.** Dijital (PDF) pivotla stok kavramı tamamen kalktı (Stock BC söküldü); sepet hiçbir envanter kontrolü yapmaz.
 - **Sabit üst sınır otoriter.** Satır adedi `Basket.MaxItemQuantity` (5) üstüne çıkamaz — UI/API/agent farketmez.
 - **Fiyat snapshot'tır.** Satır fiyatı ekleme anındaki vitrin fiyatıdır; sepette güncellenmez.
