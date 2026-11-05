@@ -13,6 +13,7 @@ public class CatalogConsumers(
     CoverUrlResolver resolver,
     CoverStoreOptions coverStore,
     IMessageBus bus,
+    IHttpClientFactory httpClientFactory,
     ILogger<CatalogConsumers> logger)
 {
     public async Task Handle(IntegrationEvents.ProductAdded message, CancellationToken ct)
@@ -21,7 +22,7 @@ public class CatalogConsumers(
         if (!CoverKey.TryCreate(isbn, out var key))
             return; // güvensiz anahtar → kapak çözülemez (no-op)
 
-        // 1) R2'de zaten var mı? Varsa doğrudan çöz (082 backfill'li olağan yol).
+        // 1) R2'de zaten var mı? Varsa doğrudan çöz — İNDİRME ATLANIR (004 idempotentlik; 082 backfill yolu).
         if (await fileStore.ExistsAsync(key, ct))
         {
             var existingUrl = resolver.Resolve(resolver.DefaultStorageType, key);
@@ -30,7 +31,36 @@ public class CatalogConsumers(
             return;
         }
 
-        // 2) Yerel staging'den yükle (CoverMigration xlsx imageUrl'den indirdi). Yoksa placeholder — event yok.
+        // 2) 004: event kapak kaynağı taşıyorsa (Excel "Kapak URL") dış adresten indir.
+        //    İndirilemezse ürün kapaksız kalır — iş durmaz (FR-011; fırlatmak DLQ'yu boşa doldurur).
+        if (!string.IsNullOrWhiteSpace(message.CoverSourceUrl))
+        {
+            byte[] downloaded;
+            string downloadedContentType;
+            try
+            {
+                var http = httpClientFactory.CreateClient("cover-download");
+                using var response = await http.GetAsync(message.CoverSourceUrl, ct);
+                response.EnsureSuccessStatusCode();
+                downloaded = await response.Content.ReadAsByteArrayAsync(ct);
+                downloadedContentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Cover download failed for ISBN {Isbn}.", isbn);
+                return;
+            }
+
+            var registered = await bus.InvokeAsync<FeatureObjectResultModel<RegisterFile.RegisterFileResult>>(
+                new RegisterFile.RegisterFileCommand(isbn, downloadedContentType, downloaded, StorageType: null), ct);
+            if (registered.IsSuccess && !string.IsNullOrWhiteSpace(registered.Data?.Url))
+                await bus.PublishAsync(new IntegrationEvents.CoverIngested(isbn, registered.Data.Url));
+            else
+                logger.LogWarning("Cover register failed for ISBN {Isbn} (download path).", isbn);
+            return;
+        }
+
+        // 3) Eski davranış: yerel staging'den yükle. Yoksa placeholder — event yok.
         var coversDir = Path.Combine(coverStore.RootPath, "covers");
         var localPath = Path.Combine(coversDir, key);
         if (!System.IO.File.Exists(localPath))

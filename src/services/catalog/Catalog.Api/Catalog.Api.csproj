@@ -8,6 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- 004: admin Excel import (xlsx okuma). -->
+        <PackageReference Include="ClosedXML" />
         <PackageReference Include="Grpc.AspNetCore" />
         <PackageReference Include="Marten" />
         <PackageReference Include="Marten.Newtonsoft" />

@@ -15,7 +15,6 @@ public static class CallbackSignatureValidator
 
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
         var expected = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(rawBody))).ToLowerInvariant();
-        return CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(signature ?? string.Empty));
+        return SecretCompare.FixedTimeEquals(signature ?? string.Empty, expected);
     }
 }

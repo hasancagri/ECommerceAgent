@@ -12,6 +12,8 @@ public class Publisher : AggregateRoot
     {
     }
 
+    // JasperFxIgnore: tek parametreli statik Create, event-sourcing evolver konvansiyonuyla çakışır;
+    // bu bir domain fabrikasıdır, projection değil (source generator'ı devre dışı bırakır).
     /// <summary>Ad boşsa hata döner; aksi halde ad'ı trimleyip normalize ederek yeni Publisher üretir.</summary>
     [JasperFx.Core.JasperFxIgnore]
     public static ResultDomain<Publisher> Create(string name)

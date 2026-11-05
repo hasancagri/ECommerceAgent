@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- 004: tek origin + kenar yetki. BC DEĞİL — DB'siz ince YARP proxy'si; iş mantığı taşımaz. -->
+        <PackageReference Include="Yarp.ReverseProxy" />
+        <!-- Aspire service discovery: cluster hedefleri http://catalog-api gibi mantıksal adla çözülür. -->
+        <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
+    </ItemGroup>
+
+</Project>

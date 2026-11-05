@@ -24,6 +24,7 @@
       <ProjectReference Include="..\..\services\stock\Stock.Api\Stock.Api.csproj" />
       <ProjectReference Include="..\..\services\discount\Discount.Api\Discount.Api.csproj" />
       <ProjectReference Include="..\..\services\file\File.Api\File.Api.csproj" />
+      <ProjectReference Include="..\..\others\Gateway\Gateway.csproj" />
     </ItemGroup>
 
     <ItemGroup>

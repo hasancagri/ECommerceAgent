@@ -18,6 +18,8 @@
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.9.32" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.103.3" />
+    <!-- 004: admin Excel import okuma (xlsx; MIT lisans — EPPlus Polyform nedeniyle reddedildi). -->
+    <PackageVersion Include="ClosedXML" Version="0.105.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageVersion Include="Duende.IdentityModel" Version="8.1.0" />
     <PackageVersion Include="OpenIddict.AspNetCore" Version="7.6.0" />
