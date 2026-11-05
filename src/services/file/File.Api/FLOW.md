@@ -24,10 +24,13 @@ hangi fiziki depolarda (R2/Local/…) yaşıyor izler; URL'i dış-depoya gitmed
    `ProductAdded` (yeni ürün, ISBN) tüketilir (`CatalogConsumers`): R2'de kapak varsa URL doğrudan
    çözülür; yoksa yerel staging'den (`{RootPath}/covers/{isbn}`) okunup R2'ye yazılır + kayıt
    defterine düşer (adım 1).
-6. 🟧 **Kapak alındı** ⇨ Catalog — kapak bulunursa `CoverIngested(isbn,url)` yayılır (Catalog
-   `SetImage`'e köprü); bulunmazsa event yok — ürün placeholder'da kalır (seed bloklanmaz).
-   Staging'i açılış kapak migration'ı doldurur — kaynağı commit'li seed `books.json` (091;
-   isbn+imageUrl, Catalog seeder'la aynı dosya) `(CoverMigrationHostedService, JsonCoverSource)`.
+5b. 🟪 **Kapak kaynağı dış adresten indirilir** (004) — `ProductAdded.CoverSourceUrl` doluysa
+   (Excel "Kapak URL") görsel kaynaktan çekilir → R2 + kayıt defteri (adım 1); R2'de o ISBN
+   zaten varsa İNDİRME ATLANIR (idempotent); erişilemeyen adres ürünü kapaksız bırakır (iş
+   durmaz). Açılış kapak migration'ı KAPALI kalır (098) `(CatalogConsumers)`.
+6. 🟧 **Kapak alındı** ⇨ Catalog — kapak bulunursa `CoverIngested(isbn,url)` yayılır; bulunmazsa
+   event yok — ürün placeholder'da kalır. Tüketicisi GERİ (004): Catalog `FileConsumers` →
+   `Product.SetImage` (097'deki tüketicisiz dönem kapandı).
 
 ## Domain kuralları
 

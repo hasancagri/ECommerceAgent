@@ -25,6 +25,12 @@ public static class CatalogResourceConstants
     public static readonly string PRODUCT_AUTHOR_REQUIRED = "CATALOG_PRODUCT_AUTHOR_REQUIRED";
     public static readonly string PRODUCT_PUBLISHER_REQUIRED = "CATALOG_PRODUCT_PUBLISHER_REQUIRED";
 
+    // 004: Excel import guard'ları — iş yaşam döngüsü + dosya doğrulama + tek-aktif-iş kuralı.
+    public static readonly string IMPORT_STATE_INVALID = "CATALOG_IMPORT_STATE_INVALID";
+    public static readonly string IMPORT_FILE_INVALID = "CATALOG_IMPORT_FILE_INVALID";
+    public static readonly string IMPORT_ALREADY_RUNNING = "CATALOG_IMPORT_ALREADY_RUNNING";
+    public static readonly string IMPORT_JOB_NOT_FOUND = "CATALOG_IMPORT_JOB_NOT_FOUND";
+
     // 095: kapalı kategori ağacı seed guard'ı — alt kategori adı ağaç-global unique varsayımı
     // ihlalinde seed deterministik hata verir (sessiz çift kayıt üretmez).
     public static readonly string CATEGORY_TREE_CONFLICT = "CATALOG_CATEGORY_TREE_CONFLICT";

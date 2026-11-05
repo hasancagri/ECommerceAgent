@@ -1,3 +1,5 @@
+using Catalog.Api.Filters;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
@@ -15,8 +17,6 @@ builder.Services.AddApiVersioning(options =>
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
-
-// Admin yüzeyi (TEK /mcp'de, scope-budamalı) scope demeti = Catalog.Api.Mcp.CatalogAdminSurface.Scopes (okuma + yazma).
 
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
@@ -36,6 +36,19 @@ builder.Services.AddHttpContextAccessor();
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
 
+// 004 Dilim-1 admin anahtarı (ikinci kat — FR-014; Dilim 2'de JWT'ye evrilir, sökülür).
+builder.Services.AddOptions<AdminApiKeyOptions>()
+    .BindConfiguration(nameof(AdminApiKeyOptions))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AdminApiKeyOptions>>().Value);
+builder.Services.AddScoped<AdminApiKeyEndpointFilter>();
+
+// 004 (durum-güdümlü import): worker ImportJob tablosunu yoklar — Queued=dry-run, Confirmed=yazım.
+// Mesaj/kuyruk tetiği YOK (kullanıcı kararı); Wolverine keşfiyle ilgisiz, düz hosted service.
+builder.Services.AddHostedService<Catalog.Api.Process.ImportJobWorker>();
+
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
 app.MapDefaultEndpoints();
@@ -45,7 +58,7 @@ app.MapDefaultEndpoints();
 // yakalandı). Kalan tek şema ApiKey (S2S) — basket/order/payment ile aynı desen.
 app.UseApiKeyAuthentication();
 
-// MCP /mcp ucu SÖKÜLDÜ (tertemiz sayfa). Ürün girişi = açılış seed'i (091, books.json). Dış yüzey
-// (okuma + admin) REST first-party'de yeniden kurulacak.
+// 004: ilk REST admin yüzeyi — Excel import uçları (gateway /api/admin/catalog/** rotasından gelir).
+app.MapImportJobEndpoints();
 
 await app.RunAsync();

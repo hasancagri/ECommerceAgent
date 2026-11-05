@@ -42,7 +42,10 @@ public static class IntegrationEvents
     // çözümünü (ISBN/Barcode) tetikler. InitialStock SÖKÜLDÜ (stok yok — Stock BC kaldırıldı).
     public record ProductAdded(
         string Barcode,
-        Guid ProductId);
+        Guid ProductId,
+        // 004 additive (default'lu — eski tüketici kırılmaz): Excel "Kapak URL" kaynağı. File doluysa
+        // ve R2'de ISBN yoksa bu adresten indirir; null = eski davranış (staging/R2 yoklama).
+        string? CoverSourceUrl = null);
 
     // File.Api → Catalog. Kapak R2'de hazır + registry upsert sonrası yayılır. Url = r2.dev public
     // (CoverUrlResolver çıktısı; r2.dev base Catalog'a sızmaz — İLKE I). Tüketicisi YOK (097 serisi:

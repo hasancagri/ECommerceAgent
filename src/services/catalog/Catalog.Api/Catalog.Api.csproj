@@ -8,6 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- 004: admin Excel import (xlsx okuma). -->
+        <PackageReference Include="ClosedXML" />
         <PackageReference Include="Grpc.AspNetCore" />
         <PackageReference Include="Marten" />
         <PackageReference Include="Marten.Newtonsoft" />
@@ -29,11 +31,6 @@
       <ProjectReference Include="..\..\..\others\Common\Common.csproj" />
       <ProjectReference Include="..\..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\..\..\others\Shared\Shared.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Domains\Products\Features\" />
-      <Folder Include="Domains\Products\Features\Agents\Queries\" />
     </ItemGroup>
 
     <ItemGroup>

@@ -19,6 +19,16 @@ public static class Extensions
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        // 004: gateway/ingress arkasında şema-host doğru taşınsın (bilinen tuzak — ADR k3s-push-cd).
+        // KnownNetworks/KnownProxies TEMİZ: proxy IP'si dinamik (YARP/k8s), loopback varsayımı yetmez.
+        builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                                       | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+            options.KnownNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
+
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();
@@ -109,6 +119,15 @@ public static class Extensions
     }
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
+    {
+        // 004: pipeline'ın başında koşmalı — MapDefaultEndpoints her serviste Build()'den hemen
+        // sonra çağrılır, bu yüzden tek-yer kablosu burada (ForwardedHeadersOptions yukarıda).
+        app.UseForwardedHeaders();
+
+        return app.MapHealthEndpoints();
+    }
+
+    private static WebApplication MapHealthEndpoints(this WebApplication app)
     {
         // Adding health checks endpoints to applications in non-development environments has security implications.
         // See https://aka.ms/dotnet/aspire/healthchecks for details before enabling these endpoints in non-development environments.

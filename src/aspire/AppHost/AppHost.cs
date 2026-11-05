@@ -184,9 +184,18 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
     // US4: mevcut R2 kapakları kayıt defterine idempotent al (bir-kez; re-run yinelemez).
     .WithEnvironment("CoverMigration__RegistryBackfill__Enabled", "true");
 
-// Gateway (YARP) SÖKÜLDÜ (2026-10-19) — ajan trafiği AgentPlatform fasadından BC /mcp'lerine
-// mutlak URL'le gider, kapak URL'leri R2 public base'e çözülür; rotası kalmamıştı. Canlıda
-// kenar işi k8s ingress'in. Local-depo fallback günü gelirse YARP 5 dk'da geri yazılır.
+// Gateway (YARP) GERİ GELDİ (004) — React'ın tek origin'i + kenar yetki. Dilim-1 admin anahtarı
+// Aspire secret parametresi (AppHost user-secrets: Parameters:gateway-admin-api-key); aynı değer
+// Catalog ikinci katına da gider (çift kat — FR-014). Dilim 2'de JWT'ye evrilir, anahtar sökülür.
+var adminApiKey = builder.AddParameter("gateway-admin-api-key", secret: true);
+var gateway = builder.AddProject<Projects.Gateway>("gateway")
+    .WithHttpHealthCheck("/health")
+    .WithReference(catalogApi)
+    .WithReference(fileApi)
+    .WithEnvironment("GatewayAuthOptions__AdminApiKey", adminApiKey)
+    .WaitFor(catalogApi)
+    .WaitFor(fileApi);
+catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
 // platform MCP fasadına bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).
@@ -198,7 +207,7 @@ foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
-    fileApi
+    fileApi, gateway
 })
 {
     svc.WithContainerRegistry(ghcr);

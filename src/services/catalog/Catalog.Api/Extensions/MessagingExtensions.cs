@@ -36,8 +36,14 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ProductAdded>()
                 .ToRabbitExchange(RabbitMqConstants.ProductAdded.Exchange);
 
-            // 097 serisi: CoverIngested tüketimi SÖKÜLDÜ (kullanıcı kararı — kapak hattının Catalog
-            // ayağı öldü; FileConsumers silindi). File hâlâ yayınlar, tüketicisi yok (boşa fanout).
+            // 004: CoverIngested tüketimi GERİ (097 kapaksızlık kararı tersine) — File kapak zinciri
+            // → Product.SetImage. Binding'i TÜKETİCİ kurar; hatada uniform retry→error-queue (DLQ).
+            rabbit.DeclareExchange(RabbitMqConstants.CoverIngested.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.CoverIngested.Queues.Catalog);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.CoverIngested.Queues.Catalog);
 
             // 002: Tüketici — Stock 'StockChanged' → Product.StockCount kopyası (IsSalable stok bacağı).
             // Binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi) + kendi kuyruğunu dinler. Hatada
@@ -70,6 +76,9 @@ public static class MessagingExtensions
             // *Consumers (çoğul) Wolverine isim-konvansiyonunca keşfedilMEZ — elle dahil et.
             opts.Discovery.IncludeType(typeof(Catalog.Api.StockConsumers));
             opts.Discovery.IncludeType(typeof(Catalog.Api.DiscountConsumers));
+            // 004: kapak dönüşü (CoverIngested → SetImage). Import süreci mesajsız —
+            // ImportJobWorker (BackgroundService, Program.cs'te AddHostedService) durum yoklar.
+            opts.Discovery.IncludeType(typeof(Catalog.Api.FileConsumers));
         });
 
         return builder;

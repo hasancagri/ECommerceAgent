@@ -17,10 +17,17 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 
 ## Süreç
 
-0. 🟪 Excel import katalogu doldurur _(planned, 098 — 091 JSON seed'in yerine)_ —
-   21-alan Kitapyurdu yeniden-kazıması (Kitapyurdu_Katalog_v2.xlsx) kategori ağacını
-   kurup ürünleri satır satır doğurur; "Gtin varsa atla" + fail-fast ilkeleri
-   091'den devralınır, ayrıntı spec'te. Bugün ürün/kategori doğuran yol YOK.
+0. 👤 Admin Excel yükler (gateway /api/admin/catalog/imports, anahtar-korumalı)        `(StartImport,`
+   → 🟦 **Import işini başlat** → 🟨 **Import işi doğar** → 🟪 **DRY-RUN arka planda**    ` ImportJob,`
+   **koşar** — tüm satırlar denenir, HİÇBİR ŞEY yazılmaz; sebepli rapor birikir           ` ImportJobWorker,`
+   (işlenecek/eklenecek/atlanacak/hatalı), iş ONAY BEKLER. Aynı anda TEK                  ` ExcelRowMapper)`
+   aktif import; onay bekleyen eski iş yeni yüklemeyle geçersiz kılınır.
+   Yüklenen dosya silinmez — iş kaydının diskteki izidir.
+0b. 👤 Admin raporu görür ve onaylar (POST /imports/{id}/confirm)                     `(ConfirmImport,`
+   → 🟦 **Import'u onayla** → 🟪 **Satırlar arka planda YAZILIR** — sayfa=yayınevi;      ` ImportJob.Confirm)`
+   INSERT-ONLY (ISBN varsa DOKUNMA, "atlandı"); yazar/yayınevi/kategori
+   bulun-veya-doğur; fiyatsız satır satış-dışı doğar; satır hatası işi durdurmaz;
+   onayda dry-run sayaçları sıfırlanır, kalıcı rapor gerçek koşudan üretilir.
 2. 🟦 **Ürünü oluştur/güncelle** → 🟨 **Ürün doğar** — ad/ISBN/fiyat/açıklama;       `(Product.Create,`
    fiyat>0 var oluş invariant'ı. _(giriş yüzeyi yok, REST planlı.)_                 ` Product.SetDescription)`
 2b. 🟪 **Satışa-uygunluk türetilir (001/002)** — ürün fiyatsız/yazarsız da doğabilir       `(Product.IsSalable,`
@@ -48,8 +55,10 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    yayılmaya devam eder (keşif/ML tüketicileri gelecek).
 6. 🟧 **Ürün doğdu** ⇨ File — yalnız kapak hattını tetikler (ISBN→ürün):            `(ProductAdded)`
    File `ProductAdded`'i tüketir, kapağı çözer. YALNIZ doğumda yayılır.
-   **Kapak dönüş ayağı öldü (097 serisi):** Catalog `CoverIngested` tüketmez —
-   `Product.ImageUrl` dolmaz (kapaksızlık kullanıcı kararı); File yayını tüketicisiz.
+6b. 🟧 **Kapak alındı** ⇦ File → 🟪 **Kapak ürüne bağlanır** (004 — 097 kapaksızlık      `(FileConsumers,`
+   kararı TERSİNE) — `CoverIngested(isbn,url)` tüketilir, Gtin'le ürün bulunur,          ` Product.SetImage)`
+   kapak adresi dolar (idempotent); kapak gelmeyen ürün kapaksız kalır (iş durmaz).
+   DLQ deseni aynı (retry → error-queue).
 8. 🟩 Keşif/arama yüzeyi _(planned)_ — hibrit arama, benzer-kitap, danışman agent
    SONRAKİ spec'ler. **096 embedding omurgası SÖKÜLDÜ (099 öncesi, kullanıcı kararı):**
    ProductEmbedding + Ollama hattı + reconcile süreci gitti; semantik ayak ileride

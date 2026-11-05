@@ -43,8 +43,12 @@ public static class MartenExtensions
                 opts.Schema.For<Catalog.Api.Domains.Products.Product>()
                     .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.Gtin!);
 
-                // 091: ImportSession/ImportRow şemaları SÖKÜLDÜ (Excel import gitti). Eski tablolar
-                // dev full-reset'le gider (ApplyAllDatabaseChangesOnStartup tablo düşürmez).
+                // 004: Excel import işi — durum sorguları (aktif-iş guard'ı + rapor) Status'tan döner.
+                // DocumentAlias ZORUNLU (bilinen tuzak): büyük 'I' tr-TR ToLower'da 'ı' olur →
+                // "mt_doc_ımportjob" tablo/index adı 42P07 üretir; alias elle, I'sız/lowercase.
+                opts.Schema.For<Catalog.Api.Domains.ImportJobs.ImportJob>()
+                    .DocumentAlias("excel_import_job")
+                    .Index(x => x.Status);
             })
             .IntegrateWithWolverine()
             .ApplyAllDatabaseChangesOnStartup();

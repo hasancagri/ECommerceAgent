@@ -64,7 +64,7 @@ damıtmasında.) Servisler `src/services/*`; destek `src/others`
 
 | Servis | DB | Ne yapar |
 |---|---|---|
-| `catalog` | catalogDb | Sade kitap künyesi (095): `Product` (kimlik Gtin/ISBN unique-index; ad/açıklama/fiyat/sayfa/çevirmen/dil/tarih; çok-yazar + tek yayınevi + cilt tipi + popülerlik sayaçları (001, dış-kaynak anlık görüntüsü); **TEK leaf `CategoryId` + editoryal `RelatedCategoryIds`** — üst kategori üründe DENORMALIZE DEĞİL, yayın anında ağaçtan çözülür `CategoryNaming.ResolveChain`) + `Category` (kapalı 2 seviyeli ağaç: ebeveyn doğumda sabit, Create-only) + `Author`+`Publisher`. **Satışa-uygunluk modeli (001):** ürün fiyatsız/yazarsız doğabilir (katalogda görünür, satılamaz); `IsSalable` TEK tanım = fiyat>0 ∧ stok>0 ∧ ≥1 yazar (stok bacağı `StockCount` — `StockChanged`-fed kopya, 002; `DiscountRate` etkin-oran kopyası — `ProductDiscountChanged`-fed, 003, IsSalable'a girmez; tüketiciler `StockConsumers`/`DiscountConsumers` DLQ-destekli); fiyat sonradan `SetPrice`'la atanır/serbest değişir, >0 guard (097 "doğumda sabit" REVİZE edildi; 058 fiyat geçmişi sökük kalır). **096 embedding omurgası SÖKÜLDÜ (099 öncesi, kullanıcı kararı):** `ProductEmbedding`+Ollama hattı+reconcile süreci gitti — semantik arama ayağı ileride yeni spec'le, bilinçli kurulur. **Dış yüzey ŞU AN YOK** — REST first-party + pg-hibrit arama gelecek. **JSON seed SÖKÜLDÜ (098):** `Seeding/` + `BookSeedHostedService` + commit'li `books.json` silindi — giriş Excel import'la gelecek (spec yok); bugün ürün/kategori doğuran yol YOK, DB boş açılır. **Kapak dönüş ayağı SÖKÜLDÜ (097 serisi, kullanıcı kararı):** `CoverIngested` tüketilmez, `ImageUrl` dolmaz — ürünler kapaksız |
+| `catalog` | catalogDb | Sade kitap künyesi (095): `Product` (kimlik Gtin/ISBN unique-index; ad/açıklama/fiyat/sayfa/çevirmen/dil/tarih; çok-yazar + tek yayınevi + cilt tipi + popülerlik sayaçları (001, dış-kaynak anlık görüntüsü); **TEK leaf `CategoryId` + editoryal `RelatedCategoryIds`** — üst kategori üründe DENORMALIZE DEĞİL, yayın anında ağaçtan çözülür `CategoryNaming.ResolveChain`) + `Category` (kapalı 2 seviyeli ağaç: ebeveyn doğumda sabit, Create-only) + `Author`+`Publisher`. **Satışa-uygunluk modeli (001):** ürün fiyatsız/yazarsız doğabilir (katalogda görünür, satılamaz); `IsSalable` TEK tanım = fiyat>0 ∧ stok>0 ∧ ≥1 yazar (stok bacağı `StockCount` — `StockChanged`-fed kopya, 002; `DiscountRate` etkin-oran kopyası — `ProductDiscountChanged`-fed, 003, IsSalable'a girmez; tüketiciler `StockConsumers`/`DiscountConsumers` DLQ-destekli); fiyat sonradan `SetPrice`'la atanır/serbest değişir, >0 guard (097 "doğumda sabit" REVİZE edildi; 058 fiyat geçmişi sökük kalır). **096 embedding omurgası SÖKÜLDÜ (099 öncesi, kullanıcı kararı):** `ProductEmbedding`+Ollama hattı+reconcile süreci gitti — semantik arama ayağı ileride yeni spec'le, bilinçli kurulur. **İlk REST admin yüzeyi AÇIK (004):** Excel import uçları (`/api/admin/catalog/imports` — gateway'den, X-Admin-Api-Key çift kat) — ürün giriş yolu: çok-sayfalı xlsx (sayfa=yayınevi), İKİ-FAZ: önce dry-run (hiç yazmaz, sebepli rapor) → admin onayı (`POST .../{id}/confirm`) → INSERT-ONLY yazım (ISBN varsa dokunma); arka plan `ImportJobWorker` (durum-güdümlü polling, mesaj/kuyruk tetiği YOK); `ImportJob` aggregate'i; yüklenen dosya silinmez. **Kapak dönüşü GERİ (004, 097 tersine):** `CoverIngested` tüketilir (`FileConsumers`) → `ImageUrl` dolar |
 | `basket` | basketDb | Kalıcı sepet + kalem; sahip = login kullanıcı (anonim sahiplik 057 + `MergeFrom` SÖKÜLDÜ — sepete atmak login ister); stok kavramı yok (dijital pivot), süre yok (056); dış yüzey ŞU AN YOK (MCP söküldü) — kalan tüketici checkout gRPC + `OrderCompleted` temizliği |
 | `order` | orderDb | Sipariş aggregate + yaşam döngüsü. 094 pay-by-link akışı (giriş yüzeyi MCP'yle söküldü, REST first-party'de yeniden açılacak; gRPC istemcileri + davranış durur): sepet (Basket gRPC) ile tutar (liste fiyatı — indirim 095'te söküldü) → Pending order → Payment BC'ye S2S intent+link (`PaymentIntentClient`) → `HostedUrl`; başarısızda order commit YOK; `/checkout/done` dönüş stub'ı. **Dijital pivot: stok ayağı KALKTI** — `PaymentSucceeded`→`Order.Confirm`+`OrderCompleted` fanout (Reviews+Library+Basket) / `PaymentFailed`→Cancel (`PaymentConsumers`, idempotent durum-guard) |
 | `payment` | paymentDb | `PaymentIntent` durum makinesi (kart alanı yok, TxRef unique). 094 pay-by-link: Order S2S intent+link gRPC (`PaymentIntentGrpcService`) + EC→PG `POST /payment-links` REST (`PgPaymentLinkClient`, X-Api-Key; `STORE_NOT_LIVE` fail-fast) + PG→EC HMAC webhook (`ProcessPaymentCallback`+`CallbackSignatureValidator`: fail-closed, `pgPaymentRef` eşle, anti-tamper amount guard, idempotent) → `PaymentSucceeded`/`PaymentFailed` fanout. Kart alanı HİÇ taşımaz (İlke VIII, yalnız opak `pgPaymentRef`). Merchant kimliği PG'de. Ödeme geçmişi okuma yüzeyi MCP'yle söküldü |
@@ -73,7 +73,7 @@ damıtmasında.) Servisler `src/services/*`; destek `src/others`
 | `library` | libraryDb | Kullanıcı-ürün ilgi kayıtları; **fiyat alarmı UYKUDA (097):** fiyat değişmezliğiyle tetik öldü — `ProductChangedEvent` aboneliği söküldü, `PriceAlarm` modeli + `PriceAlarmTriggered` kontratı yayıncısız durur, `NotificationRecord` izi kalır; `UserPurchase` (kişisel satın-alma birikimi) `OrderCompleted` tüketir (`OrderConsumers`, idempotent upsert) |
 | `stock` | stockDb | Kurgusal envanter (002, fiziki dönüş): `StockItem` (ProductId unique-index + OnHand≥0; mutlak atama `SetQuantity`, satış düşümü `Decrease` — yetersizse red). Adedin TEK yazarı; her değişimde `StockChanged(productId, onHand)` fanout → Catalog adet kopyası. Rezervasyon YOK (056 sürer); dış yüzey + checkout bağlantısı sonraki dilimler |
 | `discount` | discountDb | Kampanya modeli (003, dönüş — tarihçe 079): `Campaign` (tek ürün + oran %1-%90 + zaman penceresi + iptal; etkinlik `IsActiveAt` — zaman dışarıdan). Üründe ≤1 etkin indirim, son-gelen-kazanır (`CampaignSelection`). İndirim liste fiyatını EZMEZ — `ProductDiscountChanged(productId, rate?)` kontratı + Catalog oran kopyası hazır; YAYINCI yürürlük süreci (`CampaignWindowProcess`) + dış yüzey + checkout bağlantısı SONRAKİ dilimler |
-| `file` | fileDb | Kapak **kayıt defteri** (082); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2; byte DB'de DEĞİL); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base; full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **Kapak kablosu (083/091):** `ProductAdded` tüketir (`CatalogConsumers`; R2'de yoksa yerel staging'den yükle+kayıt) → `CoverIngested(isbn,url)` yayar — **Catalog ayağı söküldü (097 serisi): tüketicisi yok, ürünler kapaksız**; açılış kapak migration'ı KAPALI (098 — kaynak `books.json` silindi, `CoverMigration__Enabled=false`; R2'deki kapaklar + kayıt defteri duruyor) |
+| `file` | fileDb | Kapak **kayıt defteri** (082); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2; byte DB'de DEĞİL); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base; full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **Kapak kablosu (083/091):** `ProductAdded` tüketir (`CatalogConsumers`; **004:** `CoverSourceUrl` doluysa ve R2'de yoksa dış adresten İNDİRİR, R2'de varsa atlar; yoksa eski staging yolu) → `CoverIngested(isbn,url)` yayar — **Catalog tüketicisi GERİ (004):** `FileConsumers` → `Product.SetImage`; açılış kapak migration'ı KAPALI kalır (098; R2'deki kapaklar + kayıt defteri duruyor) |
 | `identity-server` | identityDb | **Bu repoda DEĞİL** — `AgentPlatform` repo'sunda uygulama-nötr platform IdP (084); ECommerce `AppRegistry` config'inde kayıtlı relying party ("app #1"). OpenIddict + ASP.NET Identity; OIDC/OAuth + RBAC; DCR + tek consent + revocation (061). Nötr auth kablosu (`IdentityOption` + `AddAuthenticationAndAuthorizationExtension`) = `Platform.Auth` NuGet paketi (yerel feed; namespace `Common.*` korunur). ECommerce IdP'ye dış servis olarak bakar (issuer URL `IdentityOption.Address`); AppHost proje-ref YOK |
 
 (Söküldü — 2026-10-30 temiz-sayfa: `stock` [dijital/PDF pivotu — envanter kavramı kalktı],
@@ -91,9 +91,14 @@ tool sabitleri (`McpToolNames/Descriptions`), PRM keşfi ve DLQ admin tool'ları
 arama Catalog'da pg-hibrit (pg_search BM25 + pgvector + RRF). İkisi de HENÜZ YOK — bugün dış
 müşteri/admin yüzeyi kapalı, domain davranışları aggregate'lerde duruyor.
 
-- **Yaşayan HTTP yüzey:** File kapak serve/S2S (`/files/v1/covers`, `/internal/files`, `/resolve`) ·
-  PG→EC `/payments/callback` HMAC webhook (dış-sağlayıcı callback istisnası) · Order `/checkout/done`
-  dönüş stub'ı · auth (Identity OIDC — dış repo).
+- **Gateway (004, YARP `src/others/Gateway`):** React'ın tek origin'i; rotalar config'te
+  (`/api/admin/catalog/**` admin-anahtar korumalı, `/api/catalog/**` + `/files/**` anonim). Kenar
+  yetki Dilim-1'de `X-Admin-Api-Key` (Aspire secret parametresi `gateway-admin-api-key`; Catalog
+  aynı anahtarı İKİNCİ kat doğrular — `AdminApiKeyEndpointFilter`); Dilim 2'de JWT'ye evrilir.
+  ForwardedHeaders ServiceDefaults'ta tek yerde.
+- **Yaşayan HTTP yüzey:** Catalog admin import uçları (004, gateway'den) · File kapak serve/S2S
+  (`/files/v1/covers`, `/internal/files`, `/resolve`) · PG→EC `/payments/callback` HMAC webhook
+  (dış-sağlayıcı callback istisnası) · Order `/checkout/done` dönüş stub'ı · auth (Identity OIDC — dış repo).
 - **Yaşayan senkron kontratlar (S2S):** Order→Basket `GetBasketItems` gRPC · Order→Payment
   `CreateIntentAndLink` gRPC · EC→PG `POST /payment-links` REST (X-Api-Key) ·
   Order→Customer varsayılan-adres gRPC (uykuda).
@@ -105,11 +110,11 @@ müşteri/admin yüzeyi kapalı, domain davranışları aggregate'lerde duruyor.
 
 ## Ürün yazım yolu (050: first-party — mallar mağazanın)
 
-**091 JSON açılış seed'i SÖKÜLDÜ (098 branch'i):** `Seeding/` klasörü + `BookSeedHostedService` +
-commit'li `books.json` silindi; AppHost `SeedOptions` env'i ve File kapak migration'ı
-(`CoverMigration__Enabled=false`) kapandı. Hedef giriş yolu: **Excel import** (21-alan Kitapyurdu
-yeniden-kazıması `Kitapyurdu_Katalog_v2.xlsx`) — spec'i henüz yazılmadı, bugün ürün girişi YOK.
-Elle oluşturma/düzenleme yüzeyi de YOK — REST first-party admin'le açılacak (aggregate davranışları duruyor).
+**Excel import AÇIK (004 — 098 sökümünün yerine gelen yol):** admin `Kitapyurdu_Katalog_v2.xlsx`
+yükler (çok-sayfalı; SAYFA=YAYINEVİ, 27 sütun) → arka plan işi INSERT-ONLY işler (ISBN varsa
+dokunma), kapak zinciri `ProductAdded.CoverSourceUrl`'den akar. Okunmayan sütunlar: stok/indirim/
+okuma süresi (stok elle/import'la YAZILMAZ — mal kabul artırır, satış düşürür; kullanıcı kuralı).
+Elle oluşturma/düzenleme yüzeyi hâlâ YOK — sonraki dilimler.
 
 **Taslak/yayın/gizleme ekseni yok (091):** fiyat>0 var oluş invariant'ı (`Product.Create`; fiyat
 doğumda sabit — 097, SetPrice yok); `ProductChangedEvent.IsDeleted` kontratta durur, hep `false`.
@@ -129,8 +134,9 @@ mantığı **test-first** yazılır ve `tasks.md`'de test task'ı implementasyon
 
 ## Yeni şey ekleme
 
-**Yeni yüzey (REST first-party):** desen henüz kurulmadı — ilk REST feature'ı spec-kit'ten geçer ve
-deseni kurar (slice + endpoint-extension + `[RequiredScope]`; conventions.md VSA kuralları aynen geçerli).
+**Yeni yüzey (REST first-party):** desen 004'le kuruldu — örnek: `Domains/ImportJobs` (slice +
+`ImportJobEndpointExtension` + gateway rotası + admin-anahtar filtresi). Yeni REST feature aynı
+deseni izler; yetki Dilim 2'de `[RequiredScope]`/JWT'ye bağlanacak (conventions.md VSA kuralları aynen).
 
 **Yeni BC:** `src/services/<bc>/<Bc>.Api` + kendi Postgres DB'si/şeması + `tests/<Bc>.Api.Tests`
 (ikisi de `.slnx`'e) · AppHost'ta servis + DB kaydı · sürümler `Directory.Packages.props` ·
@@ -143,6 +149,12 @@ deseni kurar (slice + endpoint-extension + `[RequiredScope]`; conventions.md VSA
   `KnownScopes` kapalı registry, rol→scope map DB'de ve AgentPlatform IdP'nin kendi
   server-rendered `/Admin/*` ekranlarından yönetilir (cookie auth — Anayasa İlke V istisnası). Register → `customer` rolü. `[RequiredScope]` Wolverine mesaj
   handler'larına da uygulanır. Identity **HTTPS zorunlu**.
+- **TUZAK (Marten tr-TR noktasız ı — TEKRARLAYAN):** Adında büyük `I`/`İ` geçen HER yeni Marten
+  belgesi (`ImportJob`, `Invoice`, `İade`…) tr-TR ToLower'da `mt_doc_ımportjob` gibi ı'lı tablo adı
+  üretir → ilk açılış çalışır, SONRAKİ açılışta 42P07 "already exists" crashloop (Weasel ı'lı adı
+  eşleyemez; servis kalkmaz, ona WaitFor'lu her şey — gateway dahil — zincirleme doğmaz).
+  **Kural: `opts.Schema.For<T>().DocumentAlias("...")` — elle, lowercase, I'sız — yeni belge
+  eklerken İLK iş.** Yakalanırsa: bozuk ı'lı tablo DROP + alias ekle (örnek: `excel_import_job`, 004).
 - **TUZAK (`ScopeClaimArrayHandler`):** `context.TokenType` bir URN'dir
   (`TokenTypeIdentifiers.AccessToken`), hint DEĞİL — hint'le kıyaslarsan handler no-op olur ve yetki
   sessizce düşer (403). **Scope-korumalı bir uçta beklenmedik 403 görürsen ilk bakılacak yer burası.**

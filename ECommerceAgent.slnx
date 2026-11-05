@@ -6,6 +6,7 @@
   </Folder>
   <Folder Name="/src/others/">
     <Project Path="src/others/Common/Common.csproj" />
+    <Project Path="src/others/Gateway/Gateway.csproj" />
     <Project Path="src/others/Shared/Shared.csproj" />
   </Folder>
   <Folder Name="/src/services/">
