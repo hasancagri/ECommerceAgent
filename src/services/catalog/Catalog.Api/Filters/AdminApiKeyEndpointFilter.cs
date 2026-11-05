@@ -1,4 +1,4 @@
-namespace Catalog.Api.Extensions;
+namespace Catalog.Api.Filters;
 
 // 004 Dilim-1 İKİNCİ KAT (FR-014): gateway'e kör güven yok — Catalog admin uçları aynı anahtarı
 // kendisi de doğrular. GEÇİCİ düzen: Dilim 2'de yerel kimlik JWT'si + [RequiredScope] bu filtrenin

@@ -34,11 +34,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Domains\Products\Features\" />
-      <Folder Include="Domains\Products\Features\Agents\Queries\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Include="..\FLOW.md" Link="FLOW.md" />
     </ItemGroup>
 

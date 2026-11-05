@@ -1,3 +1,5 @@
+using Catalog.Api.Filters;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 

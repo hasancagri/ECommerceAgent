@@ -1,3 +1,5 @@
+using Catalog.Api.Filters;
+
 namespace Catalog.Api.Domains.ImportJobs;
 
 // 004: ilk REST admin yüzeyi (contracts/rest-import.md). Dış yol gateway'le AYNI (/api/admin/catalog
