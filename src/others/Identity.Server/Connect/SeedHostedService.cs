@@ -138,6 +138,9 @@ public sealed class SeedHostedService(IServiceProvider provider) : IHostedServic
         foreach (var uri in client.RedirectUris)
             d.RedirectUris.Add(new Uri(uri));
 
+        foreach (var uri in client.PostLogoutRedirectUris)
+            d.PostLogoutRedirectUris.Add(new Uri(uri));
+
         // Scope izinleri (scp: prefix'li). openid dahil — OpenIddict openid'i zaten serbest sayar.
         foreach (var s in client.Scopes)
             d.Permissions.Add(Permissions.Prefixes.Scope + s);

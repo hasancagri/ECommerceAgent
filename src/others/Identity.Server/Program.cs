@@ -21,6 +21,12 @@ if (!Uri.TryCreate(issuer, UriKind.Absolute, out var issuerUri) || issuerUri.Sch
 builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin", "AdminRole"));
 
+// 006: SPA (react-web) discovery/token/userinfo uçlarına tarayıcıdan fetch atar — CORS şart;
+// yoksa signinRedirect metadata'da sessizce ölür. İzinli origin'ler kapalı liste (SpaCors).
+builder.Services.AddCors(options =>
+    options.AddPolicy(SpaCors.PolicyName, policy =>
+        policy.WithOrigins(SpaCors.AllowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+
 // Aspire çalışma anında enjekte eder; design-time (migration üretimi) için fallback.
 var connectionString = builder.Configuration.GetConnectionString("identityDb")
                        ?? "Host=localhost;Port=5432;Database=identityDb;Username=postgres;Password=postgres";
@@ -47,6 +53,25 @@ builder.Services.AddSingleton<Identity.Server.Options.BootstrapAdmin>(sp =>
 // 030 RBAC: token verme yolunda rol→scope demeti + admin yönetim servisi.
 builder.Services.AddScoped<Identity.Server.Rbac.RoleScopeQuery>();
 builder.Services.AddScoped<Identity.Server.Rbac.RoleAssignmentService>();
+
+// 006: Google external login — ClientId/Secret user-secrets'tan (İlke VIII). Secret YOKSA şema
+// kaydedilmez → login sayfası butonu render etmez, sistem Google'sız tam çalışır (zarif eksilme).
+// Bootstrap okuma (builder aşaması, DI henüz yok) — AppRegistry ile aynı istisna sınıfı.
+var googleAuth = builder.Configuration.GetSection("Authentication:Google")
+    .Get<Identity.Server.Options.GoogleAuth>() ?? new Identity.Server.Options.GoogleAuth();
+builder.Services.AddSingleton(googleAuth);
+if (googleAuth.IsConfigured)
+{
+    builder.Services.AddAuthentication().AddGoogle(options =>
+    {
+        options.ClientId = googleAuth.ClientId!;
+        options.ClientSecret = googleAuth.ClientSecret!;
+        // Dönüş external cookie'ye yazılır; hesap kuralları ExternalLogin sayfasında işler.
+        options.SignInScheme = IdentityConstants.ExternalScheme;
+        // Varsayılan claim haritasında yok; e-posta birleştirme kuralı DOĞRULANMIŞ e-posta ister.
+        options.ClaimActions.MapJsonKey("email_verified", "email_verified");
+    });
+}
 
 // Login/challenge yolları + "beni hatırla" süresi (persistent cookie bu kadar yaşar).
 builder.Services.ConfigureApplicationCookie(options =>
@@ -148,6 +173,7 @@ app.UseForwardedHeaders(forwardedOptions);
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors(SpaCors.PolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -11,6 +11,11 @@
 
     <partial name="_ValidationSummary" />
 
+    @if (TempData["ExternalLoginError"] is string externalLoginError)
+    {
+        <div class="alert alert-danger">@externalLoginError</div>
+    }
+
     <div class="row">
         <div class="col-sm-6">
             <div class="card">
@@ -47,6 +52,16 @@
                         <a class="btn btn-link" asp-page="/Account/ForgotPassword/Index">Şifremi unuttum</a>
                         <button class="btn btn-secondary" name="Input.Button" value="cancel">Cancel</button>
                     </form>
+
+                    @if (Model.GoogleEnabled)
+                    {
+                        <hr />
+                        <a class="btn btn-outline-dark w-100"
+                           asp-page="/Account/ExternalLogin/Index"
+                           asp-route-returnUrl="@Model.Input.ReturnUrl">
+                            Google ile devam et
+                        </a>
+                    }
                 </div>
             </div>
         </div>
