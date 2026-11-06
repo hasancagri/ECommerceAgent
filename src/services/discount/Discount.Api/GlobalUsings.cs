@@ -20,6 +20,6 @@ global using Weasel.Core;
 global using Wolverine;
 global using Wolverine.Marten;
 global using Wolverine.RabbitMQ;
-global using Platform.Auth;
+global using Common.Auths;
 global using Wolverine.ErrorHandling;
 global using Common.Utils.Constants;

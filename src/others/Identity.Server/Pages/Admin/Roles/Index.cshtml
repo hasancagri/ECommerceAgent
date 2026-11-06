@@ -1,0 +1,38 @@
+@page
+@model Identity.Server.Pages.Admin.Roles.Index
+
+<div class="lead"><h1>Rol Yönetimi</h1></div>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-danger">@Model.Error</div>
+}
+
+<table class="table">
+    <thead><tr><th>Rol</th><th>Scope sayısı</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var role in Model.Roles)
+    {
+        <tr>
+            <td>@role.Name @(role.IsSeed ? "(seed)" : "")</td>
+            <td>@role.ScopeCount</td>
+            <td>
+                <a class="btn btn-sm btn-primary" asp-page="/Admin/Roles/Scopes" asp-route-id="@role.Id">Scope'lar</a>
+                @if (!role.IsSeed)
+                {
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@role.Id" style="display:inline">
+                        <button class="btn btn-sm btn-danger" type="submit">Sil</button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<form method="post" asp-page-handler="Create" class="form-inline">
+    <input class="form-control" asp-for="NewRoleName" placeholder="Yeni rol adı" />
+    <button class="btn btn-primary" type="submit">Rol Ekle</button>
+</form>
+
+<p class="mt-3"><a asp-page="/Admin/Users/Index">Kullanıcı-rol ataması →</a></p>

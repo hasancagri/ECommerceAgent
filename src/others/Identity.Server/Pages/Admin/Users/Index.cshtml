@@ -1,0 +1,36 @@
+@page
+@model Identity.Server.Pages.Admin.Users.Index
+
+<div class="lead"><h1>Kullanıcı-Rol Ataması</h1></div>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-danger">@Model.Error</div>
+}
+
+<table class="table">
+    <thead><tr><th>Kullanıcı</th><th>Mevcut rol</th><th>Rol değiştir</th></tr></thead>
+    <tbody>
+    @foreach (var user in Model.Users)
+    {
+        <tr>
+            <td>@user.UserName</td>
+            <td>@(user.Role ?? "—")</td>
+            <td>
+                <form method="post" asp-page-handler="SetRole" class="form-inline">
+                    <input type="hidden" name="userId" value="@user.Id" />
+                    <select class="form-control" name="role">
+                        @foreach (var role in Model.Roles)
+                        {
+                            <option value="@role" selected="@(role == user.Role)">@role</option>
+                        }
+                    </select>
+                    <button class="btn btn-sm btn-primary" type="submit">Ata</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<p><a asp-page="/Admin/Roles/Index">← Rol yönetimi</a></p>

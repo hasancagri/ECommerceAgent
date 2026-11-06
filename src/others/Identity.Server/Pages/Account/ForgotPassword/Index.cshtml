@@ -1,0 +1,38 @@
+@page
+@model Identity.Server.Pages.ForgotPassword.Index
+
+<div class="login-page">
+    <div class="lead">
+        <h1>Şifremi Unuttum</h1>
+        <p>E-posta adresini gir; sıfırlama bağlantısı üretilsin.</p>
+    </div>
+
+    <partial name="_ValidationSummary" />
+
+    @if (Model.Submitted)
+    {
+        <div class="alert alert-success">
+            Eğer bu e-posta kayıtlıysa sıfırlama bağlantısı üretildi.
+            <em>(Geliştirme: bağlantı sunucu log'unda — e-posta gönderimi henüz yok.)</em>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <form asp-page="/Account/ForgotPassword/Index">
+                            <div class="form-group">
+                                <label asp-for="Email">E-posta</label>
+                                <input class="form-control" asp-for="Email" autofocus>
+                            </div>
+                            <button class="btn btn-primary" type="submit">Bağlantı üret</button>
+                            <a class="btn btn-link" asp-page="/Account/Login/Index">Girişe dön</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

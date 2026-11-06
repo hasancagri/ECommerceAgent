@@ -31,4 +31,4 @@ global using System.Text.Json;
 global using Grpc.Core;
 global using Shared.Grpc.Customer;
 global using Customer.Api;
-global using Platform.Auth;
+global using Common.Auths;

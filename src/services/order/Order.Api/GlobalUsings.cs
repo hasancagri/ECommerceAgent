@@ -31,7 +31,7 @@ global using Shared.Grpc.Customer;
 global using Shared.Grpc.Payment;
 global using Order.Api.Domains.Checkout;
 global using System.ComponentModel;
-global using Platform.Auth;
+global using Common.Auths;
 global using Order.Api.Options;
 global using Microsoft.Extensions.Options;
 global using Common.Utils.Authorization;

@@ -1,0 +1,24 @@
+@page "{id}"
+@model Identity.Server.Pages.Admin.Roles.Scopes
+
+<div class="lead"><h1>Scope'lar — @Model.RoleName</h1></div>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-danger">@Model.Error</div>
+}
+
+<form method="post">
+    @foreach (var item in Model.Items)
+    {
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="Selected" value="@item.Name"
+                   id="s_@item.Name" @(item.Checked ? "checked" : "") />
+            <label class="form-check-label" for="s_@item.Name">
+                <code>@item.Name</code> — @item.Description
+            </label>
+        </div>
+    }
+    <button class="btn btn-primary mt-3" type="submit">Kaydet</button>
+    <a class="btn btn-secondary mt-3" asp-page="/Admin/Roles/Index">İptal</a>
+</form>

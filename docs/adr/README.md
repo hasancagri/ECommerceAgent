@@ -19,6 +19,7 @@ başka karar geçti) · `Tarihsel` (anlattığı pratik söküldü; kayıt öğr
 | [adr-credential-link-forward-protection](adr-credential-link-forward-protection.md) | Credential-Giriş Linki Forward Koruması | Öneri |
 | [adr-external-agent-oauth-061](adr-external-agent-oauth-061.md) | Dış Agent MCP Erişimi — OAuth 2.1 (061) | Kabul |
 | [adr-hybrid-search-slice](adr-hybrid-search-slice.md) | SearchStorefrontProducts — hibrit aramanın ince işçiliği (019) | Superseded |
+| [adr-identity-inward](adr-identity-inward.md) | Kimlik Makamı Geri İçeri — 084 tersine (005) | Kabul |
 | [adr-ingestion-llm-writers](adr-ingestion-llm-writers.md) | Ingestion yazıcıları LLM-sürücülü (007 tersine çevirme) | Superseded |
 | [adr-k3s-push-cd-deployment](adr-k3s-push-cd-deployment.md) | Canlı Dağıtım — k3s + Push-tabanlı CD (SSH), sslip.io, in-cluster altyapı (dev) | Kabul |
 | [adr-mcp-control-plane-no-secret-return](adr-mcp-control-plane-no-secret-return.md) | MCP Kontrol Düzlemidir — Hassas Veri Tool Dönüşüne / LLM'e Girmez | Kabul |

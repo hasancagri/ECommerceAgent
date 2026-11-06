@@ -1,0 +1,36 @@
+@page
+@model Identity.Server.Pages.ResetPassword.Index
+
+<div class="login-page">
+    <div class="lead">
+        <h1>Yeni Şifre</h1>
+        <p>@Model.Email için yeni şifre belirle.</p>
+    </div>
+
+    <partial name="_ValidationSummary" />
+
+    @if (Model.Succeeded)
+    {
+        <div class="alert alert-success">
+            Şifre güncellendi. <a asp-page="/Account/Login/Index">Giriş yap</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <form asp-page="/Account/ResetPassword/Index" asp-route-email="@Model.Email" asp-route-token="@Model.Token">
+                            <div class="form-group">
+                                <label asp-for="NewPassword">Yeni şifre</label>
+                                <input type="password" class="form-control" asp-for="NewPassword" autofocus>
+                            </div>
+                            <button class="btn btn-primary" type="submit">Şifreyi güncelle</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

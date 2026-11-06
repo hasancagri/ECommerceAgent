@@ -27,4 +27,4 @@ global using Wolverine.Attributes;
 global using Wolverine.ErrorHandling;
 global using Wolverine.Marten;
 global using Wolverine.RabbitMQ;
-global using Platform.Auth;
+global using Common.Auths;

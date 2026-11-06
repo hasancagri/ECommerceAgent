@@ -6,7 +6,7 @@ global using Microsoft.Extensions.Caching.Hybrid;
 global using Microsoft.Extensions.DependencyInjection;
 global using Wolverine;
 global using Common.Results.BaseClasses;
-global using Platform.Auth;
+global using Common.Auths;
 global using Common.Utils.Constants;
 global using Microsoft.AspNetCore.Authentication.JwtBearer;
 global using Microsoft.AspNetCore.Builder;
