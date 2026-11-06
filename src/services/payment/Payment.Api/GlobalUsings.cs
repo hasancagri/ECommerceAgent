@@ -23,7 +23,7 @@ global using Common.Dependencies;
 global using Shared.Utils.Constants;
 
 // auth + options (093: PG istemci/callback/gRPC using'leri sökümle düştü).
-global using Platform.Auth;
+global using Common.Auths;
 global using Microsoft.Extensions.Options;
 global using Shared;
 global using Payment.Api.Extensions;

@@ -51,7 +51,7 @@ FLOW.md anchor'ları ve BC haritası artık elle/review'da doğrulanır. Dev ver
 non-public setter+ctor) · **Wolverine** (in-proc bus `IMessageBus` + RabbitMQ fanout; handler assembly
 taramasıyla) · **HybridCache + Redis** (AOP cache L1/L2 yalnız okuma; boşaltma
 handler-içi atomik publish + epoch-key, 090 — native tag KULLANILMAZ, bkz. conventions) ·
-**OpenIddict + ASP.NET Identity** (IdP, bu repoda değil — bkz. BC haritası) ·
+**OpenIddict + ASP.NET Identity** (IdP ÇÖZÜM İÇİNDE: `src/others/Identity.Server` — 005 kopyası; tek EF Core+Razor istisnası, ADR adr-identity-inward) ·
 **Scrutor** (DI) · **xUnit + Shouldly**. (096 Ollama/embedding omurgası 099 öncesi SÖKÜLDÜ —
 semantik ayak ileride yeni spec'le; MCP + Microsoft Agent Framework temiz-sayfa sökümüyle
 kalktı — yüzey REST first-party'ye dönüyor, bkz. Yüzey modeli.)
@@ -74,7 +74,7 @@ damıtmasında.) Servisler `src/services/*`; destek `src/others`
 | `stock` | stockDb | Kurgusal envanter (002, fiziki dönüş): `StockItem` (ProductId unique-index + OnHand≥0; mutlak atama `SetQuantity`, satış düşümü `Decrease` — yetersizse red). Adedin TEK yazarı; her değişimde `StockChanged(productId, onHand)` fanout → Catalog adet kopyası. Rezervasyon YOK (056 sürer); dış yüzey + checkout bağlantısı sonraki dilimler |
 | `discount` | discountDb | Kampanya modeli (003, dönüş — tarihçe 079): `Campaign` (tek ürün + oran %1-%90 + zaman penceresi + iptal; etkinlik `IsActiveAt` — zaman dışarıdan). Üründe ≤1 etkin indirim, son-gelen-kazanır (`CampaignSelection`). İndirim liste fiyatını EZMEZ — `ProductDiscountChanged(productId, rate?)` kontratı + Catalog oran kopyası hazır; YAYINCI yürürlük süreci (`CampaignWindowProcess`) + dış yüzey + checkout bağlantısı SONRAKİ dilimler |
 | `file` | fileDb | Kapak **kayıt defteri** (082); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2; byte DB'de DEĞİL); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base; full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **Kapak kablosu (083/091):** `ProductAdded` tüketir (`CatalogConsumers`; **004:** `CoverSourceUrl` doluysa ve R2'de yoksa dış adresten İNDİRİR, R2'de varsa atlar; yoksa eski staging yolu) → `CoverIngested(isbn,url)` yayar — **Catalog tüketicisi GERİ (004):** `FileConsumers` → `Product.SetImage`; açılış kapak migration'ı KAPALI kalır (098; R2'deki kapaklar + kayıt defteri duruyor) |
-| `identity-server` | identityDb | **Bu repoda DEĞİL** — `AgentPlatform` repo'sunda uygulama-nötr platform IdP (084); ECommerce `AppRegistry` config'inde kayıtlı relying party ("app #1"). OpenIddict + ASP.NET Identity; OIDC/OAuth + RBAC; DCR + tek consent + revocation (061). Nötr auth kablosu (`IdentityOption` + `AddAuthenticationAndAuthorizationExtension`) = `Platform.Auth` NuGet paketi (yerel feed; namespace `Common.*` korunur). ECommerce IdP'ye dış servis olarak bakar (issuer URL `IdentityOption.Address`); AppHost proje-ref YOK |
+| `identity-server` | identityDb | **ÇÖZÜM İÇİNDE (005 — 084 tersine, ADR adr-identity-inward):** `src/others/Identity.Server` = AgentPlatform kopyası (kaynağa dokunulmadı; PG oradakiyle yaşar). OpenIddict (code+PKCE + m2m + refresh; refresh güncel rol demetiyle süzer) + ASP.NET Identity + rol→scope RBAC (`ScopeResolver` kesişimi) + server-rendered `/Admin/*` (cookie, İlke V istisnası). Kayıt HEP customer; admin yalnız config/secret seed'i (`identity-admin-email/password`, idempotent). Kırpıldı: DCR/consent/dış-agent istemcileri/ApiKey uçları/super-admin. Seed istemciler: `react-web` (PKCE), `order-saga`+`payment-s2s` (m2m). Issuer `https://localhost:5001` (servis config'leri DEĞİŞMEDİ). **Tek EF Core+Npgsql+Razor istisnası** (Marten değil); reset mail'i log/mock. Auth kablosu `Common/Auths`'ta (`Platform.Auth` paketi + GitHub feed ÖLDÜ) |
 
 (Söküldü — 2026-10-30 temiz-sayfa: `stock` [dijital/PDF pivotu — envanter kavramı kalktı],
 `storefront`+ES [arama Catalog pg-hibrit'e katlanacak], `notification-agent`+`mail-mcp` [MCP sökümüyle],
@@ -184,8 +184,9 @@ deseni izler; yetki Dilim 2'de `[RequiredScope]`/JWT'ye bağlanacak (conventions
 - **Yeni saga için ayrı orchestration servisi açma** (god-service) — saga sürecin sahibi BC'de host
   edilir. (049 Checkout.Orchestrator istisnası 092'de SÖKÜLDÜ — checkout artık koreografi; repoda
   orkestre saga örneği KALMADI. Gerçekten çok-adım/dallanan süreç gerekirse önce koreografiyi değerlendir.)
-- **Kimlik makamını ECommerce'e geri gömme (084):** IdP `AgentPlatform`'da. AppHost'a IdP proje-ref'i
-  EKLEME, scope/client/rol'ü koda gömme (yenisi `AgentPlatform` `AppRegistry` config'ine). Nötr auth
-  kablosu `Platform.Auth` paketinde — `Common`'a geri taşıma.
+- **AgentPlatform IdP'sine geri dönme (005 — 084 maddesi TERSİNE DÖNDÜ):** kimlik makamı artık çözüm
+  içinde (`src/others/Identity.Server`, ADR [`adr-identity-inward.md`](docs/adr/adr-identity-inward.md));
+  AgentPlatform'daki kopyaya dokunma, SSO/dış-IdP bağımlılığını spec'siz geri getirme. DCR/consent/
+  dış-agent istemci yüzeyini de geri ekleme (MCP söküm çizgisi).
 - Genel kural: çözüme (`.slnx`) dahil olmayan klasör kapsam dışıdır. (Son örnek `CustomNopCommerce`
   referans kodu — 2026-10-31'de silindi; tarihçe git'te.)

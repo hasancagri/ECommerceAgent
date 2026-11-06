@@ -36,9 +36,17 @@ var paymentDb = postgres.AddDatabase("paymentDb");
 var customerDb = postgres.AddDatabase("customerDb");
 var fileDb = postgres.AddDatabase("fileDb");
 
-// identity-server AgentPlatform repo'suna taşındı (ayrı Aspire AppHost). ECommerce servisleri
-// IdP'yi IdentityOption.Address (sabit issuer URL, https://localhost:5001) ile bulur — proje-ref/
-// service-discovery değil. identityDb de AgentPlatform'da; buradaki identityDb kaydı söküldü.
+// 005: kimlik makamı GERİ İÇERİDE (084 tersine, ADR adr-identity-inward) — AgentPlatform kopyası
+// src/others/Identity.Server. Issuer sabit https://localhost:5001 (launchSettings; servislerin
+// IdentityOption.Address değerleri DEĞİŞMEDİ). Admin seed config/secret'tan (İlke VIII: değer loglanmaz).
+var identityDb = postgres.AddDatabase("identityDb");
+var identityAdminEmail = builder.AddParameter("identity-admin-email", secret: true);
+var identityAdminPassword = builder.AddParameter("identity-admin-password", secret: true);
+builder.AddProject<Projects.Identity_Server>("identity-server")
+    .WithReference(identityDb)
+    .WaitFor(identityDb)
+    .WithEnvironment("BootstrapAdmin__Email", identityAdminEmail)
+    .WithEnvironment("BootstrapAdmin__Password", identityAdminPassword);
 
 // 091 JSON seed'i SÖKÜLDÜ (098: katalog girişi Excel import'la gelecek; kapak migration kaynağı da gitti).
 
