@@ -25,6 +25,8 @@
         <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
         <PackageReference Include="Duende.IdentityModel" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+        <!-- 007: ScoutAgent'a hizmet eden anonim query-only MCP ucu. -->
+        <PackageReference Include="ModelContextProtocol.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>

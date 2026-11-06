@@ -33,7 +33,8 @@ builder.Services.AddCachingAspect("customer");
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddGrpc();
 
-// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp adres tool'ları + DLQ MCP kaldırıldı; REST first-party'ye.
+// 007: query-only MCP ucu GERİ (bilinçli, spec'le) — YALNIZ ScoutAgent tüketir. get_my_addresses.
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
@@ -53,5 +54,8 @@ app.UseAuthorization();
 // performans için REST'ten gRPC'ye taşındı (İlke I — BC-arası S2S artık gRPC, dış webhook hariç).
 app.MapGrpcService<Customer.Api.Grpc.HostedPayment.AddressGrpcService>()
     .RequireAuthorization(AuthorizationScopes.CustomerRead);
+
+// 007: kişisel MCP ucu — scope customer.read zorunlu (gerçek güvenlik sınırı, FR-005).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CustomerRead);
 
 await app.RunAsync();

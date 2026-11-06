@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>b3f1a2c4-7d6e-4a9b-9c2d-5e8f1a0b3c7d</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Marten" />
+        <PackageReference Include="Marten.Newtonsoft" />
+        <PackageReference Include="Newtonsoft.Json" />
+        <PackageReference Include="WolverineFx" />
+        <PackageReference Include="WolverineFx.RuntimeCompilation" />
+        <PackageReference Include="WolverineFx.Marten" />
+        <PackageReference Include="WolverineFx.Postgresql" />
+        <PackageReference Include="Asp.Versioning.Http" />
+        <PackageReference Include="Scrutor" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+        <!-- 007: Kâşif sohbet beyni — MAF agent + OpenAI (gpt-4o-mini) IChatClient + MCP client. -->
+        <PackageReference Include="Microsoft.Agents.AI" />
+        <PackageReference Include="Microsoft.Extensions.AI" />
+        <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+        <PackageReference Include="ModelContextProtocol" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\others\Common\Common.csproj" />
+        <ProjectReference Include="..\..\others\Shared\Shared.csproj" />
+        <ProjectReference Include="..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="FLOW.md" />
+    </ItemGroup>
+
+</Project>

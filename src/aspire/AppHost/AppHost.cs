@@ -192,17 +192,38 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
     // US4: mevcut R2 kapakları kayıt defterine idempotent al (bir-kez; re-run yinelemez).
     .WithEnvironment("CoverMigration__RegistryBackfill__Enabled", "true");
 
+// 007: ScoutAgent (Kâşif) — first-party sohbet agent'ı (MAF + OpenAI gpt-4o-mini + query-only MCP client).
+// Kendi scoutDb'si = sohbet transkripti (İlke I). 4 BC /mcp ucuna DOĞRUDAN bağlanır (fasat YOK); uç
+// listesi config-güdümlü. React Gateway'den erişir. OpenAI key = secret parametre (user-secrets).
+var scoutDb = postgres.AddDatabase("scoutDb");
+var scoutOpenAiKey = builder.AddParameter("scout-openai-key", secret: true);
+var scoutAgent = builder.AddProject<Projects.ScoutAgent_Api>("scout-agent")
+    .WithHttpHealthCheck("/health")
+    .WithReference(scoutDb)
+    .WithReference(catalogApi)
+    .WithReference(customerApi)
+    .WithReference(libraryApi)
+    .WithReference(orderApi)
+    .WithEnvironment("ScoutOptions__ApiKey", scoutOpenAiKey)
+    .WaitFor(scoutDb)
+    .WaitFor(catalogApi);
+
 // Gateway (YARP) GERİ GELDİ (004) — React'ın tek origin'i + kenar yetki. Dilim-1 admin anahtarı
 // Aspire secret parametresi (AppHost user-secrets: Parameters:gateway-admin-api-key); aynı değer
 // Catalog ikinci katına da gider (çift kat — FR-014). Dilim 2'de JWT'ye evrilir, anahtar sökülür.
 var adminApiKey = builder.AddParameter("gateway-admin-api-key", secret: true);
 var gateway = builder.AddProject<Projects.Gateway>("gateway")
+    // 007: React SPA'nın SABİT tek origin'i. Aspire dinamik port atar; kenar (gateway) için stabil
+    // port şart (SPA .env'i port kovalamasın). http ucu 5060'a pinlenir, proxy'siz doğrudan bind.
+    .WithEndpoint("http", endpoint => { endpoint.Port = 5060; endpoint.IsProxied = false; })
     .WithHttpHealthCheck("/health")
     .WithReference(catalogApi)
     .WithReference(fileApi)
+    .WithReference(scoutAgent)
     .WithEnvironment("GatewayAuthOptions__AdminApiKey", adminApiKey)
     .WaitFor(catalogApi)
-    .WaitFor(fileApi);
+    .WaitFor(fileApi)
+    .WaitFor(scoutAgent);
 catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
@@ -215,7 +236,7 @@ foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
-    fileApi, gateway
+    fileApi, scoutAgent, gateway
 })
 {
     svc.WithContainerRegistry(ghcr);

@@ -24,12 +24,16 @@ builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
 
-// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp fiyat-alarmı tool'ları + DLQ MCP kaldırıldı; REST first-party'ye.
+// 007: query-only MCP ucu GERİ (bilinçli, spec'le) — YALNIZ ScoutAgent tüketir. get_my_library.
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 007: kişisel MCP ucu — scope library.read zorunlu (gerçek güvenlik sınırı, FR-005).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.LibraryRead);
 
 await app.RunAsync();

@@ -83,6 +83,9 @@ builder.Services.AddScoped<PaymentIntentClient>();
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
 
+// 007: query-only MCP ucu GERİ (bilinçli, spec'le) — YALNIZ ScoutAgent tüketir. get_my_orders.
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
 app.MapDefaultEndpoints();
@@ -94,5 +97,8 @@ app.UseAuthorization();
 
 // 094 pay-by-link: PG hosted ödeme dönüş ucu (anonim bilgilendirme; gerçek durum webhook'tan).
 app.AddCheckoutDoneEndpoint();
+
+// 007: kişisel MCP ucu — scope order.read zorunlu (gerçek güvenlik sınırı, FR-005).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.OrderRead);
 
 await app.RunAsync();
