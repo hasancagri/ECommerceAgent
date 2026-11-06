@@ -36,15 +36,10 @@ public static class SearchBooks
                 .Take(50)
                 .ToListAsync(ct);
 
-            // Marten-güvenli: ad ILIKE (tek sorgu) + yazar başına jsonb Contains (tek-değer). "Collection
-            // Any(external list Contains)" Marten'de çevrilemiyor (çalışma anı fırlatır) — onun yerine
-            // eşleşen ürün Id kümesi bellekte birleştirilir, sayfa Id'lerle tek sorguda yüklenir.
-            var matchIds = new HashSet<Guid>(
-                await session.Query<Product>()
-                    .Where(p => p.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    .Select(p => p.Id)
-                    .Take(500)
-                    .ToListAsync(ct));
+            // Sıralı birleştirme: YAZAR eşleşmeleri ÖNCE, sonra başlık eşleşmeleri; her grup kendi içinde
+            // PurchaseCount'a göre. Çift kayıt (hem yazar hem başlık) yazar grubunda bir kez kalır.
+            var ordered = new List<Guid>();
+            var seen = new HashSet<Guid>();
 
             // AuthorIds Newtonsoft $type/$values sarmalayıcısıyla saklanıyor ({"$type":...,"$values":[...]})
             // → düz-dizi containment (p.AuthorIds.Contains(id)) jsonb'de EŞLEŞMEZ (yazar araması boş dönerdi).
@@ -53,18 +48,32 @@ public static class SearchBooks
             {
                 var needle = $"[\"{authorId}\"]";
                 var authorProducts = await session.QueryAsync<Product>(
-                    "where d.data -> 'AuthorIds' -> '$values' @> ?::jsonb", ct, needle);
+                    "where d.data -> 'AuthorIds' -> '$values' @> ?::jsonb " +
+                    "order by (d.data ->> 'PurchaseCount')::int desc nulls last", ct, needle);
                 foreach (var p in authorProducts)
-                    matchIds.Add(p.Id);
+                    if (seen.Add(p.Id))
+                        ordered.Add(p.Id);
             }
 
-            var total = matchIds.Count;
-            var pageIds = matchIds.Skip((page - 1) * size).Take(size).ToArray();
-            var pageItems = pageIds.Length == 0
-                ? []
+            // Başlık (ad ILIKE) eşleşmeleri — yazar kümesinde olmayanlar sona eklenir.
+            var titleIds = await session.Query<Product>()
+                .Where(p => p.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(p => p.PurchaseCount)
+                .Select(p => p.Id)
+                .Take(500)
+                .ToListAsync(ct);
+            foreach (var id in titleIds)
+                if (seen.Add(id))
+                    ordered.Add(id);
+
+            var total = ordered.Count;
+            var pageIds = ordered.Skip((page - 1) * size).Take(size).ToArray();
+            // IsOneOf sırayı garantilemez → yüklenen ürünleri pageIds sırasına geri diz.
+            var byId = pageIds.Length == 0
+                ? new Dictionary<Guid, Product>()
                 : (await session.Query<Product>().Where(p => p.Id.IsOneOf(pageIds)).ToListAsync(ct))
-                    .OrderByDescending(p => p.PurchaseCount)
-                    .ToList();
+                    .ToDictionary(p => p.Id);
+            var pageItems = pageIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
 
             // Sayfadaki ürünlerin yazar adlarını tek sorguda çöz (Id → ad).
             var neededAuthorIds = pageItems.SelectMany(p => p.AuthorIds).Distinct().ToList();
