@@ -53,6 +53,7 @@ public sealed class AppRegistry
                 AllowClientCredentials = c.AllowClientCredentials,
                 AllowRefreshToken = c.AllowRefreshToken,
                 RedirectUris = [.. c.RedirectUris],
+                PostLogoutRedirectUris = [.. c.PostLogoutRedirectUris],
                 Scopes = [.. c.Scopes],
             }),
         ];

@@ -60,6 +60,8 @@ public sealed class ClientBundleOptions
     public bool AllowClientCredentials { get; set; }
     public bool AllowRefreshToken { get; set; }
     public List<string> RedirectUris { get; set; } = [];
+    // 006: çıkışta (end-session) dönülecek adresler — SPA logout'u IdP oturumunu da kapatıp buraya döner.
+    public List<string> PostLogoutRedirectUris { get; set; } = [];
     public List<string> Scopes { get; set; } = [];
     // 070/073: RFC 8252 §7.3 loopback (dinamik port) redirect muafiyeti YALNIZ işaretli client'lara.
     public bool AllowLoopbackRedirect { get; set; }

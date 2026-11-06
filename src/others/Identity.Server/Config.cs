@@ -41,5 +41,6 @@ public sealed class ClientSeed
     public bool AllowClientCredentials { get; init; }
     public bool AllowRefreshToken { get; init; }
     public string[] RedirectUris { get; init; } = [];
+    public string[] PostLogoutRedirectUris { get; init; } = [];
     public string[] Scopes { get; init; } = [];
 }

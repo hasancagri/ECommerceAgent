@@ -7,13 +7,21 @@ public class Index : PageModel
     private const string StoreHome = "https://localhost:7042/";
 
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly GoogleAuth _googleAuth;
 
     [BindProperty]
     public InputModel Input { get; set; } = default!;
 
     public bool AllowRememberLogin => LoginOptions.AllowRememberLogin;
 
-    public Index(SignInManager<ApplicationUser> signInManager) => _signInManager = signInManager;
+    // 006: Google secret user-secrets'ta yoksa buton hiç render edilmez (zarif eksilme).
+    public bool GoogleEnabled => _googleAuth.IsConfigured;
+
+    public Index(SignInManager<ApplicationUser> signInManager, GoogleAuth googleAuth)
+    {
+        _signInManager = signInManager;
+        _googleAuth = googleAuth;
+    }
 
     // FLOW.md Süreç 3 girişi — authorize Challenge'ının indiği ekran; returnUrl = authorize devamı.
     public void OnGet(string? returnUrl) => Input = new InputModel { ReturnUrl = returnUrl };
