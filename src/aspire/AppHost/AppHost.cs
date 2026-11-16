@@ -215,9 +215,11 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithHttpHealthCheck("/health")
     .WithReference(catalogApi)
     .WithReference(fileApi)
+    .WithReference(personalizationApi)   // 013: /api/personalization/** → arama geçmişi
     .WithEnvironment("GatewayAuthOptions__AdminApiKey", adminApiKey)
     .WaitFor(catalogApi)
-    .WaitFor(fileApi);
+    .WaitFor(fileApi)
+    .WaitFor(personalizationApi);
 catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle

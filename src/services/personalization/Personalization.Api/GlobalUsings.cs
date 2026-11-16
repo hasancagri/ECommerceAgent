@@ -15,3 +15,6 @@ global using Wolverine.ErrorHandling;
 global using Personalization.Api.Constants;
 global using Personalization.Api.Domains.SearchHistory;
 global using Personalization.Api.Extensions;
+global using Common.Auths;
+global using Microsoft.AspNetCore.Authentication.JwtBearer;
+global using Microsoft.IdentityModel.Tokens;
