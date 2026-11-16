@@ -27,6 +27,15 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ProductChangedEvent>()
                 .ToRabbitExchange(RabbitMqConstants.ProductChanged.Exchange);
 
+            // 012: login aramada UserSearched yayınlanır (fanout → Personalization ham log). Yayıncı yalnız
+            // exchange deklare eder; kuyruk + binding tüketicide (Personalization, 007 soğuk-açılış dersi).
+            rabbit.DeclareExchange(RabbitMqConstants.UserSearched.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+            });
+            opts.PublishMessage<Shared.IntegrationEvents.UserSearched>()
+                .ToRabbitExchange(RabbitMqConstants.UserSearched.Exchange);
+
             // 050/051: yayınlanan üründe barkod↔ProductId eşlemesi Stock'a duyurulur (yayıncı yalnız exchange deklare eder).
             // İlk yayıncı = kitap import (051); feed 050'de söküldü.
             rabbit.DeclareExchange(RabbitMqConstants.ProductAdded.Exchange, e =>

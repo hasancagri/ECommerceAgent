@@ -37,3 +37,6 @@ global using Catalog.Api.Domains.Publishers;
 global using Catalog.Api.Search;
 global using Catalog.Api.Domains.Products.Features.Queries;
 global using Npgsql;
+global using Common.Auths;
+global using Microsoft.AspNetCore.Authentication.JwtBearer;
+global using Microsoft.IdentityModel.Tokens;
