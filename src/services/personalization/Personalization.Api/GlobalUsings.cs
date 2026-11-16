@@ -1,0 +1,17 @@
+global using Common;
+global using Common.Domains;
+global using Common.Results;
+global using Marten;
+global using Marten.Newtonsoft;
+global using Newtonsoft.Json;
+global using Shared;
+global using Shared.Utils.Constants;
+global using System.Reflection;
+global using Weasel.Core;
+global using Wolverine;
+global using Wolverine.Marten;
+global using Wolverine.RabbitMQ;
+global using Wolverine.ErrorHandling;
+global using Personalization.Api.Constants;
+global using Personalization.Api.Domains.SearchHistory;
+global using Personalization.Api.Extensions;

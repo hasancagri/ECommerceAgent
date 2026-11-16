@@ -160,6 +160,25 @@ var discountApi = builder.AddProject<Projects.Discount_Api>("discount-api")
     .WaitFor(discountDb)
     .WaitFor(rabbit);
 
+// 012: Personalization BC — kullanıcı arama kaydı tüketicisi (UserSearched → ham log). Kendi DB,
+// izole; dış HTTP yüzeyi yok (yalnız RabbitMQ tüketici).
+var personalizationDb = postgres.AddDatabase("personalizationDb");
+var personalizationApi = builder.AddProject<Projects.Personalization_Api>("personalization-api")
+    .WithHttpHealthCheck("/health")
+    .WithReference(personalizationDb)
+    .WithReference(rabbit)
+    .WaitFor(personalizationDb)
+    .WaitFor(rabbit);
+
+// 012: app-BFF — istemci-yüzü aramanın tek giriş noktası (durumsuz orkestratör, DB yok). Catalog'un
+// public REST aramasını çağırır (service discovery) + login aramada UserSearched yayınlar (rabbit).
+var bff = builder.AddProject<Projects.Bff>("bff")
+    .WithHttpHealthCheck("/health")
+    .WithReference(catalogApi)
+    .WithReference(rabbit)
+    .WaitFor(catalogApi)
+    .WaitFor(rabbit);
+
 // Discount BC SÖKÜLDÜ (095 branch'i, 2026-10-31) — kampanya/indirim modeli kullanıcı kararıyla
 // kalktı; checkout tutarı = liste fiyatı. İndirim dönerse bilinçli mimari karar + spec'le döner.
 
@@ -202,9 +221,11 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithHttpHealthCheck("/health")
     .WithReference(catalogApi)
     .WithReference(fileApi)
+    .WithReference(bff)   // 012: /api/discovery/** → bff
     .WithEnvironment("GatewayAuthOptions__AdminApiKey", adminApiKey)
     .WaitFor(catalogApi)
-    .WaitFor(fileApi);
+    .WaitFor(fileApi)
+    .WaitFor(bff);
 catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
@@ -217,7 +238,7 @@ foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
-    fileApi, gateway
+    fileApi, gateway, personalizationApi, bff
 })
 {
     svc.WithContainerRegistry(ghcr);

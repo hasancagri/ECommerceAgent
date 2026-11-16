@@ -110,4 +110,14 @@ public static class IntegrationEvents
     // 010: Catalog import indirim ithali — yeni ürün + indirim>0 için yayılır. Discount tüketir →
     // açık-uçlu Campaign.Create → ProductDiscountChanged (Rate kesir, 0<rate≤0.90; Catalog filtreler).
     public record ProductDiscountImported(Guid ProductId, decimal Rate);
+
+    // 012: app-BFF yayınlar (YALNIZ login arama), Personalization tüketir (ham arama logu — zevk/
+    // kişiselleştirme sinyal temeli). Fanout → ileride başka tüketici bedava bind eder. Binding'i
+    // tüketici kurar (007 soğuk-açılış dersi). Additive: tıklama/sonuç-ISBN sonraki dilimde eklenir.
+    public record UserSearched(
+        Guid UserId,
+        string Query,
+        string Mode,
+        int ResultCount,
+        DateTimeOffset SearchedAt);
 }

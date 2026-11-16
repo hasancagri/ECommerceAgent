@@ -143,4 +143,15 @@ public static class RabbitMqConstants
 
     // Checkout stok-commit koreografisi (StockCommitRequested/Committed/Failed) HÂLÂ sökük — Stock'un
     // sipariş akışına bağlanması ayrı dilim. Ödeme sonucu doğrudan Order.Confirm/Cancel tetikler.
+
+    // 012: app-BFF yayınlar (login arama), Personalization tüketir (ham arama logu). Binding tüketicide.
+    public static class UserSearched
+    {
+        public const string Exchange = "bff.user-searched";
+
+        public static class Queues
+        {
+            public const string Personalization = "personalization.user-searched";
+        }
+    }
 }

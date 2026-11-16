@@ -26,6 +26,8 @@
       <ProjectReference Include="..\..\services\discount\Discount.Api\Discount.Api.csproj" />
       <ProjectReference Include="..\..\services\file\File.Api\File.Api.csproj" />
       <ProjectReference Include="..\..\others\Gateway\Gateway.csproj" />
+      <ProjectReference Include="..\..\services\personalization\Personalization.Api\Personalization.Api.csproj" />
+      <ProjectReference Include="..\..\others\Bff\Bff.csproj" />
     </ItemGroup>
 
     <ItemGroup>

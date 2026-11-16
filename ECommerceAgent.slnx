@@ -5,6 +5,7 @@
     <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/others/">
+    <Project Path="src/others/Bff/Bff.csproj" />
     <Project Path="src/others/Common/Common.csproj" />
     <Project Path="src/others/Gateway/Gateway.csproj" />
     <Project Path="src/others/Identity.Server/Identity.Server.csproj" />
@@ -21,6 +22,7 @@
     <Project Path="src/services/payment/Payment.Api/Payment.Api.csproj" />
     <Project Path="src/services/file/File.Api/File.Api.csproj" />
     <Project Path="src/services/reviews/Reviews.Api/Reviews.Api.csproj" />
+    <Project Path="src/services/personalization/Personalization.Api/Personalization.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Basket.Api.Tests/Basket.Api.Tests.csproj" />
@@ -34,5 +36,6 @@
     <Project Path="tests/Order.Api.Tests/Order.Api.Tests.csproj" />
     <Project Path="tests/Payment.Api.Tests/Payment.Api.Tests.csproj" />
     <Project Path="tests/Reviews.Api.Tests/Reviews.Api.Tests.csproj" />
+    <Project Path="tests/Personalization.Api.Tests/Personalization.Api.Tests.csproj" />
   </Folder>
 </Solution>
