@@ -9,11 +9,13 @@ builder.AddKubernetesEnvironment("k8s");
 // isimler AgentPlatform + PaymentGateway ile çakışır; repo-başına ayrı namespace → çakışma yok.
 var ghcr = builder.AddContainerRegistry("ghcr", "ghcr.io", "hasancagri/ecommerce");
 
-// pgvector'lu resmi imaj. pg17 = Aspire default'u (postgres:17.x) ile ayni veri yolu; mevcut
-// volume uyumlu. pg18 tag'i KULLANMA (WithDataVolume tag'i parse edemez, 17-yolunu mount eder).
+// 011: ParadeDB imajı (pg17) — pg_search (BM25) + pgvector birlikte gelir; postgres üst-kümesi,
+// diğer BC'ler etkilenmez (eklenti catalogDb'ye özel CREATE EXTENSION'la açılır). pgvector/pgvector
+// yerine geldi (eski imaj yalnız vektör; BM25 yoktu). Tag SABİT (latest-pg17'ye güvenme).
+// pg17 veri yolu korunur; image değişimi temiz başlar (eski postgres volume'u bir kez silinir).
 // WithImage, WithDataVolume'dan ONCE: veri yolu o andaki imaj annotation'indan cozulur.
 var postgres = builder.AddPostgres("postgres")
-    .WithImage("pgvector/pgvector", "pg17")
+    .WithImage("paradedb/paradedb", "0.26.6-pg17")
     .WithPgAdmin()
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent);

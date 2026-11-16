@@ -34,3 +34,6 @@ global using ClosedXML.Excel;
 global using Wolverine.Attributes;
 global using Catalog.Api.Domains.ImportJobs.ValueObjects;
 global using Catalog.Api.Domains.Publishers;
+global using Catalog.Api.Search;
+global using Catalog.Api.Domains.Products.Features.Queries;
+global using Npgsql;

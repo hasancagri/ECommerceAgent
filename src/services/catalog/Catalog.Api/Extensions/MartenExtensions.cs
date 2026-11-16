@@ -7,6 +7,11 @@ public static class MartenExtensions
     public static WebApplicationBuilder AddCatalogMarten(this WebApplicationBuilder builder)
     {
         var catalogDb = builder.Configuration.GetConnectionString("catalogDb")!;
+
+        // 011: hibrit arama ham-SQL yürütücüsü (ParadeDB @@@ / <=>) Marten'in LINQ'inden geçmez →
+        // kendi NpgsqlDataSource'u (ayrı pool; Marten'inkini bozmaz). Arama şema DDL'i de buradan kurulur.
+        builder.Services.AddSingleton(NpgsqlDataSource.Create(catalogDb));
+
         builder.Services.AddMarten(opts =>
             {
                 opts.DatabaseSchemaName = SchemaConstants.CatalogSchemaName;
