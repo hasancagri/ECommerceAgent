@@ -23,6 +23,15 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ProductDiscountChanged>()
                 .ToRabbitExchange(RabbitMqConstants.ProductDiscountChanged.Exchange);
 
+            // 010: Tüketici — Catalog 'ProductDiscountImported' → açık-uçlu Campaign + oran yayını.
+            // Binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi) + kendi kuyruğunu dinler.
+            rabbit.DeclareExchange(RabbitMqConstants.ProductDiscountImported.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.ProductDiscountImported.Queues.Discount);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.ProductDiscountImported.Queues.Discount);
+
             opts.Policies.UseDurableLocalQueues();
             // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
             opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
@@ -30,6 +39,8 @@ public static class MessagingExtensions
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+            // 010: *Consumers (çoğul) ad-son-eki convention'a uymaz → elle kayıt ZORUNLU.
+            opts.Discovery.IncludeType(typeof(Discount.Api.CatalogConsumers));
         });
 
         return builder;

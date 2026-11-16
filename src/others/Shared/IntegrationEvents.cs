@@ -106,4 +106,8 @@ public static class IntegrationEvents
     // (CampaignWindowProcess); Rate null = indirim yok (kopya temizlenir). İndirimli fiyat TAŞINMAZ —
     // okuyan liste fiyatından hesaplar (fiyat değişse de tutarlı). Mutlak değer → tüketici idempotent.
     public record ProductDiscountChanged(Guid ProductId, decimal? Rate);
+
+    // 010: Catalog import indirim ithali — yeni ürün + indirim>0 için yayılır. Discount tüketir →
+    // açık-uçlu Campaign.Create → ProductDiscountChanged (Rate kesir, 0<rate≤0.90; Catalog filtreler).
+    public record ProductDiscountImported(Guid ProductId, decimal Rate);
 }

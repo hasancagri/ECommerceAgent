@@ -149,12 +149,13 @@ deseni izler; yetki Dilim 2'de `[RequiredScope]`/JWT'ye bağlanacak (conventions
   `KnownScopes` kapalı registry, rol→scope map DB'de ve AgentPlatform IdP'nin kendi
   server-rendered `/Admin/*` ekranlarından yönetilir (cookie auth — Anayasa İlke V istisnası). Register → `customer` rolü. `[RequiredScope]` Wolverine mesaj
   handler'larına da uygulanır. Identity **HTTPS zorunlu**.
-- **TUZAK (Marten tr-TR noktasız ı — TEKRARLAYAN):** Adında büyük `I`/`İ` geçen HER yeni Marten
-  belgesi (`ImportJob`, `Invoice`, `İade`…) tr-TR ToLower'da `mt_doc_ımportjob` gibi ı'lı tablo adı
-  üretir → ilk açılış çalışır, SONRAKİ açılışta 42P07 "already exists" crashloop (Weasel ı'lı adı
-  eşleyemez; servis kalkmaz, ona WaitFor'lu her şey — gateway dahil — zincirleme doğmaz).
-  **Kural: `opts.Schema.For<T>().DocumentAlias("...")` — elle, lowercase, I'sız — yeni belge
-  eklerken İLK iş.** Yakalanırsa: bozuk ı'lı tablo DROP + alias ekle (örnek: `excel_import_job`, 004).
+- **Marten tr-TR noktasız ı — KÖKTEN ÇÖZÜLDÜ (010, `Directory.Build.props`):**
+  `<InvariantGlobalization>true</InvariantGlobalization>` repo-geneli → `ToLower('I')` hep noktalı
+  `i` → Marten tablo adları hiç ı'lı olmaz (eski `mt_doc_stockıtem` 42P07 crashloop sınıfı biter);
+  bonus: sayı `ToString()` hep "." (ClosedXML "0,285"→285 parse bug'ı da biter). Artık elle
+  `DocumentAlias` ZORUNLU DEĞİL (ama zararsız). Yeni belge eklerken ı'yı DÜŞÜNME — global kural halleder.
+  (Tarihsel: önce elle `opts.Schema.For<T>().DocumentAlias("…")` I'sız alias gerekiyordu — unutuluyordu;
+  bozuk ı'lı tablo bir kez DROP edilir, Marten noktalı adı yeniden kurar.)
 - **TUZAK (`ScopeClaimArrayHandler`):** `context.TokenType` bir URN'dir
   (`TokenTypeIdentifiers.AccessToken`), hint DEĞİL — hint'le kıyaslarsan handler no-op olur ve yetki
   sessizce düşer (403). **Scope-korumalı bir uçta beklenmedik 403 görürsen ilk bakılacak yer burası.**
