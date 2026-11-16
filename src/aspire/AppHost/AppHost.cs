@@ -160,6 +160,19 @@ var discountApi = builder.AddProject<Projects.Discount_Api>("discount-api")
     .WaitFor(discountDb)
     .WaitFor(rabbit);
 
+// 012: Personalization BC — kullanıcı arama kaydı tüketicisi (UserSearched → ham log). Kendi DB,
+// izole; dış HTTP yüzeyi yok (yalnız RabbitMQ tüketici).
+var personalizationDb = postgres.AddDatabase("personalizationDb");
+var personalizationApi = builder.AddProject<Projects.Personalization_Api>("personalization-api")
+    .WithHttpHealthCheck("/health")
+    .WithReference(personalizationDb)
+    .WithReference(rabbit)
+    .WaitFor(personalizationDb)
+    .WaitFor(rabbit);
+
+// 012: app-BFF SÖKÜLDÜ — arama kaydı (UserSearched) artık Catalog arama ucundan yayınlanır
+// (orkestratör katmanı kaldırıldı; React doğrudan gateway /api/catalog/** aramasını çağırır).
+
 // Discount BC SÖKÜLDÜ (095 branch'i, 2026-10-31) — kampanya/indirim modeli kullanıcı kararıyla
 // kalktı; checkout tutarı = liste fiyatı. İndirim dönerse bilinçli mimari karar + spec'le döner.
 
@@ -217,7 +230,7 @@ foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
-    fileApi, gateway
+    fileApi, gateway, personalizationApi
 })
 {
     svc.WithContainerRegistry(ghcr);

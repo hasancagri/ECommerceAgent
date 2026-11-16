@@ -33,6 +33,28 @@ builder.Services.AddCachingAspect("catalog");
 builder.Services.AddHttpContextAccessor();
 // MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — tüm /mcp tool'ları + DLQ MCP kaldırıldı; okuma/yazma REST first-party'ye.
 
+// 012: OPSİYONEL JWT (007 deseni) — arama ucu login kullanıcıyı token'dan çözer (UserSearched capture).
+// Anonim serbest (arama ucunda RequireAuthorization YOK). ValidateAudience=false: SPA access-token
+// audience taşımaz (yalnız scope) → Common.AddAuthenticationAndAuthorizationExtension (ValidateAudience=
+// true) REDDEDER, o yüzden inline. Issuer/imza/süre doğrulanır. ApiKey şeması (S2S/admin) yanında yaşar.
+var identity = builder.Configuration.GetSection(nameof(IdentityOption)).Get<IdentityOption>()!;
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = identity.Address;
+        options.RequireHttpsMetadata = false;
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,
+        };
+    });
+builder.Services.AddAuthorization();
+builder.Services.AddTransient<ICurrentUser, CurrentUser>();
+
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
 
@@ -66,9 +88,10 @@ var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
 app.MapDefaultEndpoints();
 
-// Temiz-sayfa sökümünde JWT auth kaydı (AddAuthenticationAndAuthorizationExtension) MCP yüzeyiyle
-// birlikte gitti; kayıtsız UseAuthentication/UseAuthorization açılışta fırlatır (096 canlı koşusunda
-// yakalandı). Kalan tek şema ApiKey (S2S) — basket/order/payment ile aynı desen.
+// 012: opsiyonel JWT şeması yukarıda kaydedildi → UseAuthentication/UseAuthorization güvenli (eski
+// "kayıtsız şema açılışta fırlatır" tuzağı artık geçerli değil). ApiKey (S2S/admin) şemasıyla yan yana.
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseApiKeyAuthentication();
 
 // 004: ilk REST admin yüzeyi — Excel import uçları (gateway /api/admin/catalog/** rotasından gelir).
