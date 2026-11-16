@@ -10,6 +10,7 @@ namespace Catalog.Api.Domains.Products;
 // SONUÇ YOKSA 200 + boş liste döner (NotFound=404 keşif UX'ini bozar; boş sorgu hata değil, FR-003).
 public static class ProductEndpointExtension
 {
+
     public static void MapProductEndpoints(this IEndpointRouteBuilder app)
     {
         var search = app.MapGroup("/api/catalog/products").WithTags("CatalogSearch");

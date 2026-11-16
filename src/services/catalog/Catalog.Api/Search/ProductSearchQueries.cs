@@ -12,10 +12,11 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
     private const string ProductTable = $"{SchemaConstants.CatalogSchemaName}.mt_doc_product";
     private const string EmbeddingTable = $"{SchemaConstants.CatalogSchemaName}.product_embedding";
 
-    // US1 — BM25 keyword: ad+açıklama+etiket üstünde alaka-sıralı. $1=sorgu metni, $2=limit, $3=offset.
+    // US1 — BM25 keyword: tüm `data` JSONB üstünde alaka-sıralı (index tek `data` alanı — ParadeDB
+    // çok-expression'ı reddeder). $1=sorgu metni, $2=limit, $3=offset.
     private const string Bm25Sql = $"""
         SELECT id FROM {ProductTable}
-        WHERE ((data->>'Name') @@@ $1 OR (data->>'Description') @@@ $1 OR (data->>'Tags') @@@ $1)
+        WHERE data @@@ $1
         ORDER BY pdb.score(id) DESC
         LIMIT $2 OFFSET $3
         """;
@@ -42,8 +43,20 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
         LIMIT $2
         """;
 
-    public Task<IReadOnlyList<Guid>> Bm25Async(string query, int limit, int offset, CancellationToken ct) =>
-        ReadIdsAsync(Bm25Sql, ct, query, limit, offset);
+    public Task<IReadOnlyList<Guid>> Bm25Async(string query, int limit, int offset, CancellationToken ct)
+    {
+        // ParadeDB `@@@` metni QUERY-PARSER olarak yorumlar — apostrof/`:`/`(`/`"`… özel karakterleri
+        // patlatır (500). Kullanıcı serbest metni → yalnız harf/rakam/boşluk bırak (terimler plain OR'lanır).
+        var clean = SanitizeBm25(query);
+        return clean.Length == 0
+            ? Task.FromResult<IReadOnlyList<Guid>>([])
+            : ReadIdsAsync(Bm25Sql, ct, clean, limit, offset);
+    }
+
+    private static string SanitizeBm25(string query) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            System.Text.RegularExpressions.Regex.Replace(query, @"[^\p{L}\p{N}\s]", " "),
+            @"\s+", " ").Trim();
 
     public Task<IReadOnlyList<Guid>> SemanticAsync(float[] queryVector, int limit, int offset, CancellationToken ct) =>
         ReadIdsAsync(SemanticSql, ct, ToVectorLiteral(queryVector), limit, offset);

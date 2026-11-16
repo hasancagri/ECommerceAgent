@@ -14,22 +14,15 @@ public sealed class ProductSearchSchemaInitializer(
     public const string EmbeddingTable = $"{Schema}.product_embedding";
     public const string Bm25Index = "product_bm25_idx";
 
-    // Alan tokenizasyonu: ICU (Unicode/locale-duyarlı; built-in Türkçe config yok) + lowercase.
-    // FLAG (İ/ı): ICU'nun ascii_folding arg'ı sürüme göre değişir → sorgu tarafı ayrıca foldlanır
-    // (SearchTextNormalization). ascii_folding gerekirse burada '::pdb.icu' yerine ilgili arg eklenir.
-    private const string Icu = "::pdb.icu";
-
-    // BM25 index — mt_doc_product JSONB üstünde (yeni tablo YOK; MVCC otomatik bakım). Ad+açıklama+etiket.
-    // Tags = BookTag[] JSONB → text olarak indekslenir (değer kelimeleri aranır; 'Value' gürültüsü kabul).
+    // BM25 index — mt_doc_product'ın TÜM `data` JSONB'si tek alan olarak (yeni tablo YOK; MVCC otomatik).
+    // Ad/açıklama/etiket + diğer string alanlar aranabilir olur (gürültü kabul; sorgu `data @@@`).
+    // NOT: Çok ayrı `(data->>'X')` expression'ı ParadeDB "data defined more than once" verir — tek `data`.
+    // FLAG (İ/ı): whole-jsonb default tokenizer lowercase; Tags ASCII-ikizi (009) köprü kurar, Name/Desc
+    // dotless-ı için ileride WITH text_fields ICU config'i eklenebilir (sürüme göre, canlı doğrulama).
     private static readonly string CreateBm25 = $"""
         CREATE INDEX IF NOT EXISTS {Bm25Index}
         ON {ProductTable}
-        USING bm25 (
-            id,
-            ((data->>'Name'){Icu}),
-            ((data->>'Description'){Icu}),
-            ((data->>'Tags'){Icu})
-        );
+        USING bm25 (id, data);
         """;
 
     private static readonly string[] Statements =
