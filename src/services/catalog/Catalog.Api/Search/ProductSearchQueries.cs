@@ -45,12 +45,13 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
 
     public Task<IReadOnlyList<Guid>> Bm25Async(string query, int limit, int offset, CancellationToken ct)
     {
-        // ParadeDB `@@@` metni QUERY-PARSER olarak yorumlar — apostrof/`:`/`(`/`"`… özel karakterleri
-        // patlatır (500). Kullanıcı serbest metni → yalnız harf/rakam/boşluk bırak (terimler plain OR'lanır).
+        // ParadeDB jsonb index'te bare string eşleşmez — ALT-ALAN hedeflenir (Name/Description/Tags.Value).
+        // Kullanıcı metni sanitize edilir (apostrof/özel karakter 500 verir), sonra alan-sorgusu kurulur:
+        // `Name:(terimler) OR Description:(terimler) OR Tags.Value:(terimler)`. Terimler alnum → enjeksiyon yok.
         var clean = SanitizeBm25(query);
-        return clean.Length == 0
-            ? Task.FromResult<IReadOnlyList<Guid>>([])
-            : ReadIdsAsync(Bm25Sql, ct, clean, limit, offset);
+        if (clean.Length == 0) return Task.FromResult<IReadOnlyList<Guid>>([]);
+        var pdbQuery = $"Name:({clean}) OR Description:({clean}) OR Tags.Value:({clean})";
+        return ReadIdsAsync(Bm25Sql, ct, pdbQuery, limit, offset);
     }
 
     private static string SanitizeBm25(string query) =>
