@@ -5,7 +5,6 @@
     <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/others/">
-    <Project Path="src/others/Bff/Bff.csproj" />
     <Project Path="src/others/Common/Common.csproj" />
     <Project Path="src/others/Gateway/Gateway.csproj" />
     <Project Path="src/others/Identity.Server/Identity.Server.csproj" />

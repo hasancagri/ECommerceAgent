@@ -170,14 +170,8 @@ var personalizationApi = builder.AddProject<Projects.Personalization_Api>("perso
     .WaitFor(personalizationDb)
     .WaitFor(rabbit);
 
-// 012: app-BFF — istemci-yüzü aramanın tek giriş noktası (durumsuz orkestratör, DB yok). Catalog'un
-// public REST aramasını çağırır (service discovery) + login aramada UserSearched yayınlar (rabbit).
-var bff = builder.AddProject<Projects.Bff>("bff")
-    .WithHttpHealthCheck("/health")
-    .WithReference(catalogApi)
-    .WithReference(rabbit)
-    .WaitFor(catalogApi)
-    .WaitFor(rabbit);
+// 012: app-BFF SÖKÜLDÜ — arama kaydı (UserSearched) artık Catalog arama ucundan yayınlanır
+// (orkestratör katmanı kaldırıldı; React doğrudan gateway /api/catalog/** aramasını çağırır).
 
 // Discount BC SÖKÜLDÜ (095 branch'i, 2026-10-31) — kampanya/indirim modeli kullanıcı kararıyla
 // kalktı; checkout tutarı = liste fiyatı. İndirim dönerse bilinçli mimari karar + spec'le döner.
@@ -221,11 +215,9 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithHttpHealthCheck("/health")
     .WithReference(catalogApi)
     .WithReference(fileApi)
-    .WithReference(bff)   // 012: /api/discovery/** → bff
     .WithEnvironment("GatewayAuthOptions__AdminApiKey", adminApiKey)
     .WaitFor(catalogApi)
-    .WaitFor(fileApi)
-    .WaitFor(bff);
+    .WaitFor(fileApi);
 catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
@@ -238,7 +230,7 @@ foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
-    fileApi, gateway, personalizationApi, bff
+    fileApi, gateway, personalizationApi
 })
 {
     svc.WithContainerRegistry(ghcr);
