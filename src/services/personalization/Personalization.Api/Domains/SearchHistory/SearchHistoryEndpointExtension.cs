@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Personalization.Api.Domains.SearchHistory.Features.Queries;
+using Personalization.Api.Domains.SearchHistory.Features.Commands;
 
 namespace Personalization.Api.Domains.SearchHistory;
 
@@ -30,6 +31,40 @@ public static class SearchHistoryEndpointExtension
                 new GetSearchHistory.GetSearchHistoryQuery(currentUser.Id, page ?? 1, pageSize ?? 20), ct);
 
             return Results.Ok(result.Data);
+        });
+
+        // DELETE item — bir sorgunun (normalize eşleşen) TÜM kayıtlarını KALICI sil (idempotent).
+        group.MapDelete("/item", async (
+            [FromQuery] string query,
+            IMessageBus bus,
+            ICurrentUser currentUser,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            currentUser.Load(http.User);
+            if (currentUser.Id == Guid.Empty) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(query)) return Results.BadRequest();
+
+            var result = await bus.InvokeAsync<FeatureResultModel>(
+                new DeleteSearchHistoryItem.DeleteSearchHistoryItemCommand(currentUser.Id, query), ct);
+
+            return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
+        });
+
+        // DELETE all — kullanıcının tüm geçmişini KALICI temizle.
+        group.MapDelete("", async (
+            IMessageBus bus,
+            ICurrentUser currentUser,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            currentUser.Load(http.User);
+            if (currentUser.Id == Guid.Empty) return Results.Unauthorized();
+
+            var result = await bus.InvokeAsync<FeatureResultModel>(
+                new ClearSearchHistory.ClearSearchHistoryCommand(currentUser.Id), ct);
+
+            return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
         });
     }
 }
