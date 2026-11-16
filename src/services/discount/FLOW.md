@@ -12,6 +12,12 @@ okuyanda hesaplanır). (003, dönüş — eski Discount 095'te sökülmüştü, 
 
 1. 🟦 **Kampanya tanımlanır** — 👤 admin tek ürüne oran (%1-%90) + zaman penceresi                `(Campaign.Create)`
    girer; bitiş > başlangıç. _(giriş yüzeyi yok — REST admin sonraki dilim.)_
+1b. 🟪 **İthal kampanya** (010) ⇦ Catalog — `ProductDiscountImported(productId,            `(CatalogConsumers,`
+   rate)` tüketilir → `Campaign.Create` açık-uçlu (start=now, end=null) → hemen aktif          ` Campaign.Create)`
+   olduğundan `ProductDiscountChanged(productId, rate)` YAYILIR ⇨ Catalog (import-özel
+   yayın; genel CampaignWindowProcess hâlâ ertelenmiş).
+   🟥 Hotspot (closed: 010): açık-uçlu `EndsAt` nullable yapıldı — `Create` endsAt=null'ı
+   kabul eder, `IsActiveAt` null-end'i "süresiz aktif" sayar; dolu endsAt davranışı korunur.
 2. 🟦 **Kampanya iptal edilir** — pencere bitmeden etkinlik düşer; kayıt silinmez                `(Campaign.Cancel)`
    (durum değişimi — geçmiş raporlama için durur).
 3. 🟪 **Etkin oran çözülür** — üründe aynı anda EN FAZLA BİR etkin indirim:                      `(Campaign.IsActiveAt,`

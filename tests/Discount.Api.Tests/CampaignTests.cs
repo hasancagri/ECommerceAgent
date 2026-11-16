@@ -9,6 +9,52 @@ public class CampaignTests
     private static Campaign NewCampaign(decimal rate = 0.20m) =>
         Campaign.Create(Guid.NewGuid(), rate, Now, Now.AddDays(7)).Data!;
 
+    // --- 010: açık-uçlu kampanya (EndsAt null = süresiz) ---
+
+    [Fact]
+    public void Create_OpenEndedNullEnd_Succeeds()
+    {
+        var result = Campaign.Create(Guid.NewGuid(), 0.285m, Now, endsAt: null);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Data!.EndsAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void IsActiveAt_NullEnd_TrueAfterStart()
+    {
+        var campaign = Campaign.Create(Guid.NewGuid(), 0.285m, Now, endsAt: null).Data!;
+
+        campaign.IsActiveAt(Now).ShouldBeTrue();
+        campaign.IsActiveAt(Now.AddYears(5)).ShouldBeTrue(); // süresiz
+    }
+
+    [Fact]
+    public void IsActiveAt_NullEnd_FalseBeforeStart()
+    {
+        var campaign = Campaign.Create(Guid.NewGuid(), 0.285m, Now, endsAt: null).Data!;
+
+        campaign.IsActiveAt(Now.AddDays(-1)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Create_RateAboveMax_ReturnsError()
+    {
+        var result = Campaign.Create(Guid.NewGuid(), 0.95m, Now, endsAt: null);
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Messages!.ShouldContain(m => m.Code == DiscountResourceConstants.CAMPAIGN_RATE_INVALID);
+    }
+
+    [Fact]
+    public void Create_WindowedEndBeforeStart_ReturnsError()
+    {
+        var result = Campaign.Create(Guid.NewGuid(), 0.20m, Now, Now); // dolu endsAt ≤ startsAt
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Messages!.ShouldContain(m => m.Code == DiscountResourceConstants.CAMPAIGN_WINDOW_INVALID);
+    }
+
     // --- Create ---
 
     [Fact]

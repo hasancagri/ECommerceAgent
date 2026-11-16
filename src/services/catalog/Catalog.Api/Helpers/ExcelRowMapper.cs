@@ -40,6 +40,12 @@ public static class ExcelRowMapper
             Language = Text(cells, "Dil")?.Trim(),
             PublishedOn = Date(Text(cells, "Yayın Tarihi")),
             Binding = ParseBinding(Text(cells, "Cilt Tipi")),
+            // 009: etiketler — virgülle ayrık ham parçalar (normalize AGGREGATE'te, BookTag.Create).
+            // Sütun yok → boş liste (geriye-uyumlu). SplitNames deseni: trim + boş-ele + Distinct.
+            Tags = SplitNames(Text(cells, "Etiketler")),
+            // 010: İndirim oranı — "İndirim %" ZATEN kesir (0.285 = %28.5), dönüşüm YOK. >0 ise taşı,
+            // aksi null (indirim yok). Aralık guard'ı (≤0.90) worker'da yayın anında.
+            DiscountRate = Decimal(cells, "İndirim %") is { } dr && dr > 0 ? dr : null,
             Price = PriceWithFallback(cells),
             Rating = RoundedRating(Decimal(cells, "Puan")),
             RatingCount = Int(cells, "Puan Adedi") ?? 0,
@@ -158,6 +164,8 @@ public sealed class ImportRow
     public string? AuthorBio { get; init; }
     public string PublisherName { get; init; } = default!;
     public List<string> Translators { get; init; } = new();
+    public List<string> Tags { get; init; } = new();
+    public decimal? DiscountRate { get; init; }
     public string? ParentCategoryName { get; init; }
     public string? LeafCategoryName { get; init; }
     public List<string> RelatedCategoryLeafNames { get; init; } = new();

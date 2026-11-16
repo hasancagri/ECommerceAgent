@@ -64,6 +64,58 @@ public class ExcelRowMapperTests
         row.PublisherName.ShouldBe("Can Yayınları"); // sayfa adı = yayınevi (R1)
     }
 
+    // --- 009: Etiketler sütunu ---
+
+    [Fact]
+    public void Map_TagsCell_SplitsTrimsDistinct()
+    {
+        var result = ExcelRowMapper.Map("Can Yayınları", 2,
+            ValidCells(c => c["Etiketler"] = "distopya, gözetim , distopya"));
+
+        result.Row!.Tags.ShouldBe(new[] { "distopya", "gözetim" }); // trim + Distinct (ham)
+    }
+
+    [Fact]
+    public void Map_NoTagsColumn_EmptyList()
+    {
+        var cells = ValidCells();
+        cells.Remove("Etiketler"); // eski formatlı Excel — sütun yok (geriye-uyum)
+
+        var result = ExcelRowMapper.Map("Can Yayınları", 2, cells);
+
+        result.Error.ShouldBeNull();
+        result.Row!.Tags.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Map_DoubleComma_SkipsEmpty()
+    {
+        var result = ExcelRowMapper.Map("Can Yayınları", 2,
+            ValidCells(c => c["Etiketler"] = "a,, b,"));
+
+        result.Row!.Tags.ShouldBe(new[] { "a", "b" });
+    }
+
+    [Fact]
+    public void Map_DiscountCell_ReadsFraction()
+    {
+        var result = ExcelRowMapper.Map("Can Yayınları", 2,
+            ValidCells(c => c["İndirim %"] = "0.285"));
+
+        result.Row!.DiscountRate.ShouldBe(0.285m);
+    }
+
+    [Fact]
+    public void Map_DiscountCell_NativeDouble_ReadsFraction()
+    {
+        // 010 regresyon: worker sayısal hücreyi NATIVE double geçirir (kültür-bağımsız);
+        // .ToString() "0,285" verip InvariantCulture'da 285'e bozulma hatası tekrar etmesin.
+        var result = ExcelRowMapper.Map("Can Yayınları", 2,
+            ValidCells(c => c["İndirim %"] = 0.285d));
+
+        result.Row!.DiscountRate.ShouldBe(0.285m);
+    }
+
     [Fact]
     public void Map_MissingIsbn_ReturnsRowError()
     {

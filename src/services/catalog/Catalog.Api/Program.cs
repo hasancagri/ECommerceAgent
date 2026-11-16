@@ -49,6 +49,19 @@ builder.Services.AddScoped<AdminApiKeyEndpointFilter>();
 // Mesaj/kuyruk tetiği YOK (kullanıcı kararı); Wolverine keşfiyle ilgisiz, düz hosted service.
 builder.Services.AddHostedService<Catalog.Api.Process.ImportJobWorker>();
 
+// 011: hibrit arama şema nesneleri (ParadeDB eklenti + BM25 index + product_embedding tablo/HNSW).
+// AddCatalogMarten'DEN SONRA kaydedilir → Marten'in şema-apply hosted service'inden SONRA koşar
+// (mt_doc_product kurulmuş olur); idempotent ham DDL.
+builder.Services.AddHostedService<Catalog.Api.Search.ProductSearchSchemaInitializer>();
+
+// 011 US2/US3: sorgu-anı embedding (OpenAI). Anahtar OPSİYONEL (yoksa semantik ayak devre-dışı,
+// BM25 tam çalışır) → ValidateOnStart YOK. HttpClient fabrikası QueryEmbeddingClient için.
+builder.Services.AddHttpClient();
+builder.Services.AddOptions<Catalog.Api.Search.Embedding.OpenAiEmbeddingOptions>()
+    .BindConfiguration(nameof(Catalog.Api.Search.Embedding.OpenAiEmbeddingOptions));
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Search.Embedding.OpenAiEmbeddingOptions>>().Value);
+
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
 app.MapDefaultEndpoints();
@@ -60,5 +73,8 @@ app.UseApiKeyAuthentication();
 
 // 004: ilk REST admin yüzeyi — Excel import uçları (gateway /api/admin/catalog/** rotasından gelir).
 app.MapImportJobEndpoints();
+
+// 011: hibrit arama uçları — müşteri arama/benzer (anonim) + admin embedding ingest (anahtar).
+app.MapProductEndpoints();
 
 await app.RunAsync();

@@ -13,16 +13,18 @@ public class Campaign : AggregateRoot
     // 0.01-0.90 (oran; %90 üstü tam-bedava/negatif kazalarına guard).
     public decimal Rate { get; private set; }
     public DateTimeOffset StartsAt { get; private set; }
-    public DateTimeOffset EndsAt { get; private set; }
+    // 010: null = açık-uçlu (süresiz aktif) — import ithal kampanyası bitişsizdir.
+    public DateTimeOffset? EndsAt { get; private set; }
     public bool IsCancelled { get; private set; }
 
     private Campaign()
     {
     }
 
-    /// <summary>Kampanya tanımlar. Guard'lar: ürün boş olamaz, oran %1-%90, bitiş > başlangıç.</summary>
+    /// <summary>Kampanya tanımlar. Guard'lar: ürün boş olamaz, oran %1-%90; bitiş VERİLİRSE
+    /// > başlangıç. endsAt=null → açık-uçlu (süresiz aktif, 010 ithal kampanyası).</summary>
     public static ResultDomain<Campaign> Create(Guid productId, decimal rate,
-        DateTimeOffset startsAt, DateTimeOffset endsAt)
+        DateTimeOffset startsAt, DateTimeOffset? endsAt)
     {
         if (productId == Guid.Empty)
             return ResultDomain<Campaign>.Error(new MessageItem
@@ -30,7 +32,7 @@ public class Campaign : AggregateRoot
         if (rate is <= 0 or > 0.90m)
             return ResultDomain<Campaign>.Error(new MessageItem
             { Property = nameof(Rate), Code = DiscountResourceConstants.CAMPAIGN_RATE_INVALID });
-        if (endsAt <= startsAt)
+        if (endsAt is not null && endsAt <= startsAt)
             return ResultDomain<Campaign>.Error(new MessageItem
             { Property = nameof(EndsAt), Code = DiscountResourceConstants.CAMPAIGN_WINDOW_INVALID });
 
@@ -51,9 +53,10 @@ public class Campaign : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Verilen anda etkin mi — saf karar: pencere içinde VE iptal edilmemiş.</summary>
+    /// <summary>Verilen anda etkin mi — saf karar: başlangıç geçmiş, bitiş yoksa (açık-uçlu) ya da
+    /// henüz gelmemiş, VE iptal edilmemiş.</summary>
     public bool IsActiveAt(DateTimeOffset now) =>
-        !IsCancelled && now >= StartsAt && now < EndsAt;
+        !IsCancelled && now >= StartsAt && (EndsAt is null || now < EndsAt);
 }
 
 /// <summary>Ürün-başına etkin oran seçimi — saf helper; CampaignWindowProcess bunu çağırır.

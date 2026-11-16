@@ -36,6 +36,15 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.ProductAdded>()
                 .ToRabbitExchange(RabbitMqConstants.ProductAdded.Exchange);
 
+            // 010: indirim ithali — import indirimli ürün için Discount'a duyurur (yayıncı yalnız
+            // exchange deklare eder; binding'i tüketici Discount kurar).
+            rabbit.DeclareExchange(RabbitMqConstants.ProductDiscountImported.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+            });
+            opts.PublishMessage<Shared.IntegrationEvents.ProductDiscountImported>()
+                .ToRabbitExchange(RabbitMqConstants.ProductDiscountImported.Exchange);
+
             // 004: CoverIngested tüketimi GERİ (097 kapaksızlık kararı tersine) — File kapak zinciri
             // → Product.SetImage. Binding'i TÜKETİCİ kurar; hatada uniform retry→error-queue (DLQ).
             rabbit.DeclareExchange(RabbitMqConstants.CoverIngested.Exchange, e =>

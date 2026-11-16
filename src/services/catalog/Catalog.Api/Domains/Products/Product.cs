@@ -57,6 +57,11 @@ public class Product : AggregateRoot
     private readonly List<string> _translators = new();
     public IReadOnlyList<string> Translators => _translators;
 
+    // 009: kitaba-ait etiketler (tema/ruh/alt-tür). Ortak Tag kaydı YOK — her ürün kendi listesini
+    // tutar; BookTag değer-eşitliği kitaplar-arası gruplamayı verir. Normalize BookTag.Create'te.
+    private readonly List<BookTag> _tags = new();
+    public IReadOnlyList<BookTag> Tags => _tags;
+
     /// <summary>Satışa-uygunluk — TEK tanım (001+002): fiyat>0 VE stok>0 VE ≥1 yazar. Türetilmiş
     /// saf getter, hiçbir yere kopyalanmaz; stok bacağı StockChanged-fed kopyadan okunur.</summary>
     public bool IsSalable => Price is { Amount: > 0 } && StockCount > 0 && _authorIds.Count > 0;
@@ -152,6 +157,23 @@ public class Product : AggregateRoot
         var deduped = authorIds.Distinct().ToList();
         _authorIds.Clear();
         _authorIds.AddRange(deduped);
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>Etiketleri TAM-DEĞİŞTİRME ile yazar (009). Her ham parça BookTag.Create edilir;
+    /// başarısız (boş) parça ATLANIR (import satırını durdurmaz); başarılılar Value'ya göre
+    /// tekilleştirilir (SetAuthors deseni). Boş/tümü-geçersiz liste geçerli (etiketsiz ürün). Hep Ok.</summary>
+    public ResultDomain SetTags(IEnumerable<string> rawTags)
+    {
+        var tags = rawTags
+            .Select(BookTag.Create)
+            .Where(r => r.IsSuccess)
+            .Select(r => r.Data!)
+            .SelectMany(t => t.AsciiVariant() is { } ascii ? new[] { t, ascii } : new[] { t })
+            .Distinct()
+            .ToList();
+        _tags.Clear();
+        _tags.AddRange(tags);
         return ResultDomain.Ok();
     }
 

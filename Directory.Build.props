@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <!-- KURAL (repo-geneli, tüm projeler): tr-TR noktasız ı tuzağını KÖKTEN çözer.
+         Sorun: CurrentCulture=tr-TR iken "StockItem".ToLower() → "stockıtem" (noktasız ı);
+         Marten/Weasel bu adla tablo üretir (mt_doc_stockıtem) → İLK açılış çalışır ama SONRAKİ
+         açılışta Weasel ı'lı adı eşleyemez → 42P07 "already exists" crashloop → servis kalkmaz.
+         Elle DocumentAlias (I'sız) unutulabiliyor (her yeni belgede tekrar eden hata).
+         InvariantGlobalization=true → ToLower/ToUpper HEP kültür-bağımsız → tablo adları hep
+         noktalı i; ayrıca sayı ToString() hep "." (ClosedXML "0,285" → 285 parse bozulması da biter).
+         Kültür-duyarlı işler zaten ToUpperInvariant/ToLowerInvariant ile açıkça yapılıyor. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+</Project>

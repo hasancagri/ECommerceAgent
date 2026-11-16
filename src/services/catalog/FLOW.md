@@ -47,6 +47,17 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 4. 🟦 **Tek leaf kategoriye bağla** — leaf kapalı ağaçtan adla çözülür              `(NameNormalization.Normalize,`
    (çözülemeyen → "Genel"); üst kategori ürüne YAZILMAZ. İlgili                     ` Product.SetCategory,`
    kategoriler editoryal liste olarak ayrı atanır (çözülemeyen atlanır).            ` Product.SetRelatedCategories)`
+4b. 🟦 **Etiketleri ata** (009) — Excel `Etiketler` sütunu virgülle bölünür,       `(ExcelRowMapper,`
+   her parça lowercase normalize edilir + Türkçe karakterli olanın ASCII ikizi         ` BookTag.Create,`
+   de eklenir ("karanlık"↔"karanlik", arama köprüsü) → ürün kendi BookTag               ` BookTag.AsciiVariant,`
+   listesini taşır (ortak Tag kaydı YOK; değer-eşitliği kitaplar-arası                   ` Product.SetTags)`
+   gruplamayı verir). INSERT-ONLY: var olan ISBN etiketi ezilmez.
+4c. 🟦 **İndirimi ithal et** (010) — Excel `İndirim %` okunur (ZATEN kesir, 0.285=%28.5);   `(ExcelRowMapper,`
+   >0 ∧ ≤0.90 ise ürün yazıldıktan SONRA `ProductDiscountImported(productId, rate)`           ` ImportJobWorker)`
+   yayılır ⇨ Discount (ithal: indirim bizim değil Kitapyurdu'nun). 0/boş → event yok.
+6. 🟧 **Ürün doğdu** ⇨ File, Stock (010) — File kapak hattını tetikler; Stock          `(ProductAdded)`
+   `ProductAdded`'i tüketip `StockItem.Create(productId, rastgele 30-50)` ile stok
+   defteri açar (stok İTHAL edilmez — Excel'de gerçek adet yok).
 5. 🟧⭐ **Ürün değişti** — değişim KANONİK yayınlanır: fiyat decimal;                `(ProductChangedEvent,`
    kategori AD+ID zinciri = leaf + ata (yayın anında ağaçtan çözülür —              ` CategoryNaming.ResolveChain)`
    related GİRMEZ); yazarlar (Id+ad) + yayınevi ADLA (fat event). `IsDeleted`
@@ -59,10 +70,17 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    kararı TERSİNE) — `CoverIngested(isbn,url)` tüketilir, Gtin'le ürün bulunur,          ` Product.SetImage)`
    kapak adresi dolar (idempotent); kapak gelmeyen ürün kapaksız kalır (iş durmaz).
    DLQ deseni aynı (retry → error-queue).
-8. 🟩 Keşif/arama yüzeyi _(planned)_ — hibrit arama, benzer-kitap, danışman agent
-   SONRAKİ spec'ler. **096 embedding omurgası SÖKÜLDÜ (099 öncesi, kullanıcı kararı):**
-   ProductEmbedding + Ollama hattı + reconcile süreci gitti; semantik ayak ileride
-   yeniden, bilinçli kurulur. Yayın filtresi yok — her ürün keşfedilebilir olacak.
+8. 🟩 Hibrit arama (011) — pg-hibrit, ParadeDB (pg_search + pgvector); anonim keşif,        `(ProductSearchSchemaInitializer,`
+   mt_doc_product BM25 index + ayrı product_embedding tablosu (Marten'e dokunmaz):          ` ProductEndpointExtension)`
+8a. 🟦 BM25 keyword ara (011 US1) — pg_search BM25 index (ad+açıklama+etiket,               `(ProductSearchQueries.Bm25Async,`
+   ICU tokenizer) üstünde `@@@` + `pdb.score` → alaka-sıralı sonuç. Embedding GEREKMEZ.      ` SearchProducts)`
+8b. 🟪 Embedding üret+yükle (011 US2) — OpenAI offline batch (008 deseni, ad+yazar+          `(IngestEmbeddings, QueryEmbeddingClient,`
+   açıklama+etiket) → admin ingest → product_embedding; kNN (`<=>` kosinüs) "benzer/          ` ProductSearchQueries.SemanticAsync,`
+   anlamca". Sorgu-vektörü arama-anı OpenAI'den; ürün vektörü offline (bir kez).              ` SimilarProducts)`
+8c. 🟪 RRF füzyon (011 US3) — BM25 + vektör sıralamalarını Reciprocal Rank Fusion ile       `(RrfFusion.Combine, HybridSearch)`
+   birleştir (skor normalize GEREKMEZ, sıra-tabanlı) → tek hibrit sonuç.
+   **096 embedding omurgası SÖKÜLMÜŞTÜ (Ollama); 011 OpenAI + ParadeDB ile bilinçli geri.**
+   Yayın filtresi yok — her ürün keşfedilebilir.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
@@ -79,5 +97,5 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 
 ## Sınır (bu BC'nin dokunmadığı)
 
-Metin/semantik arama (pg-hibrit gelecek — şu an yok; 096 embedding omurgası söküldü). İndirim/fiyatlandırma motoru, sipariş,
-ödeme, stok, PDF teslimi yok.
+Arama Catalog içi (011 pg-hibrit) — başka BC'ye senkron çağrı yapmaz. Reco/kişiselleştirme, zevk-vektörü,
+gösterim logu/CTR (ayrı dilim). İndirim/fiyatlandırma motoru, sipariş, ödeme, stok, PDF teslimi yok.

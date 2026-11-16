@@ -23,6 +23,15 @@ public static class MessagingExtensions
             opts.PublishMessage<Shared.IntegrationEvents.StockChanged>()
                 .ToRabbitExchange(RabbitMqConstants.StockChanged.Exchange);
 
+            // 010: Tüketici — Catalog 'ProductAdded' → ürün doğunca stok seed (rastgele 30-50).
+            // Binding'i TÜKETİCİ kurar (007 soğuk-açılış dersi) + kendi kuyruğunu dinler.
+            rabbit.DeclareExchange(RabbitMqConstants.ProductAdded.Exchange, e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+                e.BindQueue(RabbitMqConstants.ProductAdded.Queues.Stock);
+            });
+            opts.ListenToRabbitQueue(RabbitMqConstants.ProductAdded.Queues.Stock);
+
             opts.Policies.UseDurableLocalQueues();
             // 088: retry tükenince ölü-mesaj deposuna taşı (uniform yakalama).
             opts.OnException<Exception>().RetryWithCooldown(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)).Then.MoveToErrorQueue();
@@ -30,6 +39,8 @@ public static class MessagingExtensions
                 typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
                 chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+            // 010: *Consumers (çoğul) ad-son-eki convention'a uymaz → elle kayıt ZORUNLU.
+            opts.Discovery.IncludeType(typeof(Stock.Api.CatalogConsumers));
         });
 
         return builder;

@@ -181,6 +181,16 @@ public sealed class ImportJobWorker(
             (await session.Query<Category>().ToListAsync(ct)).ToDictionary(c => c.NormalizedName, c => c));
     }
 
+    // 010: sayısal hücreyi NATIVE double geçir (ExcelRowMapper.Decimal/Int double dalını işler) —
+    // .Value.ToString() kültür-bağımlı ("0,285") → InvariantCulture parse virgülü binlik sanıp 285
+    // üretiyordu (fraksiyon fiyat/indirim bozuluyordu). Metin hücre GetString; boş → null.
+    private static object? CellValue(IXLCell cell)
+    {
+        if (cell.IsEmpty()) return null;
+        var v = cell.Value;
+        return v.IsNumber ? v.GetNumber() : cell.GetString();
+    }
+
     private async Task ProcessSheetAsync(Guid jobId, IXLWorksheet sheet, Lookups lookups, bool dryRun, CancellationToken ct)
     {
         var headers = sheet.Row(1).CellsUsed()
@@ -189,9 +199,7 @@ public sealed class ImportJobWorker(
         var batch = new Batch();
         foreach (var row in sheet.RowsUsed().Skip(1))
         {
-            var cells = headers.ToDictionary(
-                h => h.Value,
-                h => (object?)(row.Cell(h.Key).IsEmpty() ? null : row.Cell(h.Key).Value.ToString()));
+            var cells = headers.ToDictionary(h => h.Value, h => CellValue(row.Cell(h.Key)));
 
             ProcessRow(sheet.Name, row.RowNumber(), cells, lookups, batch);
 
@@ -261,6 +269,9 @@ public sealed class ImportJobWorker(
         product.SetRelatedCategories(related);
 
         product.SetTranslators(importRow.Translators);
+        product.SetTags(importRow.Tags); // 009: yalnız YENİ ürün (INSERT-ONLY üstte atladı → ezilmez)
+        if (importRow.Tags.Count > 0)
+            batch.Tagged++;
         product.SetBookMeta(importRow.PageCount, importRow.PublishedOn, importRow.Language);
         product.SetBinding(importRow.Binding);
         product.SetPopularity(importRow.Rating, importRow.RatingCount, importRow.PurchaseCount,
@@ -269,6 +280,9 @@ public sealed class ImportJobWorker(
         batch.Stores.Add(product);
         batch.Added++;
         batch.Events.Add(new IntegrationEvents.ProductAdded(product.Gtin, product.Id, importRow.CoverUrl));
+        // 010: indirim ithali — oran ∈ (0, 0.90] ise Discount'a ilet (ProductId create'ten geldi).
+        if (importRow.DiscountRate is { } rate && rate <= 0.90m)
+            batch.DiscountEvents.Add(new IntegrationEvents.ProductDiscountImported(product.Id, rate));
     }
 
     private static T GetOrCreate<T>(Dictionary<string, T> cache, string name,
@@ -313,7 +327,7 @@ public sealed class ImportJobWorker(
             session.StoreObjects(batch.Stores.Distinct().ToList());
 
         var job = (await session.LoadAsync<ImportJob>(jobId, ct))!;
-        job.RecordProgress(batch.Processed, batch.Added, batch.Skipped, batch.Errors);
+        job.RecordProgress(batch.Processed, batch.Added, batch.Skipped, batch.Tagged, batch.Errors);
         session.Store(job);
 
         await session.SaveChangesAsync(ct);
@@ -322,11 +336,14 @@ public sealed class ImportJobWorker(
         // tekrar yüklemede R2-mevcut yolundan kendini onarır). IMessageBus scoped — worker
         // singleton olduğundan scope burada açılır. Bu BC-arası EVENT yayınıdır (ProductAdded →
         // File), komut tetiği değil — "handler'da PublishAsync olmasın" kuralının dışında.
-        if (!dryRun && batch.Events.Count > 0)
+        if (!dryRun && (batch.Events.Count > 0 || batch.DiscountEvents.Count > 0))
         {
             using var scope = scopes.CreateScope();
             var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
             foreach (var evt in batch.Events)
+                await bus.PublishAsync(evt);
+            // 010: indirim ithali — ürün yazıldıktan SONRA (ProductId garantili) Discount'a ilet.
+            foreach (var evt in batch.DiscountEvents)
                 await bus.PublishAsync(evt);
         }
 
@@ -345,18 +362,22 @@ public sealed class ImportJobWorker(
         public int Processed;
         public int Added;
         public int Skipped;
+        public int Tagged;
         public List<ImportError> Errors { get; } = new();
         public List<object> Stores { get; } = new();
         public List<IntegrationEvents.ProductAdded> Events { get; } = new();
+        public List<IntegrationEvents.ProductDiscountImported> DiscountEvents { get; } = new();
 
         public void Reset()
         {
             Processed = 0;
             Added = 0;
             Skipped = 0;
+            Tagged = 0;
             Errors.Clear();
             Stores.Clear();
             Events.Clear();
+            DiscountEvents.Clear();
         }
     }
 }
