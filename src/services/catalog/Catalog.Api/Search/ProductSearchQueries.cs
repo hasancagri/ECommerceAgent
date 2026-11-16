@@ -43,14 +43,32 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
         LIMIT $2
         """;
 
+   // Türkçe dolgu/soru kelimeleri — doğal-cümle sorgularında ("… listeler misin") BM25'i kirletir
+    // (başlığında "…Misin?" geçen kitaplar eşleşir). BM25 öncesi elenir. (Gerçek niyet/varlık ayıklama
+    // ScoutAgent işi — bu küratörlü liste ara-çözüm.)
+    private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "mi","mı","mu","mü","misin","mısın","musun","müsün","misiniz","mısınız",
+        "var","yok","bana","benim","için","ile","ve","veya","bir","bu","şu","ki","ya",
+        "listeler","listele","listeleyebilir","göster","getir","öner","öner","bul","ara",
+        "arıyorum","istiyorum","bulur","getirir","verir","söyler",
+        "kitap","kitabı","kitabını","kitaplar","kitapları","kitaplarını","eser","eseri","eserleri",
+        "hakkında","nedir","kimdir","kim","ne","nasıl","hangi","lütfen","bana",
+    };
+
     public Task<IReadOnlyList<Guid>> Bm25Async(string query, int limit, int offset, CancellationToken ct)
     {
-        // ParadeDB jsonb index'te bare string eşleşmez — ALT-ALAN hedeflenir (Name/Description/Tags.Value).
-        // Kullanıcı metni sanitize edilir (apostrof/özel karakter 500 verir), sonra alan-sorgusu kurulur:
-        // `Name:(terimler) OR Description:(terimler) OR Tags.Value:(terimler)`. Terimler alnum → enjeksiyon yok.
-        var clean = SanitizeBm25(query);
-        if (clean.Length == 0) return Task.FromResult<IReadOnlyList<Guid>>([]);
-        var pdbQuery = $"Name:({clean}) OR Description:({clean}) OR Tags.Value:({clean})";
+        // Sanitize (apostrof/özel karakter 500 verir) → terimler. Dolgu + çok-kısa (≤2, TR ekleri "in/ın")
+        // elenir. Her terim bir alanda OLMALI (AND) — tek ortak kelime ("george") gürültüsünü keser.
+        // jsonb index ALT-ALAN ister: `(Name:t OR Description:t OR Tags.Value:t)` AND'leri.
+        var terms = SanitizeBm25(query)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(t => t.Length >= 3 && !StopWords.Contains(t))
+            .ToList();
+        if (terms.Count == 0) return Task.FromResult<IReadOnlyList<Guid>>([]);
+
+        var pdbQuery = string.Join(" AND ",
+            terms.Select(t => $"(Name:{t} OR Description:{t} OR Tags.Value:{t})"));
         return ReadIdsAsync(Bm25Sql, ct, pdbQuery, limit, offset);
     }
 
