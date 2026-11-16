@@ -53,8 +53,10 @@ taramasıyla) · **HybridCache + Redis** (AOP cache L1/L2 yalnız okuma; boşalt
 handler-içi atomik publish + epoch-key, 090 — native tag KULLANILMAZ, bkz. conventions) ·
 **OpenIddict + ASP.NET Identity** (IdP ÇÖZÜM İÇİNDE: `src/others/Identity.Server` — 005 kopyası; tek EF Core+Razor istisnası, ADR adr-identity-inward) ·
 **Scrutor** (DI) · **xUnit + Shouldly**. (096 Ollama/embedding omurgası 099 öncesi SÖKÜLDÜ —
-semantik ayak ileride yeni spec'le; MCP + Microsoft Agent Framework temiz-sayfa sökümüyle
-kalktı — yüzey REST first-party'ye dönüyor, bkz. Yüzey modeli.)
+semantik ayak ileride yeni spec'le.) · **MCP + Microsoft Agent Framework GERİ (007, bilinçli, ADR
+adr-mcp-query-only-return):** query-only MCP (her BC `/mcp`) + first-party `ScoutAgent` (MAF
+`ChatClientAgent` + **OpenAI gpt-4o-mini** IChatClient (`Microsoft.Extensions.AI.OpenAI`; key=secret param) + `ModelContextProtocol` client). Dış-agent/DCR
+yüzeyi GERİ GELMEDİ — tek tüketici ScoutAgent. Diğer yüzeyler REST first-party (bkz. Yüzey modeli).
 
 ## BC haritası
 
@@ -75,6 +77,7 @@ damıtmasında.) Servisler `src/services/*`; destek `src/others`
 | `discount` | discountDb | Kampanya modeli (003, dönüş — tarihçe 079): `Campaign` (tek ürün + oran %1-%90 + zaman penceresi + iptal; etkinlik `IsActiveAt` — zaman dışarıdan). Üründe ≤1 etkin indirim, son-gelen-kazanır (`CampaignSelection`). İndirim liste fiyatını EZMEZ — `ProductDiscountChanged(productId, rate?)` kontratı + Catalog oran kopyası hazır; YAYINCI yürürlük süreci (`CampaignWindowProcess`) + dış yüzey + checkout bağlantısı SONRAKİ dilimler |
 | `file` | fileDb | Kapak **kayıt defteri** (082); `FileAsset` (ImageName=ISBN tekil/değişmez unique-index + metadata) + nested `FileStorageLocation` (çoklu fiziki depo: R2/Local/…, upsert invariant). Fiziki bit `IFileStore` ardında (`S3FileStore`→R2; byte DB'de DEĞİL); URL provider-agnostik lokal çözülür (`CoverUrlResolver`, StorageFilePath=key + config-base; full URL saklanmaz). `GET /files/v1/covers/{isbn}` anonim serve; S2S `POST /internal/files` (yaz+kayıt) + `/resolve` (batch, 0 dış çağrı) + `GET .../locations`; idempotent R2 backfill (config-gated). **Kapak kablosu (083/091):** `ProductAdded` tüketir (`CatalogConsumers`; **004:** `CoverSourceUrl` doluysa ve R2'de yoksa dış adresten İNDİRİR, R2'de varsa atlar; yoksa eski staging yolu) → `CoverIngested(isbn,url)` yayar — **Catalog tüketicisi GERİ (004):** `FileConsumers` → `Product.SetImage`; açılış kapak migration'ı KAPALI kalır (098; R2'deki kapaklar + kayıt defteri duruyor) |
 | `identity-server` | identityDb | **ÇÖZÜM İÇİNDE (005 — 084 tersine, ADR adr-identity-inward):** `src/others/Identity.Server` = AgentPlatform kopyası (kaynağa dokunulmadı; PG oradakiyle yaşar). OpenIddict (code+PKCE + m2m + refresh; refresh güncel rol demetiyle süzer) + ASP.NET Identity + rol→scope RBAC (`ScopeResolver` kesişimi) + server-rendered `/Admin/*` (cookie, İlke V istisnası). Kayıt HEP customer; admin yalnız config/secret seed'i (`identity-admin-email/password`, idempotent). Kırpıldı: DCR/consent/dış-agent istemcileri/ApiKey uçları/super-admin. Seed istemciler: `react-web` (PKCE; post-logout `localhost:5173`), `order-saga`+`payment-s2s` (m2m). Issuer `https://localhost:5001` (servis config'leri DEĞİŞMEDİ). **Google ile giriş (006):** koşullu — `Authentication:Google` ClientId/Secret user-secrets'ta YOKSA buton render edilmez, sistem Google'sız tam çalışır; ilk girişte şifresiz customer, aynı DOĞRULANMIŞ e-postayla mevcut hesaba bağlanır (çift hesap imkansız), doğrulanmamışsa reddedip şifreye yönlendirir (`Pages/Account/ExternalLogin`). **Tek EF Core+Npgsql+Razor istisnası** (Marten değil); reset mail'i log/mock. Auth kablosu `Common/Auths`'ta (`Platform.Auth` paketi + GitHub feed ÖLDÜ) |
+| `scout-agent` | scoutDb | **Kâşif sohbet agent'ı (007, `src/agents/ScoutAgent.Api` — BC değil, agent).** React serbest metni → OpenAI gpt-4o-mini (MAF `ChatClientAgent`) tool seçer → 4 BC `/mcp` query-only tool'unu DOĞRUDAN çağırır (fasat YOK; uç listesi config-güdümlü `McpEndpointsOptions`). Cevap `{text, items}` — items tool dönüşünden BİREBİR (uydurma yok). Kullanıcı token'ı çağrı anında taşınır (`UserTokenForwardingHandler`); anonim = yalnız anonim katalog tool'ları (iki katman: toolset gating + downstream scope). Kimlik: issuer+imza+ömür doğrular, audience DEĞİL (sub okur; yetki downstream). Tek kalıcı verisi = `Conversation` (transkript + rolling summary + arşiv, `scoutDb`); devamlılık KENDİ kaydından (framework state'ine güvenilmez). Girişli sohbet kalıcı + geçmiş/sahiplik; anonim oturumluk. Dış-agent/DCR yüzeyi YOK |
 
 (Söküldü — 2026-10-30 temiz-sayfa: `stock` [dijital/PDF pivotu — envanter kavramı kalktı],
 `storefront`+ES [arama Catalog pg-hibrit'e katlanacak], `notification-agent`+`mail-mcp` [MCP sökümüyle],
@@ -85,20 +88,24 @@ tutarı = liste fiyatı; `discount.*` scope'ları, proto ve `discount.events` ku
 
 ## Yüzey modeli
 
-**Temiz-sayfa geçişi (2026-10-30):** BYO-agent/MCP duruşu TERK EDİLDİ — EC'deki tüm `/mcp` uçları,
-tool sabitleri (`McpToolNames/Descriptions`), PRM keşfi ve DLQ admin tool'ları söküldü. Hedef yüzey:
-**first-party React ekran + REST API'ler + local LLM danışman** (kişiselleştirilmiş keşif sitesi);
-arama Catalog'da pg-hibrit (pg_search BM25 + pgvector + RRF). İkisi de HENÜZ YOK — bugün dış
-müşteri/admin yüzeyi kapalı, domain davranışları aggregate'lerde duruyor.
+**Temiz-sayfa geçişi (2026-10-30):** BYO-agent/**dış** MCP duruşu TERK EDİLDİ — PRM keşfi, DCR, tool
+sabitleri ve DLQ admin tool'ları söküldü. Hedef yüzey: **first-party React ekran + sohbet (ScoutAgent)
++ REST API'ler + local LLM danışman**; arama Catalog pg-hibrit (pg_search BM25 + pgvector + RRF, HENÜZ YOK).
+
+**MCP GERİ — first-party query-only (007, ADR adr-mcp-query-only-return):** her BC kendi `/mcp` ucunu
+host eder (query-only, kapalı liste, yazma yok); tek tüketici `ScoutAgent` (Kâşif sohbeti). Dış-agent
+erişimi (DCR/PRM/consent) GERİ GELMEDİ. React chat → Gateway `/api/chat/**` → ScoutAgent → BC `/mcp`'leri.
 
 - **Gateway (004, YARP `src/others/Gateway`):** React'ın tek origin'i; rotalar config'te
   (`/api/admin/catalog/**` admin-anahtar korumalı, `/api/catalog/**` + `/files/**` anonim). Kenar
   yetki Dilim-1'de `X-Admin-Api-Key` (Aspire secret parametresi `gateway-admin-api-key`; Catalog
   aynı anahtarı İKİNCİ kat doğrular — `AdminApiKeyEndpointFilter`); Dilim 2'de JWT'ye evrilir.
   ForwardedHeaders ServiceDefaults'ta tek yerde.
-- **Yaşayan HTTP yüzey:** Catalog admin import uçları (004, gateway'den) · File kapak serve/S2S
-  (`/files/v1/covers`, `/internal/files`, `/resolve`) · PG→EC `/payments/callback` HMAC webhook
-  (dış-sağlayıcı callback istisnası) · Order `/checkout/done` dönüş stub'ı · auth (Identity OIDC — dış repo).
+- **Yaşayan HTTP yüzey:** Catalog admin import uçları (004, gateway'den) · ScoutAgent sohbet
+  (`/api/chat/v1/messages` + `/conversations*`, 007, gateway'den) · BC query-only `/mcp` uçları (007,
+  yalnız ScoutAgent; katalog anonim, kişisel scope-korumalı) · File kapak serve/S2S (`/files/v1/covers`,
+  `/internal/files`, `/resolve`) · PG→EC `/payments/callback` HMAC webhook (dış-sağlayıcı callback
+  istisnası) · Order `/checkout/done` dönüş stub'ı · auth (Identity OIDC).
 - **Yaşayan senkron kontratlar (S2S):** Order→Basket `GetBasketItems` gRPC · Order→Payment
   `CreateIntentAndLink` gRPC · EC→PG `POST /payment-links` REST (X-Api-Key) ·
   Order→Customer varsayılan-adres gRPC (uykuda).
@@ -172,10 +179,11 @@ deseni izler; yetki Dilim 2'de `[RequiredScope]`/JWT'ye bağlanacak (conventions
 - **Storefront BC + Elasticsearch/Kibana'yı geri getirme:** söküldü — arama Catalog pg-hibrit'e
   (pg_search BM25 + pgvector + RRF) katlanıyor. `query_storefront`/`search_products`/ES-DSL + vitrin
   event'leri (`ReviewSummaryChanged`/`ProductDiscountChanged`) GERİ EKLEME; keşif pg-hibrit'le gelir.
-- **MCP yüzeyini parça parça geri getirme:** temiz-sayfa sökümüyle EC'den MCP tamamen çıktı
-  (tool sabitleri, PRM, DLQ tool'ları, fasat aboneliği). Yüzey kararı REST first-party — tek tük
-  tool geri ekleme yok; MCP dönerse bilinçli mimari karar + spec'le döner (tarihsel kurallar
-  073/085 spec'lerinde ve AgentPlatform tool-description standardında durur).
+- **DIŞ MCP erişimini (DCR/PRM/consent/dış-agent) geri getirme:** query-only MCP 007'de GERİ GELDİ
+  ama YALNIZ first-party `ScoutAgent` için (ADR adr-mcp-query-only-return). Dış BYO-agent yüzeyi,
+  PRM keşfi, DCR istemcileri, consent ekranı + MCP fasat/gateway + DLQ tool'ları GERİ EKLEME. Yeni BC
+  tool'u = ilgili BC'de `Features/Agents/Queries/` slice + `McpEndpointsOptions`'a uç (fasat YOK). Dış
+  erişim dönerse ayrı bilinçli karar + spec (tarihsel kurallar 061/073/085 spec'lerinde durur).
 - **`IConfiguration`'dan doğrudan okuma** (Options pattern istisnaları hariç).
 - **Hassas kimlik/sır değerini insan-yüzeyde render etme** — ekrana/chat'e/API dönüşüne ve
   log/trace'e yazma. Kural ve gerekçe **Anayasa İlke VIII**'de (+ ADR

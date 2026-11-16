@@ -23,6 +23,7 @@ başka karar geçti) · `Tarihsel` (anlattığı pratik söküldü; kayıt öğr
 | [adr-ingestion-llm-writers](adr-ingestion-llm-writers.md) | Ingestion yazıcıları LLM-sürücülü (007 tersine çevirme) | Superseded |
 | [adr-k3s-push-cd-deployment](adr-k3s-push-cd-deployment.md) | Canlı Dağıtım — k3s + Push-tabanlı CD (SSH), sslip.io, in-cluster altyapı (dev) | Kabul |
 | [adr-mcp-control-plane-no-secret-return](adr-mcp-control-plane-no-secret-return.md) | MCP Kontrol Düzlemidir — Hassas Veri Tool Dönüşüne / LLM'e Girmez | Kabul |
+| [adr-mcp-query-only-return](adr-mcp-query-only-return.md) | MCP Query-Only Dönüşü + ScoutAgent (first-party sohbet, 007) | Kabul |
 | [adr-moderation-agent-extraction](adr-moderation-agent-extraction.md) | Reviews moderasyonu ayrı broker-worker'a taşındı | Tarihsel |
 | [adr-search-fold-to-postgres](adr-search-fold-to-postgres.md) | Arama Postgres'e katlandı + embedding local (096, 086 tersine) | Kabul |
 

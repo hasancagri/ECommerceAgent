@@ -10,6 +10,7 @@
     <ItemGroup>
         <PackageReference Include="Marten" />
         <PackageReference Include="Marten.Newtonsoft" />
+        <PackageReference Include="ModelContextProtocol.AspNetCore" />
         <PackageReference Include="Newtonsoft.Json" />
         <PackageReference Include="WolverineFx" />
         <PackageReference Include="WolverineFx.RuntimeCompilation" />

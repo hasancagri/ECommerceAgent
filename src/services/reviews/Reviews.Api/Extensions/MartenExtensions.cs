@@ -16,8 +16,10 @@ public static class MartenExtensions
                     configure: s => s.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor);
 
                 // R9: tek-yorum kilidinin son sozu — uygulama kontrolu + unique index (cift savunma).
+                // TUZAK (tr-TR noktasız ı): "UserId"/"ProductId" ToLower → userıd/product_ıd → uidx adında
+                // ı → 42P07 crashloop. Computed unique index adı ELLE, lowercase/I'sız (CLAUDE.md kuralı).
                 opts.Schema.For<Review>()
-                    .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.UserId, x => x.ProductId)
+                    .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, "uidx_review_user_product", x => x.UserId, x => x.ProductId)
                     .Index(x => x.ProductId);
 
                 // satın-alma kanıtı read-model (Id = "{userId:N}:{productId:N}"; eligibility PK lookup).

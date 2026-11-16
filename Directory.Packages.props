@@ -14,7 +14,7 @@
     <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="13.3.0" />
     <PackageVersion Include="Aspire.Elastic.Clients.Elasticsearch" Version="13.3.0" />
     <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.19.4" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.3.5" />
     <PackageVersion Include="StackExchange.Redis" Version="2.9.32" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.103.3" />
     <!-- 004: admin Excel import okuma (xlsx; MIT lisans — EPPlus Polyform nedeniyle reddedildi). -->
@@ -51,8 +51,13 @@
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.1" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.7.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.8.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.8.0" />
+    <!-- 007: ScoutAgent MCP — resmi SDK stable hattı (client + ASP.NET server). -->
+    <PackageVersion Include="ModelContextProtocol" Version="2.3.1" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.3.1" />
+    <!-- 007: yerel model istemcisi — Ollama native API (num_ctx gibi Ollama-özel ayarlar geçer). -->
+    <PackageVersion Include="OllamaSharp" Version="5.5.2" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.2.0" />

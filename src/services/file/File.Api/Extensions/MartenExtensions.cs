@@ -19,8 +19,10 @@ public static class MartenExtensions
                     nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,
                     configure: s => s.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor);
 
+                // TUZAK (tr-TR noktasız ı): "ImageName" ToLower → ımagename → uidx adında ı → 42P07
+                // crashloop. Computed unique index adı ELLE, lowercase/I'sız (CLAUDE.md kuralı).
                 opts.Schema.For<FileAsset>()
-                    .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.ImageName)
+                    .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, "uidx_file_asset_image_name", x => x.ImageName)
                     .Index(x => x.ImageName);
             })
             .IntegrateWithWolverine()

@@ -31,7 +31,10 @@ if (builder.Configuration.GetConnectionString("redis") is not null)
 builder.Services.AddCachingAspect("catalog");
 
 builder.Services.AddHttpContextAccessor();
-// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — tüm /mcp tool'ları + DLQ MCP kaldırıldı; okuma/yazma REST first-party'ye.
+// 007: query-only MCP ucu GERİ (bilinçli — CLAUDE.md "MCP spec'le döner"). YALNIZ first-party
+// ScoutAgent tüketir; anonim kitap arama/detay (search_books, get_book). Tool'lar assembly taramasıyla
+// bulunur (Features/Agents/Queries/*.cs içindeki [McpServerToolType]).
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 // Dis tuketiciler icin opak UserKey (X-User-Key) custom auth semasi.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
@@ -60,5 +63,8 @@ app.UseApiKeyAuthentication();
 
 // 004: ilk REST admin yüzeyi — Excel import uçları (gateway /api/admin/catalog/** rotasından gelir).
 app.MapImportJobEndpoints();
+
+// 007: anonim MCP ucu (ScoutAgent client olarak bağlanır). RequireAuthorization YOK — anonim gezinme meşru.
+app.MapMcp("/mcp");
 
 await app.RunAsync();
