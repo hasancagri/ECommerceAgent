@@ -261,6 +261,9 @@ public sealed class ImportJobWorker(
         product.SetRelatedCategories(related);
 
         product.SetTranslators(importRow.Translators);
+        product.SetTags(importRow.Tags); // 009: yalnız YENİ ürün (INSERT-ONLY üstte atladı → ezilmez)
+        if (importRow.Tags.Count > 0)
+            batch.Tagged++;
         product.SetBookMeta(importRow.PageCount, importRow.PublishedOn, importRow.Language);
         product.SetBinding(importRow.Binding);
         product.SetPopularity(importRow.Rating, importRow.RatingCount, importRow.PurchaseCount,
@@ -313,7 +316,7 @@ public sealed class ImportJobWorker(
             session.StoreObjects(batch.Stores.Distinct().ToList());
 
         var job = (await session.LoadAsync<ImportJob>(jobId, ct))!;
-        job.RecordProgress(batch.Processed, batch.Added, batch.Skipped, batch.Errors);
+        job.RecordProgress(batch.Processed, batch.Added, batch.Skipped, batch.Tagged, batch.Errors);
         session.Store(job);
 
         await session.SaveChangesAsync(ct);
@@ -345,6 +348,7 @@ public sealed class ImportJobWorker(
         public int Processed;
         public int Added;
         public int Skipped;
+        public int Tagged;
         public List<ImportError> Errors { get; } = new();
         public List<object> Stores { get; } = new();
         public List<IntegrationEvents.ProductAdded> Events { get; } = new();
@@ -354,6 +358,7 @@ public sealed class ImportJobWorker(
             Processed = 0;
             Added = 0;
             Skipped = 0;
+            Tagged = 0;
             Errors.Clear();
             Stores.Clear();
             Events.Clear();

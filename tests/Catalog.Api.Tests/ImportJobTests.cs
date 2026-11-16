@@ -39,6 +39,7 @@ public class ImportJobTests
         job.Processed.ShouldBe(0);
         job.Added.ShouldBe(0);
         job.Skipped.ShouldBe(0);
+        job.Tagged.ShouldBe(0);
         job.Errored.ShouldBe(0);
         job.Errors.ShouldBeEmpty();
     }
@@ -154,7 +155,7 @@ public class ImportJobTests
     {
         var job = NewJob();
         job.StartValidation();
-        job.RecordProgress(processed: 100, added: 90, skipped: 5,
+        job.RecordProgress(processed: 100, added: 90, skipped: 5, tagged: 70,
             errors: new[] { new ImportError("Can Yayınları", 7, "ISBN boş") });
         job.CompleteValidation();
         job.Confirm();
@@ -164,6 +165,7 @@ public class ImportJobTests
         job.Processed.ShouldBe(0);
         job.Added.ShouldBe(0);
         job.Skipped.ShouldBe(0);
+        job.Tagged.ShouldBe(0);
         job.Errored.ShouldBe(0);
         job.Errors.ShouldBeEmpty();
     }
@@ -174,7 +176,7 @@ public class ImportJobTests
         var job = NewJob();
         job.StartValidation();
 
-        var result = job.RecordProgress(processed: 10, added: 8, skipped: 2, errors: Array.Empty<ImportError>());
+        var result = job.RecordProgress(processed: 10, added: 8, skipped: 2, tagged: 6, errors: Array.Empty<ImportError>());
 
         result.IsSuccess.ShouldBeTrue();
         job.Processed.ShouldBe(10);
@@ -185,14 +187,15 @@ public class ImportJobTests
     {
         var job = RunningJob();
 
-        job.RecordProgress(processed: 100, added: 80, skipped: 15,
+        job.RecordProgress(processed: 100, added: 80, skipped: 15, tagged: 60,
             errors: new[] { new ImportError("Can Yayınları", 42, "ISBN boş") }).IsSuccess.ShouldBeTrue();
-        job.RecordProgress(processed: 50, added: 50, skipped: 0,
+        job.RecordProgress(processed: 50, added: 50, skipped: 0, tagged: 40,
             errors: Array.Empty<ImportError>()).IsSuccess.ShouldBeTrue();
 
         job.Processed.ShouldBe(150);
         job.Added.ShouldBe(130);
         job.Skipped.ShouldBe(15);
+        job.Tagged.ShouldBe(100);
         job.Errored.ShouldBe(1);
         job.Errors.Single().Reason.ShouldBe("ISBN boş");
     }
@@ -202,7 +205,7 @@ public class ImportJobTests
     {
         var job = RunningJob();
 
-        var result = job.RecordProgress(processed: -1, added: 0, skipped: 0, errors: Array.Empty<ImportError>());
+        var result = job.RecordProgress(processed: -1, added: 0, skipped: 0, tagged: 0, errors: Array.Empty<ImportError>());
 
         result.IsSuccess.ShouldBeFalse();
         job.Processed.ShouldBe(0);
@@ -213,7 +216,7 @@ public class ImportJobTests
     {
         var job = NewJob();
 
-        var result = job.RecordProgress(processed: 1, added: 1, skipped: 0, errors: Array.Empty<ImportError>());
+        var result = job.RecordProgress(processed: 1, added: 1, skipped: 0, tagged: 0, errors: Array.Empty<ImportError>());
 
         result.IsSuccess.ShouldBeFalse();
     }
@@ -223,7 +226,7 @@ public class ImportJobTests
     {
         var job = AwaitingJob();
 
-        var result = job.RecordProgress(processed: 1, added: 1, skipped: 0, errors: Array.Empty<ImportError>());
+        var result = job.RecordProgress(processed: 1, added: 1, skipped: 0, tagged: 0, errors: Array.Empty<ImportError>());
 
         result.IsSuccess.ShouldBeFalse();
     }
@@ -293,7 +296,7 @@ public class ImportJobTests
         var job = RunningJob();
         job.Complete();
 
-        var result = job.RecordProgress(processed: 1, added: 1, skipped: 0, errors: Array.Empty<ImportError>());
+        var result = job.RecordProgress(processed: 1, added: 1, skipped: 0, tagged: 0, errors: Array.Empty<ImportError>());
 
         result.IsSuccess.ShouldBeFalse();
         job.Processed.ShouldBe(0);

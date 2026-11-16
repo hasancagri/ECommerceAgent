@@ -18,6 +18,7 @@ public class ImportJob : AggregateRoot
     public int Processed { get; private set; }
     public int Added { get; private set; }
     public int Skipped { get; private set; }
+    public int Tagged { get; private set; } // 009: etiket taşıyan satır sayısı (dry-run + gerçek rapor)
     public int Errored => _errors.Count;
 
     private readonly List<ImportError> _errors = new();
@@ -94,24 +95,26 @@ public class ImportJob : AggregateRoot
         Processed = 0;
         Added = 0;
         Skipped = 0;
+        Tagged = 0;
         _errors.Clear();
         return ResultDomain.Ok();
     }
 
     /// <summary>Sayaç deltalarını biriktirir (Validating=dry-run veya Running=gerçek; negatif delta
     /// reddedilir). Hatalar sebepli listeye eklenir — iş durmaz (FR-007).</summary>
-    public ResultDomain RecordProgress(int processed, int added, int skipped, IEnumerable<ImportError> errors)
+    public ResultDomain RecordProgress(int processed, int added, int skipped, int tagged, IEnumerable<ImportError> errors)
     {
         if (Status is not (ImportJobStatus.Validating or ImportJobStatus.Running))
             return ResultDomain.Error(new MessageItem
             { Property = nameof(Status), Code = CatalogResourceConstants.IMPORT_STATE_INVALID });
-        if (processed < 0 || added < 0 || skipped < 0)
+        if (processed < 0 || added < 0 || skipped < 0 || tagged < 0)
             return ResultDomain.Error(new MessageItem
             { Property = nameof(Processed), Code = CatalogResourceConstants.VALUE_INVALID });
 
         Processed += processed;
         Added += added;
         Skipped += skipped;
+        Tagged += tagged;
         _errors.AddRange(errors);
         return ResultDomain.Ok();
     }

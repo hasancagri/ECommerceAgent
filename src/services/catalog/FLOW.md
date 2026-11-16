@@ -47,6 +47,11 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 4. 🟦 **Tek leaf kategoriye bağla** — leaf kapalı ağaçtan adla çözülür              `(NameNormalization.Normalize,`
    (çözülemeyen → "Genel"); üst kategori ürüne YAZILMAZ. İlgili                     ` Product.SetCategory,`
    kategoriler editoryal liste olarak ayrı atanır (çözülemeyen atlanır).            ` Product.SetRelatedCategories)`
+4b. 🟦 **Etiketleri ata** (009) — Excel `Etiketler` sütunu virgülle bölünür,       `(ExcelRowMapper,`
+   her parça lowercase normalize edilir + Türkçe karakterli olanın ASCII ikizi         ` BookTag.Create,`
+   de eklenir ("karanlık"↔"karanlik", arama köprüsü) → ürün kendi BookTag               ` BookTag.AsciiVariant,`
+   listesini taşır (ortak Tag kaydı YOK; değer-eşitliği kitaplar-arası                   ` Product.SetTags)`
+   gruplamayı verir). INSERT-ONLY: var olan ISBN etiketi ezilmez.
 5. 🟧⭐ **Ürün değişti** — değişim KANONİK yayınlanır: fiyat decimal;                `(ProductChangedEvent,`
    kategori AD+ID zinciri = leaf + ata (yayın anında ağaçtan çözülür —              ` CategoryNaming.ResolveChain)`
    related GİRMEZ); yazarlar (Id+ad) + yayınevi ADLA (fat event). `IsDeleted`

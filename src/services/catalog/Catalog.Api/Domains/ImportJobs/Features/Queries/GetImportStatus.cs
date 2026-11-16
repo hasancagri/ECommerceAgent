@@ -15,6 +15,7 @@ public static class GetImportStatus
         public int Processed { get; set; }
         public int Added { get; set; }
         public int Skipped { get; set; }
+        public int Tagged { get; set; } // 009: etiket taşıyan satır sayısı
         public int Errored { get; set; }
         public string? FailureReason { get; set; }
         public DateTimeOffset? StartedAt { get; set; }
@@ -37,6 +38,7 @@ public static class GetImportStatus
                 Processed = job.Processed,
                 Added = job.Added,
                 Skipped = job.Skipped,
+                Tagged = job.Tagged,
                 Errored = job.Errored,
                 FailureReason = job.FailureReason,
                 StartedAt = job.StartedAt,
