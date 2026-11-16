@@ -48,7 +48,7 @@ Yeni **Bff** (edge orkestratör, `src/others/Bff` — BC değil, durumsuz) + yen
 
 **Hedef**: anonim arama çalışır ama kayıt üretmez (login-only guard, T012'de).
 
-- [ ] T016 [US2] Doğrula (CANLI): token'sız `/api/discovery/search` → sonuç döner, `user_search_record` ARTMAZ; geçersiz/süresi dolmuş token → anonim muamelesi (kayıt yok). (Guard T012'de; bu faz sınırı doğrular — quickstart US2)
+- [X] T016 [US2] Doğrula (CANLI): token'sız `/api/discovery/search` → sonuç döner, `user_search_record` ARTMAZ; geçersiz/süresi dolmuş token → anonim muamelesi (kayıt yok). (Guard T012'de; bu faz sınırı doğrular — quickstart US2)
 
 ---
 
@@ -56,7 +56,7 @@ Yeni **Bff** (edge orkestratör, `src/others/Bff` — BC değil, durumsuz) + yen
 
 **Hedef**: BFF üzerinden arama, doğrudan Catalog aramasıyla aynı sonucu/hızı verir.
 
-- [ ] T017 [US3] Doğrula (CANLI): `/api/discovery/search` sonucu vs Catalog `/api/catalog/products/search` — küme + sıra aynı; gecikme etkileşimli (saniye-altı, BFF hop ihmal edilebilir — quickstart US3, SC-003)
+- [X] T017 [US3] Doğrula (CANLI): `/api/discovery/search` sonucu vs Catalog `/api/catalog/products/search` — küme + sıra aynı; gecikme etkileşimli (saniye-altı, BFF hop ihmal edilebilir — quickstart US3, SC-003)
 
 ---
 

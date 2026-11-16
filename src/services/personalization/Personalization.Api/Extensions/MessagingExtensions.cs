@@ -15,7 +15,7 @@ public static class MessagingExtensions
             var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
                 .AutoProvision();
 
-            // Tüketici: app-BFF UserSearched → ham arama kaydı. Binding'i tüketici kurar + kendi kuyruğunu dinler.
+            // Tüketici: Catalog arama ucu UserSearched → ham arama kaydı. Binding'i tüketici kurar + kendi kuyruğunu dinler.
             rabbit.DeclareExchange(RabbitMqConstants.UserSearched.Exchange, e =>
             {
                 e.ExchangeType = ExchangeType.Fanout;
@@ -30,7 +30,7 @@ public static class MessagingExtensions
 
             opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
             // *Consumers (çoğul) ad-son-eki Wolverine keşfine uymaz → elle kayıt ZORUNLU (tuzak).
-            opts.Discovery.IncludeType(typeof(Personalization.Api.BffConsumers));
+            opts.Discovery.IncludeType(typeof(Personalization.Api.CatalogSearchConsumers));
         });
 
         return builder;
