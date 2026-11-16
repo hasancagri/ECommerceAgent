@@ -97,6 +97,26 @@ public class ExcelRowMapperTests
     }
 
     [Fact]
+    public void Map_DiscountCell_ReadsFraction()
+    {
+        var result = ExcelRowMapper.Map("Can Yayınları", 2,
+            ValidCells(c => c["İndirim %"] = "0.285"));
+
+        result.Row!.DiscountRate.ShouldBe(0.285m);
+    }
+
+    [Fact]
+    public void Map_DiscountCell_NativeDouble_ReadsFraction()
+    {
+        // 010 regresyon: worker sayısal hücreyi NATIVE double geçirir (kültür-bağımsız);
+        // .ToString() "0,285" verip InvariantCulture'da 285'e bozulma hatası tekrar etmesin.
+        var result = ExcelRowMapper.Map("Can Yayınları", 2,
+            ValidCells(c => c["İndirim %"] = 0.285d));
+
+        result.Row!.DiscountRate.ShouldBe(0.285m);
+    }
+
+    [Fact]
     public void Map_MissingIsbn_ReturnsRowError()
     {
         var result = ExcelRowMapper.Map("Can Yayınları", 5, ValidCells(c => c["ISBN"] = "  "));

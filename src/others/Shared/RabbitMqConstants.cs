@@ -28,6 +28,8 @@ public static class RabbitMqConstants
         {
             // File.Api fanout exchange'e kendi kuyruğunu bağlar (kapak çözümü); binding tüketici kurar.
             public const string File = "file.product-added";
+            // 010: Stock.Api aynı fanout'a kendi kuyruğunu bağlar (ürün doğunca stok seed).
+            public const string Stock = "stock.product-added";
         }
     }
 
@@ -114,6 +116,16 @@ public static class RabbitMqConstants
         public static class Queues
         {
             public const string Catalog = "catalog.product-discount-changed";
+        }
+    }
+    // 010: Catalog import indirim ithali → Discount tüketir.
+    public static class ProductDiscountImported
+    {
+        public const string Exchange = "catalog.product-discount-imported";
+
+        public static class Queues
+        {
+            public const string Discount = "discount.product-discount-imported";
         }
     }
 

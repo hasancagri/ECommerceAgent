@@ -52,6 +52,12 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    de eklenir ("karanlık"↔"karanlik", arama köprüsü) → ürün kendi BookTag               ` BookTag.AsciiVariant,`
    listesini taşır (ortak Tag kaydı YOK; değer-eşitliği kitaplar-arası                   ` Product.SetTags)`
    gruplamayı verir). INSERT-ONLY: var olan ISBN etiketi ezilmez.
+4c. 🟦 **İndirimi ithal et** (010) — Excel `İndirim %` okunur (ZATEN kesir, 0.285=%28.5);   `(ExcelRowMapper,`
+   >0 ∧ ≤0.90 ise ürün yazıldıktan SONRA `ProductDiscountImported(productId, rate)`           ` ImportJobWorker)`
+   yayılır ⇨ Discount (ithal: indirim bizim değil Kitapyurdu'nun). 0/boş → event yok.
+6. 🟧 **Ürün doğdu** ⇨ File, Stock (010) — File kapak hattını tetikler; Stock          `(ProductAdded)`
+   `ProductAdded`'i tüketip `StockItem.Create(productId, rastgele 30-50)` ile stok
+   defteri açar (stok İTHAL edilmez — Excel'de gerçek adet yok).
 5. 🟧⭐ **Ürün değişti** — değişim KANONİK yayınlanır: fiyat decimal;                `(ProductChangedEvent,`
    kategori AD+ID zinciri = leaf + ata (yayın anında ağaçtan çözülür —              ` CategoryNaming.ResolveChain)`
    related GİRMEZ); yazarlar (Id+ad) + yayınevi ADLA (fat event). `IsDeleted`
