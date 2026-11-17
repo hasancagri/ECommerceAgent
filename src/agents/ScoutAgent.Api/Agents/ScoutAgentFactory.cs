@@ -45,6 +45,9 @@ public sealed class ScoutAgentFactory(ScoutOptions options) : ISingletonDependen
         "ASLA uydurma. " +
         "(3) Konu kitap keşfi ve kullanıcının kendi verisi dışındaysa (ör. hava durumu) kapsamını nazikçe " +
         "söyle, araç çağırma. " +
+        "(3a) Kullanıcı kişisel verisini sorar (sepet, siparişler, kitaplık, adresler) ama ilgili araç " +
+        "kutunda YOKSA, bu giriş gerektirdiği içindir — nazikçe giriş yapmasını iste, uydurma/çöp cevap " +
+        "verme. Arama geçmişini SİLME isteğinde (araç yok) geçmiş ekranından silebileceğini söyle. " +
         "(4) İç kimlikleri (GUID) kullanıcıya gösterme. " +
         "(5) Uzun listeleri kısa tut; ayrıntı için kullanıcıyı davet et.";
 }

@@ -62,15 +62,15 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 
 **Bağımsız test:** Login kullanıcı 6 alanı sırayla sorar → her biri doğru kartta, yalnız kendi verisi.
 
-- [ ] T026 [US2] Order `get_my_orders` 007'den `Domains/Orders/Features/Agents/Queries/GetMyOrders.cs` + `Program.cs` `MapMcp`
-- [ ] T027 [US2] Library `get_my_library` 007'den `Domains/UserPurchase/Features/Agents/Queries/GetMyLibrary.cs` + `Program.cs` `MapMcp`
-- [ ] T028 [US2] Customer `get_my_addresses` 007'den `Domains/AddressBooks/Features/Agents/Queries/GetMyAddresses.cs` + `Program.cs` `MapMcp`
-- [ ] T029 [P] [US2] Basket `get_basket` YENİ slice `Domains/Baskets/Features/Agents/Queries/GetBasket.cs` (sahip=sub) + `Program.cs` `MapMcp`
-- [ ] T030 [P] [US2] Reviews `get_book_reviews` YENİ slice `Domains/Reviews/Features/Agents/Queries/GetBookReviews.cs` (anon; özet ort/adet) + `Program.cs` `MapMcp`
-- [ ] T031 [P] [US2] Personalization `get_search_history` YENİ slice `Domains/SearchHistory/Features/Agents/Queries/GetSearchHistory.cs` (login; 013 `SearchHistoryProjection` okuması paylaş) + `Program.cs` `MapMcp`
-- [ ] T032 [US2] `McpEndpointsOptions`: `basket`(login)+`reviews`(anon)+`personalization`(login) ekle; order/library/customer(login) teyit
-- [ ] T033 [P] [US2] ECommerceWeb kart bileşenleri: sepet/sipariş/kitaplık/adres/yorum/arama-geçmişi (tool→kart dağıtıcıya kayıt)
-- [ ] T034 [US2] Anon kişisel istek deneyimi doğrula (tool kutuda yok → model "giriş gerekli"); "arama geçmişimi sil" → agent ekrana yönlendirir (yazma yok)
+- [X] T026 [US2] Order `get_my_orders` 007'den `Domains/Orders/Features/Agents/Queries/GetMyOrders.cs` + `Program.cs` `MapMcp`
+- [X] T027 [US2] Library `get_my_library` 007'den `Domains/UserPurchase/Features/Agents/Queries/GetMyLibrary.cs` + `Program.cs` `MapMcp`
+- [X] T028 [US2] Customer `get_my_addresses` 007'den `Domains/AddressBooks/Features/Agents/Queries/GetMyAddresses.cs` + `Program.cs` `MapMcp`
+- [X] T029 [P] [US2] Basket `get_basket` YENİ slice `Domains/Baskets/Features/Agents/Queries/GetBasket.cs` (sahip=sub) + `Program.cs` `MapMcp`
+- [X] T030 [P] [US2] Reviews `get_book_reviews` YENİ slice `Domains/Reviews/Features/Agents/Queries/GetBookReviews.cs` (anon; özet ort/adet) + `Program.cs` `MapMcp`
+- [~] T031 [US2] (013-BLOCKED — personalization BC master'a merge olunca) Personalization `get_search_history` YENİ slice `Domains/SearchHistory/Features/Agents/Queries/GetSearchHistory.cs` (login; 013 `SearchHistoryProjection` okuması paylaş) + `Program.cs` `MapMcp`
+- [X] T032 [US2] `McpEndpointsOptions`: `basket`(login)+`reviews`(anon)+`personalization`(login) ekle; order/library/customer(login) teyit
+- [X] T033 [P] [US2] ECommerceWeb kart bileşenleri: sepet/sipariş/kitaplık/adres/yorum/arama-geçmişi (tool→kart dağıtıcıya kayıt)
+- [X] T034 [US2] Anon kişisel istek deneyimi doğrula (tool kutuda yok → model "giriş gerekli"); "arama geçmişimi sil" → agent ekrana yönlendirir (yazma yok)
 
 **Checkpoint:** Tek sohbet yüzeyinden 6 alan okunur; auth-gating çalışır.
 

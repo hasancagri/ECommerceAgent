@@ -48,6 +48,11 @@ if (builder.Configuration.GetConnectionString("redis") is not null)
 builder.Services.AddCachingAspect("order");
 builder.Services.AddHttpContextAccessor();
 
+// 014: query-only MCP ucu GERİ (ADR adr-mcp-inward-agent — first-party agent-içi MCP, İlke I meşru
+// kanal). YALNIZ ScoutAgent tüketir; kişisel sipariş sorgusu (get_my_orders) — scope-korumalı.
+// Tool'lar assembly taramasıyla bulunur (Features/Agents/Queries/*.cs [McpServerToolType]).
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+
 // hosted-CF start_payment S2S yolu — makine token (order-saga) + sepet gRPC + Payment/Customer istemcileri.
 builder.Services.AddTransient<SagaTokenHandler>();
 
@@ -94,5 +99,8 @@ app.UseAuthorization();
 
 // 094 pay-by-link: PG hosted ödeme dönüş ucu (anonim bilgilendirme; gerçek durum webhook'tan).
 app.AddCheckoutDoneEndpoint();
+
+// 014: kişisel MCP ucu (ScoutAgent client olarak bağlanır). Kişisel veri → scope-korumalı.
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.OrderRead);
 
 await app.RunAsync();

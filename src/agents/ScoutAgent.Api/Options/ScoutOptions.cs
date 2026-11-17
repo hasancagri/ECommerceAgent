@@ -24,10 +24,15 @@ public sealed class McpEndpointsOptions
 {
     public List<McpEndpoint> Endpoints { get; set; } =
     [
+        // Açık (anon araç kutusunda): kitap arama/detay + kitap yorumları.
         new() { Name = "catalog", Url = "http://catalog-api/mcp", RequiresAuth = false },
-        new() { Name = "customer", Url = "http://customer-api/mcp", RequiresAuth = true },
-        new() { Name = "library", Url = "http://library-api/mcp", RequiresAuth = true },
+        new() { Name = "reviews", Url = "http://reviews-api/mcp", RequiresAuth = false },
+        // Kişisel (yalnız login araç kutusunda; uç scope doğrular).
+        new() { Name = "basket", Url = "http://basket-api/mcp", RequiresAuth = true },
         new() { Name = "order", Url = "http://order-api/mcp", RequiresAuth = true },
+        new() { Name = "library", Url = "http://library-api/mcp", RequiresAuth = true },
+        new() { Name = "customer", Url = "http://customer-api/mcp", RequiresAuth = true },
+        // 014 ertelendi (013-blocked): personalization get_search_history — 013 master'a merge olunca.
     ];
 }
 

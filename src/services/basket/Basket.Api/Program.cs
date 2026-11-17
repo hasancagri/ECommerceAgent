@@ -36,10 +36,13 @@ builder.Services.AddCachingAspect("basket");
 
 builder.Services.AddHttpContextAccessor();
 
+// 014: query-only MCP ucu (ScoutAgent tüketir; first-party agent-içi MCP). YALNIZ okuma —
+// get_basket kullanıcının kendi sepetini döner. Tool'lar assembly taramasıyla bulunur
+// (Features/Agents/Queries/*.cs [McpServerToolType]).
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+
 // checkout saga ClearBasket gRPC sunucusu (Order saga'si makine token'iyla cagirir).
 builder.Services.AddGrpc();
-
-// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp tool'ları + DLQ MCP kaldırıldı; okuma/yazma REST first-party'ye.
 
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).
@@ -54,5 +57,8 @@ app.UseAuthorization();
 // GetBasketItems gRPC ucu (Order.Api chat siparis tamamlama; makine token'i basket.read).
 app.MapGrpcService<Basket.Api.Grpc.Checkout.BasketItemsGrpcService>()
     .RequireAuthorization(AuthorizationScopes.BasketRead);
+
+// 014: query-only MCP ucu — kullanıcının kendi sepeti (JWT zorunlu, basket.read scope).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.BasketRead);
 
 await app.RunAsync();

@@ -18,6 +18,7 @@
         <PackageReference Include="WolverineFx.Marten" />
         <PackageReference Include="WolverineFx.Postgresql" />
         <PackageReference Include="Asp.Versioning.Http" />
+        <PackageReference Include="ModelContextProtocol.AspNetCore" />
         <PackageReference Include="Scrutor" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
         <PackageReference Include="Grpc.Net.ClientFactory" />

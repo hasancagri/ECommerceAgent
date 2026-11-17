@@ -24,12 +24,18 @@ builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
 
-// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp fiyat-alarmı tool'ları + DLQ MCP kaldırıldı; REST first-party'ye.
+// 014: query-only MCP ucu GERİ (ADR adr-mcp-inward-agent — first-party agent-içi MCP, İlke I meşru
+// kanal; dış/BYO yüzey kapalı). YALNIZ ScoutAgent tüketir; kullanıcı kitaplığı (get_my_library).
+// Tool'lar assembly taramasıyla bulunur (Features/Agents/Queries/*.cs [McpServerToolType]).
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 014: kişisel-veri MCP ucu — scope-korumalı (library.read; kullanıcı KENDİ kitaplığı). Anonim 401.
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.LibraryRead);
 
 await app.RunAsync();

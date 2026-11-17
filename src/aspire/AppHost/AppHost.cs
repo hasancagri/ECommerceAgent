@@ -216,7 +216,14 @@ var scoutOpenAiKey = builder.AddParameter("scout-openai-api-key", secret: true);
 var scoutAgentApi = builder.AddProject<Projects.ScoutAgent_Api>("scout-agent")
     .WithHttpHealthCheck("/health")
     .WithReference(scoutDb)
+    // MCP client: BC /mcp uçlarına service-discovery ile bağlanır. US1 catalog; US2 basket/order/
+    // library/customer/reviews. (personalization 013-blocked — sonra.)
     .WithReference(catalogApi)
+    .WithReference(reviewsApi)
+    .WithReference(basketApi)
+    .WithReference(orderApi)
+    .WithReference(libraryApi)
+    .WithReference(customerApi)
     .WithEnvironment("ScoutOptions__ApiKey", scoutOpenAiKey)
     .WaitFor(scoutDb)
     .WaitFor(catalogApi);
