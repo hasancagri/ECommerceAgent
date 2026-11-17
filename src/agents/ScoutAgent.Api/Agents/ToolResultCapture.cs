@@ -25,11 +25,25 @@ public sealed class CapturingFunction(AIFunction inner, ToolResultCollector coll
     public override JsonElement? ReturnJsonSchema => inner.ReturnJsonSchema;
     public override IReadOnlyDictionary<string, object?> AdditionalProperties => inner.AdditionalProperties;
 
+    // Tool'ların bir listesi; sonucu LLM'e GÖSTERİLMEZ (kart olarak render edilir) → LLM'in metinde tekrar
+    // listelemesini önler (prompt güvenilmez; gpt-4o-mini eline verilen veriyi anlatır). Kart + sayfalama
+    // altlığı zaten UI'da. LLM yalnız kısa giriş yazsın.
+    private static readonly HashSet<string> CardOnlyTools = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "search_books",
+    };
+
     protected override async ValueTask<object?> InvokeCoreAsync(
         AIFunctionArguments arguments, CancellationToken cancellationToken)
     {
         var result = await inner.InvokeAsync(arguments, cancellationToken);
-        collector.Add(inner.Name, result);
+        collector.Add(inner.Name, result);   // tam sonuç → kart (reply.items)
+
+        // Kart-only tool'larda LLM'e ham listeyi DÖNME → yalnız yönerge (listeleyemez, kart gösteriyor).
+        if (CardOnlyTools.Contains(inner.Name))
+            return "Sonuçlar kullanıcıya KART olarak gösterildi (ad, yazar, fiyat, kapak, link). " +
+                   "Kitapları metinde TEKRAR LİSTELEME; yalnız 1 kısa giriş cümlesi yaz ve gerekirse " +
+                   "'devamını getir' önerisi ekle.";
         return result;
     }
 }
