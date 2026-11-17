@@ -18,7 +18,9 @@ public sealed class McpToolSource(
     private readonly ConcurrentDictionary<string, Task<McpClient>> _clients = new();
 
     // Oturum durumuna göre araç kutusu: anonim = yalnız RequiresAuth=false uçlar; girişli = tümü.
-    public async Task<IList<AITool>> GetToolsAsync(bool isAuthenticated, CancellationToken ct)
+    // collector: tool çıktılarını yakalamak için (SendMessage verir — reply.items oradan dolar).
+    public async Task<IList<AITool>> GetToolsAsync(
+        bool isAuthenticated, ToolResultCollector collector, CancellationToken ct)
     {
         var endpoints = options.Endpoints.Where(e => isAuthenticated || !e.RequiresAuth);
 
@@ -29,7 +31,9 @@ public sealed class McpToolSource(
             {
                 var client = await _clients.GetOrAdd(endpoint.Name, _ => CreateClientAsync(endpoint, ct));
                 var endpointTools = await client.ListToolsAsync(cancellationToken: ct);
-                tools.AddRange(endpointTools.Cast<AITool>());
+                // Her tool'u yakalayıcıyla sar — çıktı collector'a yazılır (AIFunction olanlar; değilse aynen).
+                foreach (var t in endpointTools)
+                    tools.Add(t is AIFunction f ? new CapturingFunction(f, collector) : t);
             }
             catch (Exception ex)
             {

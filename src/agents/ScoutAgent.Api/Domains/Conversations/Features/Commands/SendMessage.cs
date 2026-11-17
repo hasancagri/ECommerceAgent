@@ -42,7 +42,9 @@ public static class SendMessage
         {
             var isAuthenticated = command.UserId is Guid uid && uid != Guid.Empty;
 
-            var tools = await toolSource.GetToolsAsync(isAuthenticated, ct);
+            // Tur boyunca tool çıktılarını yakala (MAF yanıtta surface etmiyor → reply.items buradan).
+            var collector = new ToolResultCollector();
+            var tools = await toolSource.GetToolsAsync(isAuthenticated, collector, ct);
             var agent = agentFactory.CreateAgent(tools);
 
             // Girişli: kayıt yükle/oluştur (sahiplik kontrolü) + kullanıcı mesajını ekle.
@@ -76,7 +78,7 @@ public static class SendMessage
             var reply = new Reply
             {
                 Text = runResponse.Text ?? string.Empty,
-                Items = ExtractItems(runResponse),
+                Items = BuildItems(collector),
             };
 
             Guid conversationId;
@@ -157,31 +159,32 @@ public static class SendMessage
                 conversation.ApplySummary(summary, upTo);
         }
 
-        // Tool çağrı sonuçlarını BİREBİR çıkarır (FunctionCall adı ↔ FunctionResult, CallId ile eşlenir).
-        private static IReadOnlyList<ReplyItem> ExtractItems(AgentResponse response)
+        // Yakalanan tool çıktılarını reply.items'a çevirir (collector'dan — MAF yanıtına bağlı değil).
+        // MCP sonucu string(JSON)/JsonElement/obje olabilir → normalize edip JsonElement döndür.
+        private static IReadOnlyList<ReplyItem> BuildItems(ToolResultCollector collector) =>
+            collector.Results
+                .Where(r => r.Result is not null)
+                .Select(r => new ReplyItem(r.Tool, ToElement(r.Result!)))
+                .ToList();
+
+        private static System.Text.Json.JsonElement ToElement(object result)
         {
-            var toolNameByCallId = new Dictionary<string, string>();
-            var items = new List<ReplyItem>();
-
-            foreach (var message in response.Messages)
+            // MCP client bazen metin içerik döner (JSON string) → parse et; JsonElement → aynen; obje → serialize.
+            switch (result)
             {
-                foreach (var content in message.Contents)
-                {
-                    switch (content)
+                case System.Text.Json.JsonElement je:
+                    return je;
+                case string s:
+                    var t = s.TrimStart();
+                    if (t.StartsWith('{') || t.StartsWith('['))
                     {
-                        case FunctionCallContent call:
-                            toolNameByCallId[call.CallId] = call.Name;
-                            break;
-                        case FunctionResultContent result when result.Result is not null:
-                            var tool = toolNameByCallId.TryGetValue(result.CallId, out var name) ? name : "unknown";
-                            items.Add(new ReplyItem(tool,
-                                System.Text.Json.JsonSerializer.SerializeToElement(result.Result)));
-                            break;
+                        try { return System.Text.Json.JsonDocument.Parse(s).RootElement.Clone(); }
+                        catch { /* düz metin → aşağıda sarılır */ }
                     }
-                }
+                    return System.Text.Json.JsonSerializer.SerializeToElement(new { text = s });
+                default:
+                    return System.Text.Json.JsonSerializer.SerializeToElement(result);
             }
-
-            return items;
         }
     }
 }
