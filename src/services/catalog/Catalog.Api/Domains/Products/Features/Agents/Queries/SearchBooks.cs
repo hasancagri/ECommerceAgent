@@ -240,6 +240,11 @@ public static class SearchBooks
                 _ => null,
             };
 
+            // TEŞHİS (014 geçici): LLM hangi filtreleri geçti? — fiyat/filtre uygulanmıyor şüphesi.
+            System.Console.WriteLine($"[DIAG search_books] q='{query}' pub='{publisher}' exPub='{excludePublisher}' " +
+                $"binding='{binding}' min={minPrice} max={maxPrice} sort='{sort}' salable={onlySalable} " +
+                $"disc={onlyDiscounted} minPg={minPageCount} maxPg={maxPageCount}");
+
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
                 new Query(query, page, pageSize, publisher, excludePublisher, bindingValue, minPrice, maxPrice, sort,
                     onlySalable, onlyDiscounted, minPageCount, maxPageCount), cancellationToken);
