@@ -81,11 +81,12 @@ public static class SearchBooks
             if (ordered.Count > 0 && filterActive)
             {
                 var orderedArr = ordered.ToArray();
+                // Aday ürünlerin TAMAMI yüklenir (projeksiyon DEĞİL — iç içe Money VO `Price.Amount`
+                // projeksiyonu Marten'de SQL'e çevrilemiyordu → tool patlıyordu). Küme bounded (≤~500);
+                // tüm süzgeç/sıralama bu nesnelerden bellekte okunur (IsSalable dahil).
                 var candById = (await session.Query<Product>()
-                        .Where(p => p.Id.IsOneOf(orderedArr))
-                        .Select(p => new { p.Id, p.PublisherId, p.Binding, Price = p.Price != null ? (decimal?)p.Price.Amount : null, p.PublishedOn, p.PurchaseCount, p.DiscountRate, p.PageCount })
-                        .ToListAsync(ct))
-                    .ToDictionary(x => x.Id);
+                        .Where(p => p.Id.IsOneOf(orderedArr)).ToListAsync(ct))
+                    .ToDictionary(p => p.Id);
 
                 async Task<HashSet<Guid>> MatchPublisherIds(string name) =>
                     (await session.Query<Publisher>()
@@ -123,11 +124,11 @@ public static class SearchBooks
                 // Fiyat aralığı süzgeci — süzgeç aktifken fiyatsız (null) ürün ELENİR.
                 if (query.MinPrice is { } minPrice)
                     ordered = ordered
-                        .Where(id => candById.TryGetValue(id, out var c) && c.Price.HasValue && c.Price.Value >= minPrice)
+                        .Where(id => candById.TryGetValue(id, out var c) && c.Price?.Amount >= minPrice)
                         .ToList();
                 if (query.MaxPrice is { } maxPrice)
                     ordered = ordered
-                        .Where(id => candById.TryGetValue(id, out var c) && c.Price.HasValue && c.Price.Value <= maxPrice)
+                        .Where(id => candById.TryGetValue(id, out var c) && c.Price?.Amount <= maxPrice)
                         .ToList();
 
                 // Sayfa sayısı aralığı — süzgeç aktifken sayfası bilinmeyen (null) ürün ELENİR.
@@ -140,15 +141,12 @@ public static class SearchBooks
                         .Where(id => candById.TryGetValue(id, out var c) && c.PageCount.HasValue && c.PageCount.Value <= maxPages)
                         .ToList();
 
-                // Satışta-olanlar süzgeci — IsSalable hesaplı (fiyat>0 ∧ stok>0 ∧ ≥1 yazar), LINQ'e
-                // çevrilmez (AuthorIds jsonb) → aday tam-ürünleri yükleyip bellekte süz. Yalnız aktifken.
+                // Satışta-olanlar süzgeci — IsSalable hesaplı (fiyat>0 ∧ stok>0 ∧ ≥1 yazar); yüklü
+                // Product'tan bellekte okunur (candById zaten tam nesne).
                 if (query.OnlySalable)
-                {
-                    var salableIds = (await session.Query<Product>()
-                            .Where(p => p.Id.IsOneOf(orderedArr)).ToListAsync(ct))
-                        .Where(p => p.IsSalable).Select(p => p.Id).ToHashSet();
-                    ordered = ordered.Where(salableIds.Contains).ToList();
-                }
+                    ordered = ordered
+                        .Where(id => candById.TryGetValue(id, out var c) && c.IsSalable)
+                        .ToList();
 
                 // İndirimdeki kitaplar — DiscountRate dolu ve > 0 (null = indirim yok).
                 if (query.OnlyDiscounted)
@@ -158,7 +156,7 @@ public static class SearchBooks
 
                 // Sıralama — verilmişse yazar-önce sırasını EZER; boş/bilinmeyen değer sırayı korur.
                 // null fiyat/tarih en sona (OrderBy ... ThenBy null-son deseni).
-                decimal? PriceOf(Guid id) => candById.TryGetValue(id, out var c) ? c.Price : null;
+                decimal? PriceOf(Guid id) => candById.TryGetValue(id, out var c) ? c.Price?.Amount : null;
                 DateOnly? PublishedOf(Guid id) => candById.TryGetValue(id, out var c) ? c.PublishedOn : null;
                 int PurchaseOf(Guid id) => candById.TryGetValue(id, out var c) ? c.PurchaseCount : 0;
                 ordered = (query.Sort?.Trim().ToLowerInvariant()) switch
