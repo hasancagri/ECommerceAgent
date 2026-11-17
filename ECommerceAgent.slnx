@@ -4,6 +4,9 @@
     <Project Path="src/aspire/AppHost/AppHost.csproj" />
     <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/src/agents/">
+    <Project Path="src/agents/ScoutAgent.Api/ScoutAgent.Api.csproj" />
+  </Folder>
   <Folder Name="/src/others/">
     <Project Path="src/others/Common/Common.csproj" />
     <Project Path="src/others/Gateway/Gateway.csproj" />
@@ -26,6 +29,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Basket.Api.Tests/Basket.Api.Tests.csproj" />
     <Project Path="tests/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
+    <Project Path="tests/ScoutAgent.Api.Tests/ScoutAgent.Api.Tests.csproj" />
     <Project Path="tests/Customer.Api.Tests/Customer.Api.Tests.csproj" />
     <Project Path="tests/Common.Tests/Common.Tests.csproj" />
     <Project Path="tests/File.Api.Tests/File.Api.Tests.csproj" />
