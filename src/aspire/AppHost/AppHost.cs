@@ -224,6 +224,7 @@ var scoutAgentApi = builder.AddProject<Projects.ScoutAgent_Api>("scout-agent")
     .WithReference(orderApi)
     .WithReference(libraryApi)
     .WithReference(customerApi)
+    .WithReference(personalizationApi)
     .WithEnvironment("ScoutOptions__ApiKey", scoutOpenAiKey)
     .WaitFor(scoutDb)
     .WaitFor(catalogApi);

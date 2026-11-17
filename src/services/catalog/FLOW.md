@@ -81,9 +81,11 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    birleştir (skor normalize GEREKMEZ, sıra-tabanlı) → tek hibrit sonuç.
    **096 embedding omurgası SÖKÜLMÜŞTÜ (Ollama); 011 OpenAI + ParadeDB ile bilinçli geri.**
    Yayın filtresi yok — her ürün keşfedilebilir.
-8d. 🟧 **Kullanıcı aradı** ⇨ Personalization (012) — login aramada `UserSearched(userId, query,     `(ProductEndpointExtension)`
-   mode, resultCount, searchedAt)` yayınlanır (fanout, endpoint'te — query saf okuma kalır). Opsiyonel
-   JWT'den userId; anonim/boş sorgu yayınlamaz. Publish ayrık + hata-yutar → arama sonucunu etkilemez.
+8d. 🟧 **Kullanıcı aradı** ⇨ Personalization (012/014) — login aramada `UserSearched(userId, query,   `(SearchBooks.Tool)`
+   mode, resultCount, searchedAt)` yayınlanır (fanout). **014 (F1): yayın noktası REST ucundan
+   ScoutAgent `search_books` MCP tool'una TAŞINDI** — keşif artık sohbetten geçer; `/products/search`
+   REST ucu saf okuma kaldı (yayınlamaz). Opsiyonel JWT'den userId; anonim/boş sorgu yayınlamaz.
+   Publish ayrık + hata-yutar → arama sonucunu etkilemez.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

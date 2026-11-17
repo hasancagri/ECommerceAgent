@@ -32,7 +32,7 @@ public sealed class McpEndpointsOptions
         new() { Name = "order", Url = "http://order-api/mcp", RequiresAuth = true },
         new() { Name = "library", Url = "http://library-api/mcp", RequiresAuth = true },
         new() { Name = "customer", Url = "http://customer-api/mcp", RequiresAuth = true },
-        // 014 ertelendi (013-blocked): personalization get_search_history — 013 master'a merge olunca.
+        new() { Name = "personalization", Url = "http://personalization-api/mcp", RequiresAuth = true },
     ];
 }
 

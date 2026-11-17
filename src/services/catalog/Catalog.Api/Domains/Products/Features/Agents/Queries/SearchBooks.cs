@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.AspNetCore.Http;
 using ModelContextProtocol.Server;
 
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
@@ -101,9 +102,9 @@ public static class SearchBooks
     {
         [McpServerTool(Name = "search_books")]
         [Description("Katalogda kitap adı veya yazar adıyla arama yapar; eşleşen kitapları " +
-                     "(ad, yazar, fiyat, satılabilirlik, kapak) döner. Kişisel veri İÇERMEZ, anonim.")]
+                     "(ad, yazar, fiyat, satılabilirlik, kapak) döner. Anonim erişilebilir.")]
         public static async Task<Response> SearchBooks(
-            IMessageBus bus,
+            IMessageBus bus, ICurrentUser currentUser, IHttpContextAccessor http,
             [Description("Aranacak kitap adı veya yazar adı (serbest metin)")] string query,
             [Description("Sayfa numarası (1'den başlar)")] int page = 1,
             [Description("Sayfa boyutu (en fazla 20)")] int pageSize = 10,
@@ -111,6 +112,21 @@ public static class SearchBooks
         {
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
                 new Query(query, page, pageSize), cancellationToken);
+
+            // 014 US4: login + dolu-sorguda UserSearched yayınla (fanout → Personalization 013). Arama
+            // sonucunu ETKİLEMEZ — ayrık + hata-yutar. Anonim (Id boş) ya da boş sorgu → yayınlanmaz.
+            // (012 REST publish'inin yerini aldı — tek yayın kaynağı artık bu tool; F1 kararı.)
+            currentUser.Load(http.HttpContext!.User);
+            if (currentUser.Id != Guid.Empty && !string.IsNullOrWhiteSpace(query))
+            {
+                try
+                {
+                    await bus.PublishAsync(new IntegrationEvents.UserSearched(
+                        currentUser.Id, query.Trim(), "keyword", (int)(result.Data?.Total ?? 0), DateTimeOffset.UtcNow));
+                }
+                catch { /* yayın arama sonucunu etkilemez */ }
+            }
+
             return result.Data ?? new Response { Page = page };
         }
     }

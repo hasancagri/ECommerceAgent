@@ -67,7 +67,7 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 - [X] T028 [US2] Customer `get_my_addresses` 007'den `Domains/AddressBooks/Features/Agents/Queries/GetMyAddresses.cs` + `Program.cs` `MapMcp`
 - [X] T029 [P] [US2] Basket `get_basket` YENİ slice `Domains/Baskets/Features/Agents/Queries/GetBasket.cs` (sahip=sub) + `Program.cs` `MapMcp`
 - [X] T030 [P] [US2] Reviews `get_book_reviews` YENİ slice `Domains/Reviews/Features/Agents/Queries/GetBookReviews.cs` (anon; özet ort/adet) + `Program.cs` `MapMcp`
-- [~] T031 [US2] (013-BLOCKED — personalization BC master'a merge olunca) Personalization `get_search_history` YENİ slice `Domains/SearchHistory/Features/Agents/Queries/GetSearchHistory.cs` (login; 013 `SearchHistoryProjection` okuması paylaş) + `Program.cs` `MapMcp`
+- [X] T031 [US2] Personalization get_search_history tool + /mcp host (013 projeksiyonu paylaşır)
 - [X] T032 [US2] `McpEndpointsOptions`: `basket`(login)+`reviews`(anon)+`personalization`(login) ekle; order/library/customer(login) teyit
 - [X] T033 [P] [US2] ECommerceWeb kart bileşenleri: sepet/sipariş/kitaplık/adres/yorum/arama-geçmişi (tool→kart dağıtıcıya kayıt)
 - [X] T034 [US2] Anon kişisel istek deneyimi doğrula (tool kutuda yok → model "giriş gerekli"); "arama geçmişimi sil" → agent ekrana yönlendirir (yazma yok)
@@ -96,9 +96,9 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 
 **Bağımsız test:** Login sohbetten arama → arama geçmişinde (013) görünür; anon arama → hiç kayıt yok.
 
-- [~] T038 (012/013-BLOCKED — UserSearched master'da yok) [US4] Catalog `search_books` handler: login+dolu-query → `UserSearched` publish (fanout); anon → yayınlama
-- [~] T039 (012/013-BLOCKED — UserSearched master'da yok) [US4] Eski REST `/products/search` `UserSearched` yayınını **kaldır** (ChatWorkspace artık kullanmıyor; tek yayın kaynağı `search_books` tool'u — çift-yayın önlenir) [F1 kararı]
-- [~] T040 (012/013-BLOCKED — UserSearched master'da yok) [P] [US4] `catalog/FLOW.md` + Personalization dikişi güncelle (yayın noktası REST→agent/tool taşındı)
+- [X] T038 [US4] search_books handler: login+dolu-query → UserSearched publish; anon yayınlamaz
+- [X] T039 [US4] REST /products/search UserSearched publish KALDIRILDI (tek kaynak search_books tool)
+- [X] T040 [US4] catalog/FLOW.md yayın noktası REST→tool güncellendi
 
 ---
 
