@@ -6,6 +6,7 @@ global using Common.Domains;
 global using Common.Exceptions;
 global using Common.Extensions;
 global using Common.Results;
+global using Common.Utils.Constants;
 global using Marten;
 global using Marten.Newtonsoft;
 global using Newtonsoft.Json;

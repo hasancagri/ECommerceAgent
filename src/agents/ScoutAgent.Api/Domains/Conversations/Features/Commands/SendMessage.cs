@@ -40,6 +40,11 @@ public static class SendMessage
         IDocumentSession session,
         ScoutOptions options)
     {
+        // 017: saklanan kart JSON'u canlı endpoint dönüşüyle AYNI şekilde (camelCase) olmalı — React
+        // reload'da aynı ReplyItem[] parse'ını kullanır.
+        private static readonly System.Text.Json.JsonSerializerOptions ItemsJsonOptions =
+            new() { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+
         public async Task<FeatureObjectResultModel<Response>> Handle(Command command, CancellationToken ct)
         {
             var isAuthenticated = command.UserId is Guid uid && uid != Guid.Empty;
@@ -103,7 +108,13 @@ public static class SendMessage
             Guid conversationId;
             if (isAuthenticated && conversation is not null)
             {
-                conversation.AddAssistantMessage(reply.Text);
+                // 017: turda gösterilen kartları (reply.Items) mesaja opak JSON olarak sakla →
+                // reload'da birebir render. camelCase (canlı endpoint ile aynı şekil; React {tool,result}).
+                // Kart yoksa null — bağlama ASLA girmez (BuildContext yalnız Text okur).
+                var itemsJson = reply.Items.Count > 0
+                    ? System.Text.Json.JsonSerializer.Serialize(reply.Items, ItemsJsonOptions)
+                    : null;
+                conversation.AddAssistantMessage(reply.Text, itemsJson);
                 if (!string.IsNullOrWhiteSpace(title)) conversation.SetTitle(title);
                 // Özetleme KAPALI — tam transkript taşınıyor (başından sonuna); özete gerek yok + boşuna
                 // OpenAI turu olurdu. (Sohbet aşırı uzarsa üst-sınır/özet ileride geri gelebilir.)

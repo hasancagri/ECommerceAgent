@@ -16,14 +16,22 @@ public record ChatMessage
     public string Text { get; private set; } = default!;
     public DateTimeOffset CreatedAt { get; private set; }
 
+    // 017: assistant turunda gösterilen yapılı tool sonuçları (kitap kartları) — opak JSON string
+    // (`[{tool,result}]`, unwrap-sonrası; React ReplyItem[] olarak parse eder). User turunda null.
+    // Stored VO'da JsonElement YOK (Marten record-VO deserialize tuzağı) — ham string tutulur. Bu
+    // alan YALNIZ reload sadakati içindir; modele giden bağlama GİRMEZ (BuildContext yalnız Text okur).
+    public string? ItemsJson { get; private set; }
+
     private ChatMessage()
     {
     }
 
-    public static ChatMessage Create(ChatRole role, string text, DateTimeOffset createdAt) => new()
+    public static ChatMessage Create(ChatRole role, string text, DateTimeOffset createdAt,
+        string? itemsJson = null) => new()
     {
         Role = role,
         Text = text,
         CreatedAt = createdAt,
+        ItemsJson = itemsJson,
     };
 }
