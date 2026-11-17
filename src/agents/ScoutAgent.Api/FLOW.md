@@ -24,12 +24,17 @@ aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon t
    `get_search_history` (okuma); arama-geçmişi silme sohbette YOK → agent geçmiş ekranına yönlendirir.
 6. 🟧 Cevap `{text, items}` — `items` tool dönüşünden BİREBİR (fiyat/kapak/künye uydurma YOK).
    React tool adına göre kart render eder (tek sohbet akışı).
-7. 🟪 Login ise user+assistant mesajı `Conversation`'a eklenir; eşik aşılınca eskiler özetlenir
-   (bağlam maliyeti sabit). Anon = kalıcı kayıt yok.
+7. 🟪 Login ise user mesajı + assistant mesajı (`text` + gösterilen `items`'ın opak JSON kopyası      `(Conversation.AddAssistantMessage)`
+   `ItemsJson`) `Conversation`'a eklenir → sohbet tekrar açılınca kartlar AYNEN gelir (017 reload
+   sadakati). Özetleme KAPALI — tam transkript taşınır. Anon = kalıcı kayıt yok (istemci saklar).
 8. 🟪 **Sayfalama:** cevap metni sayfa-izi taşır ("… 1. sayfa"); 👤 "devamını getir" → LLM
    `search_books page+1` çağırır → sonraki 20 aynı akışa eklenir (anon'da izi istemci-transkript taşır).
 9. 🟪 **Arama sinyali:** login + dolu-sorguda `search_books` yolu `UserSearched` yayar ⇨ Personalization
    (012/013 aynen; yayın REST ucundan buraya TAŞINDI). Anon → sessiz (kaydolmaz).
+10. 🟦 **Geçmiş yönetimi (017):** 👤 sohbetini elle yeniden adlandırır → **RenameConversation**           `(Conversation.Rename)`
+    (PATCH `/conversations/{id}`; boş red, UpdatedTime DOKUNULMAZ — sidebar sırası sabit) ya da
+    kalıcı siler → **DeleteConversation** (DELETE, HARD). İkisi de sahiplik-korumalı (başkasınınki 404).  `(DeleteConversation.Handle)`
+    Anon muadili istemcide (sessionStorage; sunucu çağrısı yok).
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
@@ -37,9 +42,13 @@ aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon t
   conventions "MCP yalnız agent tüketir"). Uç listesi config-güdümlü (yeni BC = tek satır).
 - **Okuma-only.** Tüm tool'lar query; yazma (sepete-ekle/sipariş/yorum/adres/arama-geçmişi-silme) MCP'de
   YOK — REST+UI. Arama geçmişi okunur (`get_search_history`) ama silinmez; agent silmeyi ekrana yönlendirir.
-- **Items birebir.** Tool sonucu değiştirilmeden döner; transkripte YALNIZ metin girer (hacimli sonuç değil).
+- **Items birebir.** Tool sonucu değiştirilmeden döner. 017: gösterilen kartlar assistant mesajına
+  `ItemsJson` olarak SAKLANIR (reload sadakati) AMA modele giden **bağlama GİRMEZ** — `BuildContext`
+  yalnız `Text` okur (zehirlenme yok, maliyet sabit). Saklama ≠ bağlam; iki ayrı endişe.
+- **Rename UpdatedTime'a dokunmaz.** Elle yeniden adlandırma "etkinlik" değil → sidebar sırası (son
+  aktivite) korunur. LLM'in ilk-tur akıllı başlığı (`SetTitle`) bundan ayrı (UpdatedTime günceller).
 - **Devamlılık kaynağı.** Login → ScoutAgent'ın kendi kaydı; anon → istemci-transkript. Agent çerçeve
-  state'ine güvenilmez. Kullanıcı yalnız KENDİ sohbetini görür/sürdürür.
+  state'ine güvenilmez. Kullanıcı yalnız KENDİ sohbetini görür/sürdürür/adlandırır/siler (sahiplik).
 - **Arama kaydı yalnız login.** `UserSearched` yalnız login+dolu-sorguda yayılır; anon arama kaydolmaz
   (012/013 invariant'ı korunur, toplu/anon log YOK).
 

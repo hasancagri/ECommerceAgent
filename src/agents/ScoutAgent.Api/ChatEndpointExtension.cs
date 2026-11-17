@@ -65,5 +65,33 @@ public static class ChatEndpointExtension
                 new GetConversation.Query(id, currentUser.Id), ct);
             return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound();
         }).RequireAuthorization();
+
+        // PATCH /conversations/{id} — başlığı elle değiştir (017). Sahiplik 404, geçersiz başlık 400.
+        group.MapPatch("/conversations/{id:guid}", async (
+            Guid id, RenameConversationRequest request, ICurrentUser currentUser, HttpContext http,
+            IMessageBus bus, CancellationToken ct) =>
+        {
+            currentUser.Load(http.User);
+            var result = await bus.InvokeAsync<FeatureResultModel>(
+                new RenameConversation.Command(id, currentUser.Id, request.Title ?? string.Empty), ct);
+            if (result.IsSuccess) return Results.Ok(result);
+            return IsNotFound(result) ? Results.NotFound() : Results.BadRequest(result);
+        }).RequireAuthorization();
+
+        // DELETE /conversations/{id} — kalıcı sil (017, HARD). Sahiplik 404, başarı 204.
+        group.MapDelete("/conversations/{id:guid}", async (
+            Guid id, ICurrentUser currentUser, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+        {
+            currentUser.Load(http.User);
+            var result = await bus.InvokeAsync<FeatureResultModel>(
+                new DeleteConversation.Command(id, currentUser.Id), ct);
+            return result.IsSuccess ? Results.NoContent() : Results.NotFound();
+        }).RequireAuthorization();
     }
+
+    public record RenameConversationRequest(string? Title);
+
+    // Sahiplik/yokluk hatası (NotFound) ile doğrulama hatasını (başlık boş/uzun) ayır → 404 vs 400.
+    private static bool IsNotFound(FeatureResultModel result) =>
+        result.Messages?.Any(m => m.Code == CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND) == true;
 }

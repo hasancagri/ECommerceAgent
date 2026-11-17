@@ -10,6 +10,8 @@ public static class GetConversation
         public string Role { get; set; } = string.Empty;
         public string Text { get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; }
+        // 017: assistant turunda gösterilen kartlar (opak JSON) — reload'da React parse eder.
+        public string? ItemsJson { get; set; }
     }
 
     public class Response
@@ -32,6 +34,7 @@ public static class GetConversation
                 Role = m.Role.ToString(),
                 Text = m.Text,
                 CreatedAt = m.CreatedAt,
+                ItemsJson = m.ItemsJson,
             }).ToList();
 
             return FeatureObjectResultModel<Response>.Ok(new Response

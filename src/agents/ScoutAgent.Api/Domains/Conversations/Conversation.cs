@@ -7,6 +7,10 @@ namespace ScoutAgent.Api.Domains.Conversations;
 /// </summary>
 public class Conversation : AggregateRoot
 {
+    // 017: kullanıcı-tetikli yeniden adlandırmada başlık üst sınırı (domain sabiti — aggregate config
+    // okumaz; DeriveTitle'ın 60 türetim kırpımından ayrı, elle rename için daha geniş tavan).
+    public const int MaxTitleLength = 100;
+
     public Guid UserId { get; private set; }
     public string Title { get; private set; } = default!;
 
@@ -52,6 +56,24 @@ public class Conversation : AggregateRoot
         return ResultDomain.Ok();
     }
 
+    /// <summary>Kullanıcı başlığı elle değiştirir (017). Boş/yalnız-boşluk reddedilir; trim'lenir;
+    /// MaxTitleLength aşılırsa reddedilir. SetTitle'dan FARKI: UpdatedTime'a DOKUNMAZ — yeniden
+    /// adlandırma sohbeti sidebar sırasında başa atmaz (başlık düzeltmesi "etkinlik" değildir).</summary>
+    public ResultDomain Rename(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return ResultDomain.Error(new MessageItem
+            { Property = nameof(title), Code = ScoutResourceConstants.CONVERSATION_TITLE_EMPTY });
+
+        var trimmed = title.Trim();
+        if (trimmed.Length > MaxTitleLength)
+            return ResultDomain.Error(new MessageItem
+            { Property = nameof(title), Code = ScoutResourceConstants.CONVERSATION_TITLE_TOO_LONG });
+
+        Title = trimmed;
+        return ResultDomain.Ok();
+    }
+
     /// <summary>Kullanıcı mesajını ekler. Boş metin reddedilir.</summary>
     public ResultDomain AddUserMessage(string text)
     {
@@ -63,13 +85,14 @@ public class Conversation : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Kâşif (assistant) cevabını ekler. Boş metin reddedilir.</summary>
-    public ResultDomain AddAssistantMessage(string text)
+    /// <summary>Kâşif (assistant) cevabını ekler. Boş metin reddedilir. 017: opsiyonel itemsJson —
+    /// turda gösterilen yapılı kartlar (opak JSON) mesaja saklanır (reload sadakati); bağlama girmez.</summary>
+    public ResultDomain AddAssistantMessage(string text, string? itemsJson = null)
     {
         if (string.IsNullOrWhiteSpace(text))
             return ResultDomain.Error(new MessageItem
             { Property = nameof(text), Code = ScoutResourceConstants.CONVERSATION_MESSAGE_EMPTY });
-        _messages.Add(ChatMessage.Create(ChatRole.Assistant, text.Trim(), DateTime.UtcNow));
+        _messages.Add(ChatMessage.Create(ChatRole.Assistant, text.Trim(), DateTime.UtcNow, itemsJson));
         UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }
