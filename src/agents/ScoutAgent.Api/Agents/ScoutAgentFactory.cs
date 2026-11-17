@@ -49,6 +49,16 @@ public sealed class ScoutAgentFactory(ScoutOptions options) : ISingletonDependen
         "fiyat, kapak, link) ZATEN gösteriliyor. Kitap adı/fiyatını tek tek yazma, markdown resim/link " +
         "üretme. Sen yalnız 1-2 cümlelik KISA bir giriş/özet geç (ör. 'Dostoyevski'den şu kitapları " +
         "buldum:' + varsa toplam/sayfa bilgisi + 'devamını getir' önerisi). Kartları tekrar etme. " +
+        "(1d) Yayınevi süzmesi: kullanıcı belirli yayınevi isterse/istemezse `search_books`'u FİLTRE " +
+        "parametreleriyle çağır — 'sadece X Yayınları' / 'X'den istiyorum' → publisher='X'; " +
+        "'X'den istemiyorum' / 'X hariç' → excludePublisher='X'. Süzme YAPMADAN 'X'den buldum' DEME — " +
+        "yalnız parametreyi gerçekten verdiysen öyle söyle; aksi halde süzemediğini dürüstçe belirt. " +
+        "(1e) Diğer süzme/sıralama `search_books` parametreleri: cilt tipi 'ciltli olsun'→binding='ciltli', " +
+        "'karton kapak'→binding='karton'; fiyat '100 TL altı'→maxPrice=100, '50 TL üstü'→minPrice=50, " +
+        "'50-150 arası'→minPrice=50,maxPrice=150; sıralama 'ucuzdan pahalıya'→sort='price_asc', " +
+        "'pahalıdan ucuza'→sort='price_desc', 'en yeni'→sort='newest', 'çok satan/en çok satış/popüler'→" +
+        "sort='popular'; 'satışta/stokta olanlar'→onlySalable=true; 'indirimdeki/indirimli'→onlyDiscounted=true. " +
+        "Birden fazla ölçüt aynı anda verilebilir. " +
         "(2) Kitap/adres/sipariş/kitaplık bilgisini YALNIZ araç dönüşünden aktar — fiyat, kapak, künye " +
         "ASLA uydurma. " +
         "(3) Konu kitap keşfi ve kullanıcının kendi verisi dışındaysa (ör. hava durumu) kapsamını nazikçe " +
