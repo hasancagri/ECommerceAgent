@@ -1,10 +1,10 @@
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
-// Kalıcılık (Marten + şema/index + Wolverine entegrasyonu) → Extensions/MartenExtensions.cs.
+// KalÄ±cÄ±lÄ±k (Marten + Åema/index + Wolverine entegrasyonu) â Extensions/MartenExtensions.cs.
 builder.AddLibraryMarten();
 
-// Mesajlaşma (Wolverine + RabbitMQ topoloji + handler keşfi) → Extensions/MessagingExtensions.cs.
+// MesajlaÅma (Wolverine + RabbitMQ topoloji + handler keÅfi) â Extensions/MessagingExtensions.cs.
 builder.AddLibraryMessaging();
 
 builder.Services.AddApiVersioning(options =>
@@ -24,9 +24,9 @@ builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
 
-// 014: query-only MCP ucu GERİ (ADR adr-mcp-inward-agent — first-party agent-içi MCP, İlke I meşru
-// kanal; dış/BYO yüzey kapalı). YALNIZ ScoutAgent tüketir; kullanıcı kitaplığı (get_my_library).
-// Tool'lar assembly taramasıyla bulunur (Features/Agents/Queries/*.cs [McpServerToolType]).
+// 014: query-only MCP ucu GERÄ° (ADR adr-mcp-inward-agent â first-party agent-iÃ§i MCP, Ä°lke I meÅru
+// kanal; dÄ±Å/BYO yÃ¼zey kapalÄ±). YALNIZ ScoutAgent tÃ¼ketir; kullanÄ±cÄ± kitaplÄ±ÄÄ± (get_my_library).
+// Tool'lar assembly taramasÄ±yla bulunur (Features/Agents/Queries/*.cs [McpServerToolType]).
 builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 var app = builder.Build();
@@ -35,7 +35,7 @@ app.MapDefaultEndpoints();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 014: kişisel-veri MCP ucu — scope-korumalı (library.read; kullanıcı KENDİ kitaplığı). Anonim 401.
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.LibraryRead);
+// 014: kiÅisel-veri MCP ucu â scope-korumalÄ± (library.read; kullanÄ±cÄ± KENDÄ° kitaplÄ±ÄÄ±). Anonim 401.
+app.MapMcp("/mcp").RequireAuthorization();  // 014: personal data, no named scope (013 pattern) - identity from sub
 
 await app.RunAsync();

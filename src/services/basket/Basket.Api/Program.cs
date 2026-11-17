@@ -1,10 +1,10 @@
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
-// Marten kalıcılık kurulumu → Extensions/MartenExtensions.cs
+// Marten kalÄ±cÄ±lÄ±k kurulumu â Extensions/MartenExtensions.cs
 builder.AddBasketMarten();
 
-// Wolverine mesajlaşma kurulumu → Extensions/MessagingExtensions.cs (AddCachingAspect'ten ÖNCE).
+// Wolverine mesajlaÅma kurulumu â Extensions/MessagingExtensions.cs (AddCachingAspect'ten ÃNCE).
 builder.AddBasketMessaging();
 
 
@@ -20,24 +20,24 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.BasketRead,
     AuthorizationScopes.BasketWrite,
-    // 088: ölü-mesaj operatör tool'ları (admin_list/get/replay/discard_dead_letter).
+    // 088: Ã¶lÃ¼-mesaj operatÃ¶r tool'larÄ± (admin_list/get/replay/discard_dead_letter).
     AuthorizationScopes.OpsDeadletter);
-// Dış tüketiciler icin opak UserKey (X-User-Key) custom auth semasi. JWT'ye dokunmaz.
+// DÄ±Å tÃ¼keticiler icin opak UserKey (X-User-Key) custom auth semasi. JWT'ye dokunmaz.
 builder.Services.AddApiKeyAuthentication(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// L2 (paylaşımlı) önbellek katmanı — Redis IDistributedCache; opsiyonel (yoksa HybridCache yalnız L1).
+// L2 (paylaÅÄ±mlÄ±) Ã¶nbellek katmanÄ± â Redis IDistributedCache; opsiyonel (yoksa HybridCache yalnÄ±z L1).
 if (builder.Configuration.GetConnectionString("redis") is not null)
     builder.AddRedisDistributedCache("redis");
 
-// Declarative caching aspect'i: HybridCache + IMessageBus'ı şeffaf sar. UseWolverine'den sonra olmalı.
+// Declarative caching aspect'i: HybridCache + IMessageBus'Ä± Åeffaf sar. UseWolverine'den sonra olmalÄ±.
 builder.Services.AddCachingAspect("basket");
 
 builder.Services.AddHttpContextAccessor();
 
-// 014: query-only MCP ucu (ScoutAgent tüketir; first-party agent-içi MCP). YALNIZ okuma —
-// get_basket kullanıcının kendi sepetini döner. Tool'lar assembly taramasıyla bulunur
+// 014: query-only MCP ucu (ScoutAgent tÃ¼ketir; first-party agent-iÃ§i MCP). YALNIZ okuma â
+// get_basket kullanÄ±cÄ±nÄ±n kendi sepetini dÃ¶ner. Tool'lar assembly taramasÄ±yla bulunur
 // (Features/Agents/Queries/*.cs [McpServerToolType]).
 builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
@@ -58,7 +58,7 @@ app.UseAuthorization();
 app.MapGrpcService<Basket.Api.Grpc.Checkout.BasketItemsGrpcService>()
     .RequireAuthorization(AuthorizationScopes.BasketRead);
 
-// 014: query-only MCP ucu — kullanıcının kendi sepeti (JWT zorunlu, basket.read scope).
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.BasketRead);
+// 014: query-only MCP ucu â kullanÄ±cÄ±nÄ±n kendi sepeti (JWT zorunlu, basket.read scope).
+app.MapMcp("/mcp").RequireAuthorization();  // 014: personal data, no named scope (013 pattern) - identity from sub
 
 await app.RunAsync();
