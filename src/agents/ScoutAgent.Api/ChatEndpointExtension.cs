@@ -18,7 +18,7 @@ public static class ChatEndpointExtension
         // POST /messages — opsiyonel bearer. Token varsa sub → kalıcı sohbet; yoksa anonim oturumluk.
         group.MapPost("/messages", async (
             SendMessageRequest request, ICurrentUser currentUser, HttpContext http,
-            IMessageBus bus, CancellationToken ct) =>
+            IMessageBus bus, ILoggerFactory loggerFactory, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Message))
                 return Results.BadRequest(new { message = "Mesaj boş olamaz." });
@@ -33,9 +33,11 @@ public static class ChatEndpointExtension
 
                 return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Yerel model / MCP ucu erişilemez → 503 anlaşılır hata (FR-008).
+                // Yerel model / MCP ucu erişilemez → 503 anlaşılır hata (FR-008). Exception LOGLANIR (teşhis).
+                loggerFactory.CreateLogger("ScoutChat").LogError(ex,
+                    "SendMessage patladı — msg='{Msg}' userId={UserId}", request.Message, userId);
                 return Results.Problem(statusCode: 503, title: "Kâşif şu an hizmet veremiyor, biraz sonra tekrar dene.");
             }
         });
