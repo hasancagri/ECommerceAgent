@@ -209,10 +209,10 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
 
 // 014: ScoutAgent (Kâşif) — LLM niyet-routing sohbet agent'ı; BC'lere YALNIZ MCP query tool'larıyla
 // erişir (first-party agent-içi MCP, ADR adr-mcp-inward-agent). Kendi scoutDb'si (login sohbeti) +
-// Wolverine in-proc (RabbitMQ yok). OpenAI key secret param (user-secrets Parameters:scout-openai-api-key —
+// Wolverine in-proc (RabbitMQ yok). OpenAI key secret param (user-secrets Parameters:scout-openai-key —
 // İlke VIII: değer loglanmaz). MVP: catalog /mcp'ye bağlanır (sonraki dilimde basket/order/… eklenir).
 var scoutDb = postgres.AddDatabase("scoutDb");
-var scoutOpenAiKey = builder.AddParameter("scout-openai-api-key", secret: true);
+var scoutOpenAiKey = builder.AddParameter("scout-openai-key", secret: true);
 var scoutAgentApi = builder.AddProject<Projects.ScoutAgent_Api>("scout-agent")
     .WithHttpHealthCheck("/health")
     .WithReference(scoutDb)
