@@ -36,8 +36,7 @@ public static class SendMessage
         ScoutAgentFactory agentFactory,
         McpToolSource toolSource,
         IDocumentSession session,
-        ScoutOptions options,
-        Microsoft.Extensions.Logging.ILoggerFactory loggerFactory)
+        ScoutOptions options)
     {
         public async Task<FeatureObjectResultModel<Response>> Handle(Command command, CancellationToken ct)
         {
@@ -81,16 +80,6 @@ public static class SendMessage
                 Text = runResponse.Text ?? string.Empty,
                 Items = BuildItems(collector),
             };
-
-            // TEŞHİS (014 geçici): yakalanan tool sayısı + ilk item'in ham şekli — kart neden boş kontrolü.
-            var diag = loggerFactory.CreateLogger("ScoutItems");
-            var rawFirst = collector.Results.Count > 0
-                ? System.Text.Json.JsonSerializer.Serialize(collector.Results[0].Result)
-                : "(yok)";
-            diag.LogWarning("DIAG items={ItemCount} tools={ToolCount} firstTool={Tool} firstRaw={Raw}",
-                reply.Items.Count, collector.Results.Count,
-                collector.Results.Count > 0 ? collector.Results[0].Tool : "-",
-                rawFirst.Length > 600 ? rawFirst[..600] : rawFirst);
 
             Guid conversationId;
             if (isAuthenticated && conversation is not null)

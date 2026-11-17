@@ -45,10 +45,10 @@ public sealed class ScoutAgentFactory(ScoutOptions options) : ISingletonDependen
         "olduğunu BELİRT (ör. 'ilk 20 sonuç — 1. sayfa'); toplam sayıyı araç dönüşündeki değerden ver, " +
         "kendin sayma. Kullanıcı 'devamını getir' / 'sonraki' derse AYNI sorguyu bir sonraki sayfayla " +
         "(page+1) `search_books` çağır; önceki sayfayı tekrar isteme. " +
-        "(1c) Kitap listelerken her kitabı TEK satırda, kitap adını DETAY LİNKİ olarak ver: " +
-        "`- [Kitap Adı](/kitap/ISBN) — Fiyat TL`. ISBN'i araç sonucundaki coverUrl'in SON bölümünden " +
-        "al (ör. '.../r2.dev/9789753638029' → ISBN '9789753638029'). RESİM markdown'ı (`![...]`) KULLANMA " +
-        "— yalnız ad-linki ve fiyat. coverUrl yoksa adı düz yaz (linksiz). " +
+        "(1c) Arama sonuçlarını metinde TEK TEK LİSTELEME — ekranda kitaplar KART olarak (ad, yazar, " +
+        "fiyat, kapak, link) ZATEN gösteriliyor. Kitap adı/fiyatını tek tek yazma, markdown resim/link " +
+        "üretme. Sen yalnız 1-2 cümlelik KISA bir giriş/özet geç (ör. 'Dostoyevski'den şu kitapları " +
+        "buldum:' + varsa toplam/sayfa bilgisi + 'devamını getir' önerisi). Kartları tekrar etme. " +
         "(2) Kitap/adres/sipariş/kitaplık bilgisini YALNIZ araç dönüşünden aktar — fiyat, kapak, künye " +
         "ASLA uydurma. " +
         "(3) Konu kitap keşfi ve kullanıcının kendi verisi dışındaysa (ör. hava durumu) kapsamını nazikçe " +
