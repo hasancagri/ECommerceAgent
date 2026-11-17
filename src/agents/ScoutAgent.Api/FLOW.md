@@ -11,7 +11,7 @@ aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon t
 
 ## Süreç
 
-1. 👤 kullanıcı chat'e mesaj yazar → 🟦 **SendMessage** _(planned)_ (POST `/api/chat/v1/messages`;
+1. 👤 kullanıcı chat'e mesaj yazar → 🟦 **SendMessage** (POST `/api/chat/v1/messages`;        `(SendMessage.Handle)`
    mesaj-güdümlü, `?q=` URL YOK).
 2. 🟪 Login ise `Conversation` yüklenir, bağlam `[özet]+[son N]` kurulur; anon ise istemci-transkript
    gövdeden gelir (oturumluk, sunucuda saklanmaz).

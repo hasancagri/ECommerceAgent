@@ -104,10 +104,10 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T041 [P] Dokunulan BC FLOW.md'lerine query-tool sticky (Catalog/Basket/Order/Library/Customer/Reviews/Personalization) — planned→as-built anchor
-- [ ] T042 [P] ScoutAgent `FLOW.md` planned eklerini düş (as-built kenar-anchor)
-- [ ] T043 [P] Yeni servis `launchSettings` teyit (Production açılma tuzağı — her istek 500)
-- [ ] T044 `dotnet build && dotnet test` — tüm çözüm yeşil
+- [X] T041 BC FLOW stickileri ATLANDI — query-only okuma yüzeyi aggregate event/command lifecycle değiştirmez (conventions dar-tetik); ScoutAgent FLOW güncellendi (süreç orada)
+- [X] T042 [P] ScoutAgent `FLOW.md` planned eklerini düş (as-built kenar-anchor)
+- [X] T043 [P] Yeni servis `launchSettings` teyit (Production açılma tuzağı — her istek 500)
+- [X] T044 `dotnet build && dotnet test` — tüm çözüm yeşil
 - [ ] T045 Quickstart canlı senaryolar Aspire'da doğrula (US1-US4 + arama-geçmişi tool + dayanıklılık + sır-gizli)
 
 ---
