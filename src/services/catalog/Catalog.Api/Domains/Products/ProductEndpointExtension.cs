@@ -49,6 +49,16 @@ public static class ProductEndpointExtension
             return Results.Ok(result.Data ?? new List<ProductSummary>());
         });
 
+        // 015: GET /api/catalog/products/{isbn} — tek kitap detayı (anonim; React detay sayfası çağırır).
+        // URL /kitap/{slug}-{isbn}; React sondaki ISBN'i ayıklar. Lookup ISBN (Gtin unique). GetBook
+        // query'si paylaşılır (MCP tool'u + bu REST aynı künye mantığını kullanır). Bulunamazsa 404.
+        search.MapGet("/{isbn}", async (string isbn, IMessageBus bus, CancellationToken ct) =>
+        {
+            var result = await bus.InvokeAsync<FeatureObjectResultModel<Features.Agents.Queries.GetBook.Response>>(
+                new Features.Agents.Queries.GetBook.Query(isbn, null), ct);
+            return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound();
+        });
+
         // POST /api/admin/catalog/embeddings — offline araç çıktısı yükleme (admin-anahtar).
         var admin = app.MapGroup("/api/admin/catalog/embeddings")
             .WithTags("CatalogSearchAdmin")

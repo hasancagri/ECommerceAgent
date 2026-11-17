@@ -13,7 +13,7 @@ public static class SearchBooks
         bool OnlySalable = false, bool OnlyDiscounted = false,
         int? MinPageCount = null, int? MaxPageCount = null);
 
-    public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl, string? Publisher);
+    public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl, string? Publisher, string? Isbn);
 
     public class Response
     {
@@ -201,7 +201,8 @@ public static class SearchBooks
                 p.Price?.Amount,
                 p.IsSalable,
                 p.ImageUrl,
-                publisherNameById.GetValueOrDefault(p.PublisherId))).ToList();
+                publisherNameById.GetValueOrDefault(p.PublisherId),
+                p.Gtin)).ToList();   // 015: ISBN → kart SEO-link'i /kitap/{slug}-{isbn} kurar
 
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = total, Page = page });
         }
