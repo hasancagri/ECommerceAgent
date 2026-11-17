@@ -200,33 +200,56 @@ public static class SendMessage
             return Unwrap(el);
         }
 
-        // MCP `CallToolResult` sarmalını aç: tool dönüşü `structuredContent` altında; yoksa `content[].text`
-        // içinde JSON string. İkisi de yoksa olduğu gibi döner. (React top-level `items` bekliyor.)
+        // MCP sonucu birçok şekle sarmalanabilir (sürüm/transport'a göre): `CallToolResult`
+        // (structuredContent / content[].text), ya da AIContent TextContent (`{"$type":"text","Text":"<json>"}`),
+        // ya da bunların dizisi. Hepsini açıp iç JSON'u (React'ın beklediği top-level `items`) döndürür.
         private static System.Text.Json.JsonElement Unwrap(System.Text.Json.JsonElement el)
         {
+            // Dizi → ilk JSON-veren bloğu aç.
+            if (el.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in el.EnumerateArray())
+                {
+                    var inner = Unwrap(item);
+                    if (inner.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+                        && !inner.TryGetProperty("$type", out _))
+                        return inner;
+                }
+                return el;
+            }
+
             if (el.ValueKind != System.Text.Json.JsonValueKind.Object) return el;
 
+            // CallToolResult.structuredContent — tool dönüşü doğrudan burada.
             if (el.TryGetProperty("structuredContent", out var sc)
                 && sc.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array)
                 return sc.Clone();
+
+            // TextContent / content[].text — JSON string içeren metin alanı (büyük `Text` ve küçük `text`).
+            if (TryParseTextProp(el, "Text", out var t1)) return t1;
+            if (TryParseTextProp(el, "text", out var t2)) return t2;
 
             if (el.TryGetProperty("content", out var content)
                 && content.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
                 foreach (var block in content.EnumerateArray())
                 {
-                    if (block.TryGetProperty("text", out var txt) && txt.ValueKind == System.Text.Json.JsonValueKind.String)
-                    {
-                        var raw = (txt.GetString() ?? string.Empty).TrimStart();
-                        if (raw.StartsWith('{') || raw.StartsWith('['))
-                        {
-                            try { return System.Text.Json.JsonDocument.Parse(raw).RootElement.Clone(); }
-                            catch { /* sonraki blok */ }
-                        }
-                    }
+                    if (TryParseTextProp(block, "text", out var tc)) return tc;
+                    if (TryParseTextProp(block, "Text", out var tcu)) return tcu;
                 }
             }
             return el;
+        }
+
+        private static bool TryParseTextProp(System.Text.Json.JsonElement el, string prop, out System.Text.Json.JsonElement parsed)
+        {
+            parsed = default;
+            if (!el.TryGetProperty(prop, out var txt) || txt.ValueKind != System.Text.Json.JsonValueKind.String)
+                return false;
+            var raw = (txt.GetString() ?? string.Empty).TrimStart();
+            if (!raw.StartsWith('{') && !raw.StartsWith('[')) return false;
+            try { parsed = System.Text.Json.JsonDocument.Parse(raw).RootElement.Clone(); return true; }
+            catch { return false; }
         }
     }
 }
