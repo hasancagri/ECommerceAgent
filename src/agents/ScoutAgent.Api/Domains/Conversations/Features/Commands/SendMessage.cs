@@ -80,7 +80,8 @@ public static class SendMessage
             }
 
             // Bağlam: girişli → [özet]+[son N] kayıttan (FR-012); anonim → istemci-transkript + son mesaj.
-            var contextMessages = BuildContext(conversation, command.Message, command.History, options.WindowSize);
+            var contextMessages = BuildContext(conversation, command.Message, command.History,
+                options.MaxContextMessages, options.MaxMessageLength);
             var runResponse = await agent.RunAsync(contextMessages, cancellationToken: ct);
 
             var reply = new Reply
@@ -123,32 +124,36 @@ public static class SendMessage
         }
 
         private static List<MeaiChatMessage> BuildContext(
-            Conversation? conversation, string latestMessage, IReadOnlyList<HistoryTurn>? history, int windowSize)
+            Conversation? conversation, string latestMessage, IReadOnlyList<HistoryTurn>? history,
+            int maxMessages, int maxTurnLen)
         {
-            // TAM transkript taşınır (başından sonuna) — pencere/özet YOK. Agent hiç bağlam kaybetmez;
-            // "devamını getir" gibi geriye-dönük referanslar her zaman çözülür. (Maliyet: sohbet uzadıkça
-            // bağlam büyür — kitap keşfi sohbetleri kısa; gerekirse ileride üst-sınır/özet geri gelir.)
+            // Tam transkript taşınır (başından sonuna) AMA kötüye-kullanım/maliyet guard'ıyla: son
+            // `maxMessages` mesaj + tur başına `maxTurnLen` karakter (aşırı uzun sohbet/dev-metin OpenAI'yi
+            // şişirmesin). Normal kitap-keşfi sohbeti bu sınırların çok altında.
+            static string Clip(string t, int max) => t.Length > max ? t[..max] : t;
+
             if (conversation is null)
             {
-                // Anon: istemci-transkriptin TAMAMI + bu mesaj (sunucuda anon kaydı yok).
+                // Anon: istemci-transkript (son maxMessages tur, tur-başı kırpılı) + bu mesaj.
                 var anon = new List<MeaiChatMessage>();
                 if (history is { Count: > 0 })
-                    foreach (var turn in history)
+                    foreach (var turn in history.Skip(history.Count > maxMessages ? history.Count - maxMessages : 0))
                     {
                         if (string.IsNullOrWhiteSpace(turn.Text)) continue;
                         var role = string.Equals(turn.Role, "assistant", StringComparison.OrdinalIgnoreCase)
                             ? MeaiChatRole.Assistant : MeaiChatRole.User;
-                        anon.Add(new MeaiChatMessage(role, turn.Text));
+                        anon.Add(new MeaiChatMessage(role, Clip(turn.Text, maxTurnLen)));
                     }
-                anon.Add(new MeaiChatMessage(MeaiChatRole.User, latestMessage));
+                anon.Add(new MeaiChatMessage(MeaiChatRole.User, Clip(latestMessage, maxTurnLen)));
                 return anon;
             }
 
-            // Login: kaydın TÜM mesajları (en son kullanıcı mesajı yukarıda eklendi). Özet başa eklenmez —
-            // tam transkript zaten var.
+            // Login: kaydın son `maxMessages` mesajı (en son kullanıcı mesajı yukarıda eklendi).
             return conversation.Messages
+                .Skip(conversation.Messages.Count > maxMessages ? conversation.Messages.Count - maxMessages : 0)
                 .Select(m => new MeaiChatMessage(
-                    m.Role == ValueObjects.ChatRole.Assistant ? MeaiChatRole.Assistant : MeaiChatRole.User, m.Text))
+                    m.Role == ValueObjects.ChatRole.Assistant ? MeaiChatRole.Assistant : MeaiChatRole.User,
+                    Clip(m.Text, maxTurnLen)))
                 .ToList();
         }
 

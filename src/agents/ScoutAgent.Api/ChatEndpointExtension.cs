@@ -18,10 +18,14 @@ public static class ChatEndpointExtension
         // POST /messages — opsiyonel bearer. Token varsa sub → kalıcı sohbet; yoksa anonim oturumluk.
         group.MapPost("/messages", async (
             SendMessageRequest request, ICurrentUser currentUser, HttpContext http,
-            IMessageBus bus, ILoggerFactory loggerFactory, CancellationToken ct) =>
+            IMessageBus bus, ScoutAgent.Api.Options.ScoutOptions options,
+            ILoggerFactory loggerFactory, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Message))
                 return Results.BadRequest(new { message = "Mesaj boş olamaz." });
+            // 014: kötüye-kullanım guard'ı — aşırı uzun mesaj reddedilir (maliyet/bağlam şişmesi).
+            if (request.Message.Length > options.MaxMessageLength)
+                return Results.BadRequest(new { message = $"Mesaj çok uzun (en fazla {options.MaxMessageLength} karakter)." });
 
             currentUser.Load(http.User);
             Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
