@@ -82,9 +82,9 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 
 **Bağımsız test:** 20+ sonuçlu arama → toplam görünür → "devamını getir" → 21–40 eklenir, tekrar yok.
 
-- [ ] T035 [US3] `ScoutAgentFactory` system prompt: cevap metnine sayfa-izi ("… 1. sayfa") + "devamını getir"→`search_books page+1` talimatı + "arama geçmişimi sil"→ekrana yönlendir (yazma yok)
-- [ ] T036 [P] [US3] ECommerceWeb kitap-kart altlığı: `total` + gösterilen aralık (tool verisinden, deterministik)
-- [ ] T037 [US3] ECommerceWeb `ChatWorkspace`: anon son N turu `history`'de POST'lar (devam bağlamı); login'de sunucu kaydı
+- [X] T035 [US3] `ScoutAgentFactory` system prompt: cevap metnine sayfa-izi ("… 1. sayfa") + "devamını getir"→`search_books page+1` talimatı + "arama geçmişimi sil"→ekrana yönlendir (yazma yok)
+- [X] T036 [P] [US3] ECommerceWeb kitap-kart altlığı: `total` + gösterilen aralık (tool verisinden, deterministik)
+- [X] T037 [US3] ECommerceWeb `ChatWorkspace`: anon son N turu `history`'de POST'lar (devam bağlamı); login'de sunucu kaydı
 
 **Checkpoint:** Sayfalama konuşmayla çalışır; sayı tool'dan birebir.
 
@@ -96,9 +96,9 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 
 **Bağımsız test:** Login sohbetten arama → arama geçmişinde (013) görünür; anon arama → hiç kayıt yok.
 
-- [ ] T038 [US4] Catalog `search_books` handler: login+dolu-query → `UserSearched` publish (fanout); anon → yayınlama
-- [ ] T039 [US4] Eski REST `/products/search` `UserSearched` yayınını **kaldır** (ChatWorkspace artık kullanmıyor; tek yayın kaynağı `search_books` tool'u — çift-yayın önlenir) [F1 kararı]
-- [ ] T040 [P] [US4] `catalog/FLOW.md` + Personalization dikişi güncelle (yayın noktası REST→agent/tool taşındı)
+- [~] T038 (012/013-BLOCKED — UserSearched master'da yok) [US4] Catalog `search_books` handler: login+dolu-query → `UserSearched` publish (fanout); anon → yayınlama
+- [~] T039 (012/013-BLOCKED — UserSearched master'da yok) [US4] Eski REST `/products/search` `UserSearched` yayınını **kaldır** (ChatWorkspace artık kullanmıyor; tek yayın kaynağı `search_books` tool'u — çift-yayın önlenir) [F1 kararı]
+- [~] T040 (012/013-BLOCKED — UserSearched master'da yok) [P] [US4] `catalog/FLOW.md` + Personalization dikişi güncelle (yayın noktası REST→agent/tool taşındı)
 
 ---
 

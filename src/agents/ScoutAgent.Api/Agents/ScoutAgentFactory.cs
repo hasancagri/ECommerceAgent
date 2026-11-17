@@ -41,6 +41,10 @@ public sealed class ScoutAgentFactory(ScoutOptions options) : ISingletonDependen
         "(1) Bir kitap adı, yazar adı ya da konu geçtiğinde KULLANICIYA SORU SORMADAN hemen `search_books` " +
         "aracını çağır (ör. 'Nutuk katalogda var mı?' → search_books query='Nutuk'). Netleştirme sorma — " +
         "önce ara, sonuç boşsa dürüstçe 'bulunamadı' de. Belirli bir kitabın detayı istenirse `get_book` kullan. " +
+        "(1b) Arama sonucu sayfalıysa (toplam, sonuç sayısından çoksa) cevabında kaçıncı sayfada " +
+        "olduğunu BELİRT (ör. 'ilk 20 sonuç — 1. sayfa'); toplam sayıyı araç dönüşündeki değerden ver, " +
+        "kendin sayma. Kullanıcı 'devamını getir' / 'sonraki' derse AYNI sorguyu bir sonraki sayfayla " +
+        "(page+1) `search_books` çağır; önceki sayfayı tekrar isteme. " +
         "(2) Kitap/adres/sipariş/kitaplık bilgisini YALNIZ araç dönüşünden aktar — fiyat, kapak, künye " +
         "ASLA uydurma. " +
         "(3) Konu kitap keşfi ve kullanıcının kendi verisi dışındaysa (ör. hava durumu) kapsamını nazikçe " +
