@@ -24,16 +24,18 @@ public sealed class McpToolSource(
     {
         var endpoints = options.Endpoints.Where(e => isAuthenticated || !e.RequiresAuth);
 
-        var tools = new List<AITool>();
-        foreach (var endpoint in endpoints)
+        // Uçlara PARALEL bağlan — süre = en yavaş TEK uç (sıralı toplam DEĞİL). Ölü/yavaş uç (401/404 +
+        // SSE fallback) diğerlerini bekletmez. Her uç kendi hatasını yutar (FR-008).
+        var perEndpoint = await Task.WhenAll(endpoints.Select(async endpoint =>
         {
             try
             {
                 var client = await _clients.GetOrAdd(endpoint.Name, _ => CreateClientAsync(endpoint, ct));
                 var endpointTools = await client.ListToolsAsync(cancellationToken: ct);
                 // Her tool'u yakalayıcıyla sar — çıktı collector'a yazılır (AIFunction olanlar; değilse aynen).
-                foreach (var t in endpointTools)
-                    tools.Add(t is AIFunction f ? new CapturingFunction(f, collector) : t);
+                return endpointTools
+                    .Select(t => t is AIFunction f ? (AITool)new CapturingFunction(f, collector) : t)
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -41,10 +43,11 @@ public sealed class McpToolSource(
                 _clients.TryRemove(endpoint.Name, out _);
                 loggerFactory.CreateLogger<McpToolSource>()
                     .LogWarning(ex, "MCP ucu erişilemedi: {Endpoint}", endpoint.Name);
+                return new List<AITool>();
             }
-        }
+        }));
 
-        return tools;
+        return perEndpoint.SelectMany(x => x).ToList();
     }
 
     private async Task<McpClient> CreateClientAsync(McpEndpoint endpoint, CancellationToken ct)
