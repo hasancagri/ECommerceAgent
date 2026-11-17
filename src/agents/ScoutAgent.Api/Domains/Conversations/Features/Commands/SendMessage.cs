@@ -169,22 +169,53 @@ public static class SendMessage
 
         private static System.Text.Json.JsonElement ToElement(object result)
         {
-            // MCP client bazen metin içerik döner (JSON string) → parse et; JsonElement → aynen; obje → serialize.
+            // 1) Ham sonucu JsonElement'e getir.
+            System.Text.Json.JsonElement el;
             switch (result)
             {
                 case System.Text.Json.JsonElement je:
-                    return je;
+                    el = je; break;
                 case string s:
                     var t = s.TrimStart();
-                    if (t.StartsWith('{') || t.StartsWith('['))
+                    if ((t.StartsWith('{') || t.StartsWith('[')))
                     {
-                        try { return System.Text.Json.JsonDocument.Parse(s).RootElement.Clone(); }
-                        catch { /* düz metin → aşağıda sarılır */ }
+                        try { return Unwrap(System.Text.Json.JsonDocument.Parse(s).RootElement.Clone()); }
+                        catch { return System.Text.Json.JsonSerializer.SerializeToElement(new { text = s }); }
                     }
                     return System.Text.Json.JsonSerializer.SerializeToElement(new { text = s });
                 default:
-                    return System.Text.Json.JsonSerializer.SerializeToElement(result);
+                    el = System.Text.Json.JsonSerializer.SerializeToElement(result); break;
             }
+            return Unwrap(el);
+        }
+
+        // MCP `CallToolResult` sarmalını aç: tool dönüşü `structuredContent` altında; yoksa `content[].text`
+        // içinde JSON string. İkisi de yoksa olduğu gibi döner. (React top-level `items` bekliyor.)
+        private static System.Text.Json.JsonElement Unwrap(System.Text.Json.JsonElement el)
+        {
+            if (el.ValueKind != System.Text.Json.JsonValueKind.Object) return el;
+
+            if (el.TryGetProperty("structuredContent", out var sc)
+                && sc.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array)
+                return sc.Clone();
+
+            if (el.TryGetProperty("content", out var content)
+                && content.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var block in content.EnumerateArray())
+                {
+                    if (block.TryGetProperty("text", out var txt) && txt.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        var raw = (txt.GetString() ?? string.Empty).TrimStart();
+                        if (raw.StartsWith('{') || raw.StartsWith('['))
+                        {
+                            try { return System.Text.Json.JsonDocument.Parse(raw).RootElement.Clone(); }
+                            catch { /* sonraki blok */ }
+                        }
+                    }
+                }
+            }
+            return el;
         }
     }
 }
