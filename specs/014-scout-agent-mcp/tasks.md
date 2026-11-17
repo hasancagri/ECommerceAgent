@@ -48,9 +48,9 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 - [X] T020 [P] [US1] Catalog `get_book` slice 007'den `Domains/Products/Features/Agents/Queries/GetBook.cs`
 - [X] T021 [US1] Catalog `Program.cs`: `MapMcp` + `WithToolsFromAssembly` geri (ModelContextProtocol server) — `/mcp` ucu açık (anon)
 - [X] T022 [US1] `McpEndpointsOptions`: `catalog` ucu (anon) teyit; Aspire'da ScoutAgent→catalog bağlanır
-- [ ] T023 [P] [US1] ECommerceWeb `ChatWorkspace.tsx`: `/api/catalog/products/search` yerine `/api/chat/v1/messages`; `?q=` URL kaldır
-- [ ] T024 [P] [US1] ECommerceWeb kitap-kart bileşeni (`search_books`/`get_book` result→kart) + `item.tool`→kart dağıtıcı
-- [ ] T025 [US1] ECommerceWeb `ChatHistory.tsx` "tekrar ara": `/sohbet?q=` yerine sohbete `message` POST
+- [X] T023 [P] [US1] ECommerceWeb `ChatWorkspace.tsx`: `/api/catalog/products/search` yerine `/api/chat/v1/messages`; `?q=` URL kaldır
+- [X] T024 [P] [US1] ECommerceWeb kitap-kart bileşeni (`search_books`/`get_book` result→kart) + `item.tool`→kart dağıtıcı
+- [X] T025 [US1] ECommerceWeb `ChatHistory.tsx` "tekrar ara": `/sohbet?q=` yerine sohbete `message` POST
 
 **Checkpoint:** US1 tek başına çalışır — anon kitap keşfi + detay sohbette.
 
