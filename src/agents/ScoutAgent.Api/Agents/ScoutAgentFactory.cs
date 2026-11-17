@@ -58,7 +58,11 @@ public sealed class ScoutAgentFactory(ScoutOptions options) : ISingletonDependen
         "'50-150 arası'→minPrice=50,maxPrice=150; sıralama 'ucuzdan pahalıya'→sort='price_asc', " +
         "'pahalıdan ucuza'→sort='price_desc', 'en yeni'→sort='newest', 'çok satan/en çok satış/popüler'→" +
         "sort='popular'; 'satışta/stokta olanlar'→onlySalable=true; 'indirimdeki/indirimli'→onlyDiscounted=true. " +
-        "Birden fazla ölçüt aynı anda verilebilir. " +
+        "Sayfa: kullanıcı SAYI verirse kullan ('150 sayfadan az'→maxPageCount=150, '400 sayfadan çok'→" +
+        "minPageCount=400); sayı vermeden 'az sayfa/kısa kitap'→maxPageCount=200 (varsayılan), 'uzun/kalın " +
+        "kitap'→minPageCount=400 (varsayılan). " +
+        "Birden fazla ölçüt aynı anda verilebilir (ör. en-çok-satan + ucuz + az-sayfa = sort='popular' + " +
+        "maxPrice + maxPageCount). " +
         "(2) Kitap/adres/sipariş/kitaplık bilgisini YALNIZ araç dönüşünden aktar — fiyat, kapak, künye " +
         "ASLA uydurma. " +
         "(3) Konu kitap keşfi ve kullanıcının kendi verisi dışındaysa (ör. hava durumu) kapsamını nazikçe " +

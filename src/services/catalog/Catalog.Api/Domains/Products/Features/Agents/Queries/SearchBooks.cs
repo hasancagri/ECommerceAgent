@@ -10,7 +10,8 @@ public static class SearchBooks
 {
     public record Query(string Search, int Page, int PageSize, string? Publisher = null, string? ExcludePublisher = null,
         int? Binding = null, decimal? MinPrice = null, decimal? MaxPrice = null, string? Sort = null,
-        bool OnlySalable = false, bool OnlyDiscounted = false);
+        bool OnlySalable = false, bool OnlyDiscounted = false,
+        int? MinPageCount = null, int? MaxPageCount = null);
 
     public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl, string? Publisher);
 
@@ -75,13 +76,14 @@ public static class SearchBooks
             var filterActive = !string.IsNullOrWhiteSpace(query.Publisher)
                 || !string.IsNullOrWhiteSpace(query.ExcludePublisher)
                 || query.Binding.HasValue || query.MinPrice.HasValue || query.MaxPrice.HasValue
-                || !string.IsNullOrWhiteSpace(query.Sort) || query.OnlySalable || query.OnlyDiscounted;
+                || !string.IsNullOrWhiteSpace(query.Sort) || query.OnlySalable || query.OnlyDiscounted
+                || query.MinPageCount.HasValue || query.MaxPageCount.HasValue;
             if (ordered.Count > 0 && filterActive)
             {
                 var orderedArr = ordered.ToArray();
                 var candById = (await session.Query<Product>()
                         .Where(p => p.Id.IsOneOf(orderedArr))
-                        .Select(p => new { p.Id, p.PublisherId, p.Binding, Price = p.Price != null ? (decimal?)p.Price.Amount : null, p.PublishedOn, p.PurchaseCount, p.DiscountRate })
+                        .Select(p => new { p.Id, p.PublisherId, p.Binding, Price = p.Price != null ? (decimal?)p.Price.Amount : null, p.PublishedOn, p.PurchaseCount, p.DiscountRate, p.PageCount })
                         .ToListAsync(ct))
                     .ToDictionary(x => x.Id);
 
@@ -126,6 +128,16 @@ public static class SearchBooks
                 if (query.MaxPrice is { } maxPrice)
                     ordered = ordered
                         .Where(id => candById.TryGetValue(id, out var c) && c.Price.HasValue && c.Price.Value <= maxPrice)
+                        .ToList();
+
+                // Sayfa sayısı aralığı — süzgeç aktifken sayfası bilinmeyen (null) ürün ELENİR.
+                if (query.MinPageCount is { } minPages)
+                    ordered = ordered
+                        .Where(id => candById.TryGetValue(id, out var c) && c.PageCount.HasValue && c.PageCount.Value >= minPages)
+                        .ToList();
+                if (query.MaxPageCount is { } maxPages)
+                    ordered = ordered
+                        .Where(id => candById.TryGetValue(id, out var c) && c.PageCount.HasValue && c.PageCount.Value <= maxPages)
                         .ToList();
 
                 // Satışta-olanlar süzgeci — IsSalable hesaplı (fiyat>0 ∧ stok>0 ∧ ≥1 yazar), LINQ'e
@@ -216,6 +228,8 @@ public static class SearchBooks
             [Description("Sıralama: 'price_asc', 'price_desc', 'newest', 'popular'")] string? sort = null,
             [Description("true → yalnız satışa uygun kitaplar (fiyatı var, stokta, yazarlı)")] bool onlySalable = false,
             [Description("true → yalnız indirimdeki kitaplar")] bool onlyDiscounted = false,
+            [Description("En az sayfa sayısı (kalın/uzun kitap)")] int? minPageCount = null,
+            [Description("En fazla sayfa sayısı (az sayfa/kısa kitap)")] int? maxPageCount = null,
             CancellationToken cancellationToken = default)
         {
             // Cilt tipi serbest metni enum int'ine çevrilir (içerir, büyük/küçük harf duyarsız); eşleşmezse null.
@@ -228,7 +242,7 @@ public static class SearchBooks
 
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
                 new Query(query, page, pageSize, publisher, excludePublisher, bindingValue, minPrice, maxPrice, sort,
-                    onlySalable, onlyDiscounted), cancellationToken);
+                    onlySalable, onlyDiscounted, minPageCount, maxPageCount), cancellationToken);
 
             // 014 US4: login + dolu-sorguda UserSearched yayınla (fanout → Personalization 013). Arama
             // sonucunu ETKİLEMEZ — ayrık + hata-yutar. Anonim (Id boş) ya da boş sorgu → yayınlanmaz.
