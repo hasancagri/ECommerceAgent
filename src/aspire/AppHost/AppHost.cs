@@ -207,6 +207,20 @@ var fileApi = builder.AddProject<Projects.File_Api>("file-api")
     // US4: mevcut R2 kapakları kayıt defterine idempotent al (bir-kez; re-run yinelemez).
     .WithEnvironment("CoverMigration__RegistryBackfill__Enabled", "true");
 
+// 014: ScoutAgent (Kâşif) — LLM niyet-routing sohbet agent'ı; BC'lere YALNIZ MCP query tool'larıyla
+// erişir (first-party agent-içi MCP, ADR adr-mcp-inward-agent). Kendi scoutDb'si (login sohbeti) +
+// Wolverine in-proc (RabbitMQ yok). OpenAI key secret param (user-secrets Parameters:scout-openai-api-key —
+// İlke VIII: değer loglanmaz). MVP: catalog /mcp'ye bağlanır (sonraki dilimde basket/order/… eklenir).
+var scoutDb = postgres.AddDatabase("scoutDb");
+var scoutOpenAiKey = builder.AddParameter("scout-openai-api-key", secret: true);
+var scoutAgentApi = builder.AddProject<Projects.ScoutAgent_Api>("scout-agent")
+    .WithHttpHealthCheck("/health")
+    .WithReference(scoutDb)
+    .WithReference(catalogApi)
+    .WithEnvironment("ScoutOptions__ApiKey", scoutOpenAiKey)
+    .WaitFor(scoutDb)
+    .WaitFor(catalogApi);
+
 // Gateway (YARP) GERİ GELDİ (004) — React'ın tek origin'i + kenar yetki. Dilim-1 admin anahtarı
 // Aspire secret parametresi (AppHost user-secrets: Parameters:gateway-admin-api-key); aynı değer
 // Catalog ikinci katına da gider (çift kat — FR-014). Dilim 2'de JWT'ye evrilir, anahtar sökülür.
@@ -216,10 +230,13 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(catalogApi)
     .WithReference(fileApi)
     .WithReference(personalizationApi)   // 013: /api/personalization/** → arama geçmişi
+    // 014: React sohbeti → gateway /api/chat/** → scout-agent (service discovery).
+    .WithReference(scoutAgentApi)
     .WithEnvironment("GatewayAuthOptions__AdminApiKey", adminApiKey)
     .WaitFor(catalogApi)
     .WaitFor(fileApi)
-    .WaitFor(personalizationApi);
+    .WaitFor(personalizationApi)
+    .WaitFor(scoutAgentApi);
 catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
@@ -232,7 +249,7 @@ foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
-    fileApi, gateway, personalizationApi
+    fileApi, personalizationApi, scoutAgentApi, gateway
 })
 {
     svc.WithContainerRegistry(ghcr);

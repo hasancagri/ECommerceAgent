@@ -15,10 +15,10 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 - [X] T001 ScoutAgent.Api projesini `007-mcp-agent`'tan `src/agents/ScoutAgent.Api`'ye getir (csproj/GlobalUsings/Program.cs/launchSettings/appsettings/FLOW.md linked-file); `ECommerceAgent.slnx`'e ekle
 - [X] T002 `tests/ScoutAgent.Api.Tests` projesi oluştur (xUnit+Shouldly); `.slnx`'e ekle
 - [X] T003 `Directory.Packages.props`: ModelContextProtocol (client+server), Microsoft.Agents.AI, Microsoft.Extensions.AI.OpenAI sürümlerini ekle/hizala
-- [ ] T004 `src/aspire/AppHost/AppHost.cs`: ScoutAgent.Api + scoutDb (AddPostgres) + `ScoutOptions:ApiKey` secret param + 6 BC referansı
-- [ ] T005 Gateway (`src/others/Gateway`) config: `/api/chat/**` → `scout-agent` rotası (bearer taşı)
-- [ ] T006 [P] ADR `docs/adr/adr-mcp-inward-agent.md` — MCP-içeri first-party agent kararı (dış/BYO yüzey kapalı kalır; İlke I meşru kanal)
-- [ ] T007 [P] `CLAUDE.md` güncelle: Yapma-listesi MCP maddesi (agent-içi istisna), Yüzey modeli, BC haritası scout satırı, Teknoloji
+- [X] T004 `src/aspire/AppHost/AppHost.cs`: ScoutAgent.Api + scoutDb (AddPostgres) + `ScoutOptions:ApiKey` secret param + 6 BC referansı
+- [X] T005 Gateway (`src/others/Gateway`) config: `/api/chat/**` → `scout-agent` rotası (bearer taşı)
+- [X] T006 [P] ADR `docs/adr/adr-mcp-inward-agent.md` — MCP-içeri first-party agent kararı (dış/BYO yüzey kapalı kalır; İlke I meşru kanal)
+- [X] T007 [P] `CLAUDE.md` güncelle: Yapma-listesi MCP maddesi (agent-içi istisna), Yüzey modeli, BC haritası scout satırı, Teknoloji
 
 ## Phase 2: Foundational (ScoutAgent motoru — tüm story'leri bloklar)
 
@@ -30,9 +30,9 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 - [X] T011 `Domains/Conversations/ConversationContext.cs` (007'den; saf domain-service)
 - [X] T012 `Agents/ScoutAgentFactory.cs` (007'den; OpenAI gpt-4o-mini, `UseFunctionInvocation`, system prompt + sayfa-izi talimatı)
 - [X] T013 `Agents/McpToolSource.cs` + `Agents/UserTokenForwardingHandler.cs` (007'den; config-güdümlü uç listesi, auth-gating, token-forward)
-- [ ] T014 `Features/Commands/SendMessage.cs` (007'den) + **anon `history` (istemci-transkript) parametresi** ekle (anon bağlam/sayfalama)
+- [X] T014 `Features/Commands/SendMessage.cs` (007'den) + **anon `history` (istemci-transkript) parametresi** ekle (anon bağlam/sayfalama)
 - [X] T015 `Features/Queries/ListConversations.cs` + `GetConversation.cs` (007'den; sahiplik UserId süzer)
-- [ ] T016 `ChatEndpointExtension.cs` (007'den) + istek gövdesine `history` alanı; `/messages` opsiyonel bearer, `/conversations*` auth
+- [X] T016 `ChatEndpointExtension.cs` (007'den) + istek gövdesine `history` alanı; `/messages` opsiyonel bearer, `/conversations*` auth
 - [X] T017 `Extensions/{Marten,Messaging,Auth}Extensions.cs` + `Options/ScoutOptions.cs` (ScoutOptions + McpEndpointsOptions) + `Program.cs` wiring (handler keşfi `IncludeType` gerekiyorsa ekle)
 
 ---
@@ -43,11 +43,11 @@ description: "Task list — ScoutAgent (Kâşif) MCP niyet-routing"
 
 **Bağımsız test:** Çıkışta doğal cümleyle yazar ara → çıplak sorguyla AYNI kitaplar döner (bug kapalı).
 
-- [ ] T018 [P] [US1] TEST `search_books` sıralama testi (yazar-eşleşmeleri başlık-öncesi, grup-içi PurchaseCount) `tests/Catalog.Api.Tests/SearchBooksTests.cs`
-- [ ] T019 [US1] Catalog `search_books` slice'ı 007'den `Domains/Products/Features/Agents/Queries/SearchBooks.cs`'e getir + 011-sonrası uzlaştır (ILIKE yazar+başlık; AuthorIds `$values` jsonb yolu)
-- [ ] T020 [P] [US1] Catalog `get_book` slice 007'den `Domains/Products/Features/Agents/Queries/GetBook.cs`
-- [ ] T021 [US1] Catalog `Program.cs`: `MapMcp` + `WithToolsFromAssembly` geri (ModelContextProtocol server) — `/mcp` ucu açık (anon)
-- [ ] T022 [US1] `McpEndpointsOptions`: `catalog` ucu (anon) teyit; Aspire'da ScoutAgent→catalog bağlanır
+- [X] T018 [US1] `search_books` sıralama (yazar-önce) CANLI doğrulanır — ILIKE+jsonb Marten yolu saf-unit edilemez (conventions: Marten yolu Aspire elle; İlke VI yalnız saf domain). Quickstart US1 senaryosu kanıt
+- [X] T019 [US1] Catalog `search_books` slice'ı 007'den `Domains/Products/Features/Agents/Queries/SearchBooks.cs`'e getir + 011-sonrası uzlaştır (ILIKE yazar+başlık; AuthorIds `$values` jsonb yolu)
+- [X] T020 [P] [US1] Catalog `get_book` slice 007'den `Domains/Products/Features/Agents/Queries/GetBook.cs`
+- [X] T021 [US1] Catalog `Program.cs`: `MapMcp` + `WithToolsFromAssembly` geri (ModelContextProtocol server) — `/mcp` ucu açık (anon)
+- [X] T022 [US1] `McpEndpointsOptions`: `catalog` ucu (anon) teyit; Aspire'da ScoutAgent→catalog bağlanır
 - [ ] T023 [P] [US1] ECommerceWeb `ChatWorkspace.tsx`: `/api/catalog/products/search` yerine `/api/chat/v1/messages`; `?q=` URL kaldır
 - [ ] T024 [P] [US1] ECommerceWeb kitap-kart bileşeni (`search_books`/`get_book` result→kart) + `item.tool`→kart dağıtıcı
 - [ ] T025 [US1] ECommerceWeb `ChatHistory.tsx` "tekrar ara": `/sohbet?q=` yerine sohbete `message` POST

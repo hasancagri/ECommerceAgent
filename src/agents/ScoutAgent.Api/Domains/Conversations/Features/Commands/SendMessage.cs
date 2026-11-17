@@ -12,7 +12,11 @@ namespace ScoutAgent.Api.Domains.Conversations.Features.Commands;
 // Anonim: oturumluk tek mesaj, kalıcı kayıt YOK.
 public static class SendMessage
 {
-    public record Command(Guid? ConversationId, string Message, Guid? UserId);
+    public record Command(Guid? ConversationId, string Message, Guid? UserId,
+        IReadOnlyList<HistoryTurn>? History = null);
+
+    // Anon istemci-transkript turu (role: "user"/"assistant"). Login'de yok sayılır — sunucu kaydı otoriter.
+    public record HistoryTurn(string Role, string Text);
 
     public record ReplyItem(string Tool, System.Text.Json.JsonElement Result);
 
@@ -65,8 +69,8 @@ public static class SendMessage
                 }
             }
 
-            // Bağlam: girişli → [özet]+[son N] kayıttan (FR-012); anonim → tek mesaj.
-            var contextMessages = BuildContext(conversation, command.Message, options.WindowSize);
+            // Bağlam: girişli → [özet]+[son N] kayıttan (FR-012); anonim → istemci-transkript + son mesaj.
+            var contextMessages = BuildContext(conversation, command.Message, command.History, options.WindowSize);
             var runResponse = await agent.RunAsync(contextMessages, cancellationToken: ct);
 
             var reply = new Reply
@@ -96,10 +100,28 @@ public static class SendMessage
             });
         }
 
-        private static List<MeaiChatMessage> BuildContext(Conversation? conversation, string latestMessage, int windowSize)
+        private static List<MeaiChatMessage> BuildContext(
+            Conversation? conversation, string latestMessage, IReadOnlyList<HistoryTurn>? history, int windowSize)
         {
             if (conversation is null)
-                return [new MeaiChatMessage(MeaiChatRole.User, latestMessage)];
+            {
+                // Anon: istemci-transkript (son N tur) + bu mesaj. Devamlılık/sayfalama bağlamı burada taşınır
+                // (sunucuda anon kaydı yok). Boş/eksik history → yalnız tek mesaj (eski davranış).
+                var anon = new List<MeaiChatMessage>();
+                if (history is { Count: > 0 })
+                {
+                    var window = windowSize < 0 ? 0 : windowSize;
+                    foreach (var turn in history.Skip(history.Count > window ? history.Count - window : 0))
+                    {
+                        if (string.IsNullOrWhiteSpace(turn.Text)) continue;
+                        var role = string.Equals(turn.Role, "assistant", StringComparison.OrdinalIgnoreCase)
+                            ? MeaiChatRole.Assistant : MeaiChatRole.User;
+                        anon.Add(new MeaiChatMessage(role, turn.Text));
+                    }
+                }
+                anon.Add(new MeaiChatMessage(MeaiChatRole.User, latestMessage));
+                return anon;
+            }
 
             // conversation.Messages en son kullanıcı mesajını zaten içerir (yukarıda eklendi).
             var context = ConversationContext.Build(conversation.Summary, conversation.Messages, windowSize);

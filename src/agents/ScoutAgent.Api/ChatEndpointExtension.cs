@@ -7,7 +7,9 @@ namespace ScoutAgent.Api;
 // /messages opsiyonel bearer (anonim US1); /conversations* giriş şart + sahiplik (US4).
 public static class ChatEndpointExtension
 {
-    public record SendMessageRequest(Guid? ConversationId, string Message);
+    // history: anon istemci-transkript (devamlılık/sayfalama). Login'de yok sayılır.
+    public record SendMessageRequest(
+        Guid? ConversationId, string Message, IReadOnlyList<SendMessage.HistoryTurn>? History = null);
 
     public static void MapChatEndpoints(this IEndpointRouteBuilder app)
     {
@@ -27,7 +29,7 @@ public static class ChatEndpointExtension
             try
             {
                 var result = await bus.InvokeAsync<FeatureObjectResultModel<SendMessage.Response>>(
-                    new SendMessage.Command(request.ConversationId, request.Message, userId), ct);
+                    new SendMessage.Command(request.ConversationId, request.Message, userId, request.History), ct);
 
                 return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
             }

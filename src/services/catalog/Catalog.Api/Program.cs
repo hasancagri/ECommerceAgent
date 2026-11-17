@@ -31,7 +31,10 @@ if (builder.Configuration.GetConnectionString("redis") is not null)
 builder.Services.AddCachingAspect("catalog");
 
 builder.Services.AddHttpContextAccessor();
-// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — tüm /mcp tool'ları + DLQ MCP kaldırıldı; okuma/yazma REST first-party'ye.
+// 014: query-only MCP ucu GERİ (ADR adr-mcp-inward-agent — first-party agent-içi MCP, İlke I meşru
+// kanal; dış/BYO yüzey kapalı). YALNIZ ScoutAgent tüketir; anonim kitap arama/detay (search_books,
+// get_book). Tool'lar assembly taramasıyla bulunur (Features/Agents/Queries/*.cs [McpServerToolType]).
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 // 012: OPSİYONEL JWT (007 deseni) — arama ucu login kullanıcıyı token'dan çözer (UserSearched capture).
 // Anonim serbest (arama ucunda RequireAuthorization YOK). ValidateAudience=false: SPA access-token
@@ -99,5 +102,8 @@ app.MapImportJobEndpoints();
 
 // 011: hibrit arama uçları — müşteri arama/benzer (anonim) + admin embedding ingest (anahtar).
 app.MapProductEndpoints();
+
+// 014: anonim MCP ucu (ScoutAgent client olarak bağlanır). RequireAuthorization YOK — anonim gezinme meşru.
+app.MapMcp("/mcp");
 
 await app.RunAsync();
