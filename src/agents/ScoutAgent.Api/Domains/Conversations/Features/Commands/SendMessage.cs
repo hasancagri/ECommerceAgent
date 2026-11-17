@@ -29,6 +29,8 @@ public static class SendMessage
     public class Response
     {
         public Guid ConversationId { get; set; }
+        // 014: ilk turda üretilen akıllı başlık (sidebar; anon bunu sessionStorage'a yazar). Yoksa boş.
+        public string? Title { get; set; }
         public Reply Reply { get; set; } = new();
     }
 
@@ -49,6 +51,7 @@ public static class SendMessage
 
             // Girişli: kayıt yükle/oluştur (sahiplik kontrolü) + kullanıcı mesajını ekle.
             Conversation? conversation = null;
+            var isNewConversation = isAuthenticated ? false : command.ConversationId is null;
             if (isAuthenticated)
             {
                 var userId = command.UserId!.Value;
@@ -72,6 +75,7 @@ public static class SendMessage
                     if (!started.IsSuccess)
                         return FeatureObjectResultModel<Response>.Error(started.Messages);
                     conversation = started.Data!;
+                    isNewConversation = true;
                 }
             }
 
@@ -85,10 +89,21 @@ public static class SendMessage
                 Items = BuildItems(collector),
             };
 
+            // 014: ilk turda AKILLI başlık üret (Claude-tarzı sidebar). Login → Conversation.Title;
+            // anon → Response.Title (istemci sessionStorage'a yazar). Üretilemezse başlık boş (React ilk
+            // mesaja düşer). Ayrık + hata-yutar — sohbet cevabını etkilemez.
+            string? title = null;
+            if (isNewConversation)
+            {
+                try { title = await agentFactory.GenerateTitleAsync(command.Message, reply.Text, ct); }
+                catch { /* başlık üretilemedi */ }
+            }
+
             Guid conversationId;
             if (isAuthenticated && conversation is not null)
             {
                 conversation.AddAssistantMessage(reply.Text);
+                if (!string.IsNullOrWhiteSpace(title)) conversation.SetTitle(title);
                 // Özetleme KAPALI — tam transkript taşınıyor (başından sonuna); özete gerek yok + boşuna
                 // OpenAI turu olurdu. (Sohbet aşırı uzarsa üst-sınır/özet ileride geri gelebilir.)
                 session.Store(conversation);

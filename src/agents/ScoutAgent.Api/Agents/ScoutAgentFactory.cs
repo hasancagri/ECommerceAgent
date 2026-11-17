@@ -24,6 +24,18 @@ public sealed class ScoutAgentFactory(ScoutOptions options) : ISingletonDependen
         return response.Text ?? string.Empty;
     }
 
+    // 014: sohbet için AKILLI başlık (ilk turdan; Claude-tarzı sidebar). 3-5 kelime, kitap-keşfi bağlamı.
+    public async Task<string> GenerateTitleAsync(string firstUserMessage, string assistantReply, CancellationToken ct)
+    {
+        var response = await _chatClient.GetResponseAsync(
+            "Aşağıdaki sohbet turundan 3-5 KELİMELİK kısa, öz bir başlık üret (Türkçe, kitap-keşfi " +
+            "bağlamı; ör. 'Dostoyevski ucuz kitaplar', 'Rus klasikleri'). SADECE başlığı yaz — tırnak/" +
+            "nokta/açıklama YOK.\n\nKullanıcı: " + firstUserMessage + "\nKâşif: " + assistantReply,
+            cancellationToken: ct);
+        var title = (response.Text ?? string.Empty).Trim().Trim('"', '\'', '.', '—', '-').Trim();
+        return title.Length > 60 ? title[..60].TrimEnd() + "…" : title;
+    }
+
     private static IChatClient BuildChatClient(ScoutOptions options)
     {
         // OpenAI ChatClient → IChatClient (Microsoft.Extensions.AI.OpenAI).

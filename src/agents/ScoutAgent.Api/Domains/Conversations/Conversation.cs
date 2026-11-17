@@ -41,6 +41,17 @@ public class Conversation : AggregateRoot
         return ResultDomain<Conversation>.Ok(conversation);
     }
 
+    /// <summary>Akıllı başlığı atar (014 — ilk turda LLM üretir). Boş gelirse dokunmaz.</summary>
+    public ResultDomain SetTitle(string title)
+    {
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            Title = title.Trim();
+            UpdatedTime = DateTime.UtcNow;
+        }
+        return ResultDomain.Ok();
+    }
+
     /// <summary>Kullanıcı mesajını ekler. Boş metin reddedilir.</summary>
     public ResultDomain AddUserMessage(string text)
     {
