@@ -105,7 +105,7 @@ public static class SearchBooks
                      "(ad, yazar, fiyat, satılabilirlik, kapak) döner. Anonim erişilebilir.")]
         public static async Task<Response> SearchBooks(
             IMessageBus bus, ICurrentUser currentUser, IHttpContextAccessor http,
-            [Description("Aranacak kitap adı veya yazar adı (serbest metin)")] string query,
+            [Description("Aranacak kitap adı veya yazar adı (serbest metin)")] string? query = null,
             [Description("Sayfa numarası (1'den başlar)")] int page = 1,
             [Description("Sayfa boyutu (en fazla 20)")] int pageSize = 10,
             CancellationToken cancellationToken = default)

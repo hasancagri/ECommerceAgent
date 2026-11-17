@@ -54,15 +54,19 @@ public static class SendMessage
                 var userId = command.UserId!.Value;
                 if (command.ConversationId is Guid existingId)
                 {
-                    conversation = await session.LoadAsync<Conversation>(existingId, ct);
-                    if (conversation is null || conversation.UserId != userId)
-                        return FeatureObjectResultModel<Response>.NotFound();
-
-                    var added = conversation.AddUserMessage(command.Message);
-                    if (!added.IsSuccess)
-                        return FeatureObjectResultModel<Response>.Error(added.Messages);
+                    var found = await session.LoadAsync<Conversation>(existingId, ct);
+                    // Sahip + mevcutsa sürdür. Bulunamadı/başkasının (ör. anon-arama sonrası login →
+                    // React eski random id yolluyor) → HATA VERME, yeni sohbet başlat (kendini düzeltir).
+                    if (found is not null && found.UserId == userId)
+                    {
+                        conversation = found;
+                        var added = conversation.AddUserMessage(command.Message);
+                        if (!added.IsSuccess)
+                            return FeatureObjectResultModel<Response>.Error(added.Messages);
+                    }
                 }
-                else
+
+                if (conversation is null)
                 {
                     var started = Conversation.Start(userId, command.Message);
                     if (!started.IsSuccess)
