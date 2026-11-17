@@ -15,6 +15,8 @@
         <PackageReference Include="WolverineFx.RabbitMQ" />
         <PackageReference Include="WolverineFx.Marten" />
         <PackageReference Include="WolverineFx.Postgresql" />
+        <!-- 014: query-only MCP server yüzeyi (ScoutAgent client olarak bağlanır). -->
+        <PackageReference Include="ModelContextProtocol.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>

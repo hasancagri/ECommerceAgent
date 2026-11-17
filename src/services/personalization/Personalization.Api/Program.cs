@@ -30,6 +30,9 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ICurrentUser, CurrentUser>();
 
+// 014: query-only MCP ucu (ADR adr-mcp-inward-agent — first-party ScoutAgent tüketir). get_search_history.
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+
 var app = builder.Build();
 app.MapDefaultEndpoints();
 
@@ -38,5 +41,8 @@ app.UseAuthorization();
 
 // 013: arama geçmişi yüzeyi (gateway /api/personalization/** → bu servis). Hepsi auth-zorunlu, kendi-veri.
 app.MapSearchHistoryEndpoints();
+
+// 014: kişisel MCP ucu — auth-zorunlu (named-scope YOK, kişisel-veri; 013 deseni). Yalnız ScoutAgent tüketir.
+app.MapMcp("/mcp").RequireAuthorization();
 
 await app.RunAsync();

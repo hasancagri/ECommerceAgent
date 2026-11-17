@@ -22,11 +22,10 @@ public static class ProductEndpointExtension
             [FromQuery] int? limit,
             [FromQuery] int? offset,
             IMessageBus bus,
-            ICurrentUser currentUser,
-            HttpContext http,
-            ILoggerFactory loggerFactory,
             CancellationToken ct) =>
         {
+            // 014 US4 (F1): UserSearched yayını buradan KALDIRILDI → tek yayın kaynağı ScoutAgent
+            // `search_books` MCP tool'u (sohbet keşif yolu). Bu REST ucu saf okuma kaldı.
             var normalizedMode = string.IsNullOrWhiteSpace(mode) ? "keyword" : mode.Trim().ToLowerInvariant();
             var result = normalizedMode switch
             {
@@ -37,23 +36,6 @@ public static class ProductEndpointExtension
                 _ => await bus.InvokeAsync<FeatureListResultModel<ProductSummary>>(
                     new SearchProducts.SearchProductsQuery(q, limit, offset, SearchProducts.SearchMode.Keyword), ct),
             };
-
-            // 012: login ise UserSearched yayınla (fanout → Personalization). Publish arama sonucunu
-            // ETKİLEMEZ/BLOKLAMAZ — ayrık + hata-yutar. Anonim (Id boş) ya da boş sorgu → yayınlanmaz.
-            currentUser.Load(http.User);
-            if (currentUser.Id != Guid.Empty && !string.IsNullOrWhiteSpace(q))
-            {
-                try
-                {
-                    await bus.PublishAsync(new IntegrationEvents.UserSearched(
-                        currentUser.Id, q!.Trim(), normalizedMode, result.Data?.Count ?? 0, DateTimeOffset.UtcNow));
-                }
-                catch (Exception ex)
-                {
-                    loggerFactory.CreateLogger("CatalogSearch")
-                        .LogWarning(ex, "012 UserSearched yayını başarısız (arama sonucu etkilenmez).");
-                }
-            }
 
             return Results.Ok(result.Data ?? new List<ProductSummary>());
         });

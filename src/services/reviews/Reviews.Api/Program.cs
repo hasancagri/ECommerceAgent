@@ -23,12 +23,16 @@ builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
 
-// MCP yüzeyi SÖKÜLDÜ (tertemiz sayfa) — /mcp yorum tool'ları + DLQ MCP kaldırıldı; REST first-party'ye.
+// MCP yüzeyi (014): anonim yorum-okuma tool'u. Tool'lar assembly taramasıyla keşfedilir.
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Anonim MCP yüzeyi (014) — yorum okuma; RequireAuthorization YOK (kişisel veri değil, maskeli ad).
+app.MapMcp("/mcp");
 
 await app.RunAsync();

@@ -26,7 +26,10 @@ public static class AuthenticationExtension
 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateAudience = true,
+                    // 014: SPA access-token audience TAŞIMAZ (yalnız scope) → audience doğrulaması
+                    // SPA token'ını reddediyordu (401). Tek-IdP'de issuer+imza+süre yeterli güvence;
+                    // audience düşük-değer. Catalog'un 012 inline-hack'inin de yerini alır.
+                    ValidateAudience = false,
                     ValidateIssuerSigningKey = true,
                     ValidateLifetime = true,
                     ValidateIssuer = true,

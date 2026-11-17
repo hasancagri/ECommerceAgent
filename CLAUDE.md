@@ -52,9 +52,10 @@ non-public setter+ctor) · **Wolverine** (in-proc bus `IMessageBus` + RabbitMQ f
 taramasıyla) · **HybridCache + Redis** (AOP cache L1/L2 yalnız okuma; boşaltma
 handler-içi atomik publish + epoch-key, 090 — native tag KULLANILMAZ, bkz. conventions) ·
 **OpenIddict + ASP.NET Identity** (IdP ÇÖZÜM İÇİNDE: `src/others/Identity.Server` — 005 kopyası; tek EF Core+Razor istisnası, ADR adr-identity-inward) ·
-**Scrutor** (DI) · **xUnit + Shouldly**. (096 Ollama/embedding omurgası 099 öncesi SÖKÜLDÜ —
-semantik ayak ileride yeni spec'le; MCP + Microsoft Agent Framework temiz-sayfa sökümüyle
-kalktı — yüzey REST first-party'ye dönüyor, bkz. Yüzey modeli.)
+**Scrutor** (DI) · **xUnit + Shouldly** · **Microsoft.Agents.AI + MCP (014 GERİ — ScoutAgent)**:
+Kâşif sohbet agent'ı OpenAI gpt-4o-mini tool-calling'le BC'lerin query-only `/mcp` tool'larını seçer
+(first-party agent-içi, ADR adr-mcp-inward-agent; dış/BYO MCP HÂLÂ kapalı). (096 Ollama/embedding
+omurgası 099 öncesi SÖKÜLDÜ — semantik ayak ileride yeni spec'le.)
 
 ## BC haritası
 
@@ -104,7 +105,12 @@ müşteri/admin yüzeyi kapalı, domain davranışları aggregate'lerde duruyor.
   hata-yutar → arama sonucunu etkilemez. ChatAgent/feed ileride.
 - **Yaşayan HTTP yüzey:** Catalog admin import uçları (004, gateway'den) · File kapak serve/S2S
   (`/files/v1/covers`, `/internal/files`, `/resolve`) · PG→EC `/payments/callback` HMAC webhook
-  (dış-sağlayıcı callback istisnası) · Order `/checkout/done` dönüş stub'ı · auth (Identity OIDC — dış repo).
+  (dış-sağlayıcı callback istisnası) · Order `/checkout/done` dönüş stub'ı · **ScoutAgent sohbet
+  (014, gateway `/api/chat/**` → `scout-agent`): POST `/messages` (opsiyonel bearer), GET
+  `/conversations*` (login)** · auth (Identity OIDC — dış repo).
+- **Agent-içi MCP (014):** ScoutAgent `/mcp` query uçlarını tüketir (MVP: Catalog `search_books`/
+  `get_book`; sonraki dilim Basket/Order/Library/Customer/Reviews/Personalization). Yalnız okuma;
+  kişisel uçta token taşınır. Bkz. ADR adr-mcp-inward-agent + `src/agents/ScoutAgent.Api/FLOW.md`.
 - **Yaşayan senkron kontratlar (S2S):** Order→Basket `GetBasketItems` gRPC · Order→Payment
   `CreateIntentAndLink` gRPC · EC→PG `POST /payment-links` REST (X-Api-Key) ·
   Order→Customer varsayılan-adres gRPC (uykuda).
@@ -179,10 +185,11 @@ deseni izler; yetki Dilim 2'de `[RequiredScope]`/JWT'ye bağlanacak (conventions
 - **Storefront BC + Elasticsearch/Kibana'yı geri getirme:** söküldü — arama Catalog pg-hibrit'e
   (pg_search BM25 + pgvector + RRF) katlanıyor. `query_storefront`/`search_products`/ES-DSL + vitrin
   event'leri (`ReviewSummaryChanged`/`ProductDiscountChanged`) GERİ EKLEME; keşif pg-hibrit'le gelir.
-- **MCP yüzeyini parça parça geri getirme:** temiz-sayfa sökümüyle EC'den MCP tamamen çıktı
-  (tool sabitleri, PRM, DLQ tool'ları, fasat aboneliği). Yüzey kararı REST first-party — tek tük
-  tool geri ekleme yok; MCP dönerse bilinçli mimari karar + spec'le döner (tarihsel kurallar
-  073/085 spec'lerinde ve AgentPlatform tool-description standardında durur).
+- **MCP'yi DIŞ/BYO yüzey olarak geri getirme:** temiz-sayfa sökümüyle dış-agent MCP yüzeyi çıktı
+  (DCR, consent, PRM keşfi, DLQ operatör tool'ları, fasat aboneliği) — bunlar GERİ GELMEZ. **İSTİSNA
+  (014, ADR adr-mcp-inward-agent):** first-party ScoutAgent'ın tükettiği **agent-içi query-only MCP**
+  GERİ GELDİ (İlke I MCP'yi meşru kanal sayar; "MCP yalnız agent tüketir"). BC'ler `/mcp` query ucu
+  açar, yalnız ScoutAgent client bağlanır, YAZMA tool'u yok. Dış yüzey yine bilinçli karar + spec ister.
 - **`IConfiguration`'dan doğrudan okuma** (Options pattern istisnaları hariç).
 - **Hassas kimlik/sır değerini insan-yüzeyde render etme** — ekrana/chat'e/API dönüşüne ve
   log/trace'e yazma. Kural ve gerekçe **Anayasa İlke VIII**'de (+ ADR
