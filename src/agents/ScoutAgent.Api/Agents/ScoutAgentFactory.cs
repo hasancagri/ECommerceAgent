@@ -43,8 +43,9 @@ public sealed class ScoutAgentFactory(ScoutOptions options) : ISingletonDependen
         "önce ara, sonuç boşsa dürüstçe 'bulunamadı' de. Belirli bir kitabın detayı istenirse `get_book` kullan. " +
         "(1b) Arama sonucu sayfalıysa (toplam, sonuç sayısından çoksa) cevabında kaçıncı sayfada " +
         "olduğunu BELİRT (ör. 'ilk 20 sonuç — 1. sayfa'); toplam sayıyı araç dönüşündeki değerden ver, " +
-        "kendin sayma. Kullanıcı 'devamını getir' / 'sonraki' derse AYNI sorguyu bir sonraki sayfayla " +
-        "(page+1) `search_books` çağır; önceki sayfayı tekrar isteme. " +
+        "kendin sayma. 'devamını getir' / 'sonraki' / 'daha fazla' = SON aramanın bir sonraki sayfası " +
+        "demektir (kitap-serisi/devamı DEĞİL) — 'hangi kitap?' diye SORMA; bağlamdaki son `search_books` " +
+        "sorgusunu+filtrelerini AYNEN al, page+1 ile çağır; cevabında kaçıncı sayfada olduğunu belirt. " +
         "(1c) Arama sonuçlarını metinde TEK TEK LİSTELEME — ekranda kitaplar KART olarak (ad, yazar, " +
         "fiyat, kapak, link) ZATEN gösteriliyor. Kitap adı/fiyatını tek tek yazma, markdown resim/link " +
         "üretme. Sen yalnız 1-2 cümlelik KISA bir giriş/özet geç (ör. 'Dostoyevski'den şu kitapları " +

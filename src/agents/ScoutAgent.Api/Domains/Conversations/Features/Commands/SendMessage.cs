@@ -89,7 +89,8 @@ public static class SendMessage
             if (isAuthenticated && conversation is not null)
             {
                 conversation.AddAssistantMessage(reply.Text);
-                await MaybeSummarizeAsync(conversation, ct);
+                // Özetleme KAPALI — tam transkript taşınıyor (başından sonuna); özete gerek yok + boşuna
+                // OpenAI turu olurdu. (Sohbet aşırı uzarsa üst-sınır/özet ileride geri gelebilir.)
                 session.Store(conversation);
                 await session.SaveChangesAsync(ct);
                 conversationId = conversation.Id;
@@ -109,29 +110,31 @@ public static class SendMessage
         private static List<MeaiChatMessage> BuildContext(
             Conversation? conversation, string latestMessage, IReadOnlyList<HistoryTurn>? history, int windowSize)
         {
+            // TAM transkript taşınır (başından sonuna) — pencere/özet YOK. Agent hiç bağlam kaybetmez;
+            // "devamını getir" gibi geriye-dönük referanslar her zaman çözülür. (Maliyet: sohbet uzadıkça
+            // bağlam büyür — kitap keşfi sohbetleri kısa; gerekirse ileride üst-sınır/özet geri gelir.)
             if (conversation is null)
             {
-                // Anon: istemci-transkript (son N tur) + bu mesaj. Devamlılık/sayfalama bağlamı burada taşınır
-                // (sunucuda anon kaydı yok). Boş/eksik history → yalnız tek mesaj (eski davranış).
+                // Anon: istemci-transkriptin TAMAMI + bu mesaj (sunucuda anon kaydı yok).
                 var anon = new List<MeaiChatMessage>();
                 if (history is { Count: > 0 })
-                {
-                    var window = windowSize < 0 ? 0 : windowSize;
-                    foreach (var turn in history.Skip(history.Count > window ? history.Count - window : 0))
+                    foreach (var turn in history)
                     {
                         if (string.IsNullOrWhiteSpace(turn.Text)) continue;
                         var role = string.Equals(turn.Role, "assistant", StringComparison.OrdinalIgnoreCase)
                             ? MeaiChatRole.Assistant : MeaiChatRole.User;
                         anon.Add(new MeaiChatMessage(role, turn.Text));
                     }
-                }
                 anon.Add(new MeaiChatMessage(MeaiChatRole.User, latestMessage));
                 return anon;
             }
 
-            // conversation.Messages en son kullanıcı mesajını zaten içerir (yukarıda eklendi).
-            var context = ConversationContext.Build(conversation.Summary, conversation.Messages, windowSize);
-            return context.Select(m => new MeaiChatMessage(ToRole(m.Role), m.Text)).ToList();
+            // Login: kaydın TÜM mesajları (en son kullanıcı mesajı yukarıda eklendi). Özet başa eklenmez —
+            // tam transkript zaten var.
+            return conversation.Messages
+                .Select(m => new MeaiChatMessage(
+                    m.Role == ValueObjects.ChatRole.Assistant ? MeaiChatRole.Assistant : MeaiChatRole.User, m.Text))
+                .ToList();
         }
 
         private static MeaiChatRole ToRole(ContextRole role) => role switch
