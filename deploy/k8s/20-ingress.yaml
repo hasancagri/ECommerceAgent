@@ -1,0 +1,56 @@
+# Dış erişim — Traefik ingress + cert-manager Let's Encrypt (sslip.io).
+# İKİ host: app.<ip>.sslip.io (web + API aynı origin, path-split → CORS yok) · id.<ip>.sslip.io (identity).
+# ÖN KOŞUL (bir kez, elle): cert-manager kurulu olmalı (k3s'te Traefik gömülü ama cert-manager DEĞİL).
+#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+# Yoksa ClusterIssuer CRD'si bulunmaz → bu dosyanın apply'ı hata verir.
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata: { name: letsencrypt-prod }
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: hasancagridemiriz@gmail.com
+    privateKeySecretRef: { name: letsencrypt-prod-account }
+    solvers:
+      - http01:
+          ingress: { class: traefik }
+---
+# app host: /api + /files → gateway (YARP); kalan her şey → web (nginx SPA).
+# React VITE_API_BASE_URL boş → relative /api çağrıları aynı origin'de gateway'e düşer (CORS yok).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  namespace: ecommerce
+  annotations: { cert-manager.io/cluster-issuer: "letsencrypt-prod" }
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [ "app.91.132.49.70.sslip.io" ]
+      secretName: app-tls
+  rules:
+    - host: "app.91.132.49.70.sslip.io"
+      http:
+        paths:
+          - { path: /api,   pathType: Prefix, backend: { service: { name: gateway, port: { number: 8080 } } } }
+          - { path: /files, pathType: Prefix, backend: { service: { name: gateway, port: { number: 8080 } } } }
+          - { path: /,      pathType: Prefix, backend: { service: { name: web,     port: { number: 80 } } } }
+---
+# id host: tüm yollar identity-server (OpenIddict + Razor /Account, /connect, /.well-known, /signin-google).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: identity
+  namespace: ecommerce
+  annotations: { cert-manager.io/cluster-issuer: "letsencrypt-prod" }
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [ "id.91.132.49.70.sslip.io" ]
+      secretName: id-tls
+  rules:
+    - host: "id.91.132.49.70.sslip.io"
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: identity-server, port: { number: 8080 } } } }
