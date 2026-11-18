@@ -44,7 +44,7 @@ var fileDb = postgres.AddDatabase("fileDb");
 var identityDb = postgres.AddDatabase("identityDb");
 var identityAdminEmail = builder.AddParameter("identity-admin-email", secret: true);
 var identityAdminPassword = builder.AddParameter("identity-admin-password", secret: true);
-builder.AddProject<Projects.Identity_Server>("identity-server")
+var identityServer = builder.AddProject<Projects.Identity_Server>("identity-server")
     .WithReference(identityDb)
     .WaitFor(identityDb)
     .WithEnvironment("BootstrapAdmin__Email", identityAdminEmail)
@@ -257,7 +257,7 @@ foreach (var svc in new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
-    fileApi, personalizationApi, scoutAgentApi, gateway
+    fileApi, personalizationApi, scoutAgentApi, gateway, identityServer
 })
 {
     svc.WithContainerRegistry(ghcr);

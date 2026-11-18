@@ -6,5 +6,9 @@ public static class SpaCors
 {
     public const string PolicyName = "spa";
 
-    public static readonly string[] AllowedOrigins = ["http://localhost:5173"];
+    public static readonly string[] AllowedOrigins =
+    [
+        "http://localhost:5173",                       // dev (Vite)
+        "https://app.91.132.49.70.sslip.io",           // canlı web (k3s ingress)
+    ];
 }

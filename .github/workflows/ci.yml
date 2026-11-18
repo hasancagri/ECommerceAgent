@@ -9,16 +9,11 @@ on:
 
 jobs:
   # ───────────── KAPI: her PR + her master push'ta derle + test ─────────────
-  # restore GitHub Packages'tan Platform.Auth çeker → GH_PACKAGES_TOKEN şart (NuGet.config'teki
-  # %GH_PACKAGES_TOKEN%'ı doldurur). GITHUB_TOKEN repo-scoped; Platform.Auth paketine ERİŞİM VERİLMELİ
-  # (paket ayarları → Actions access → bu repo) VEYA paket public/internal. Yoksa restore 401.
+  # restore yalnız nuget.org (Platform.Auth GitHub Packages feed'i 005'te SÖKÜLDÜ, NuGet.config temiz).
   build-test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read              # GitHub Packages'tan Platform.Auth okumak için
-    env:
-      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -28,16 +23,14 @@ jobs:
       - run: dotnet test --no-build
 
   # ───────────── ÜRETİM: yalnız master merge'inde image bas + ghcr'a it ─────────────
-  # needs: build-test (kapı) · if: yalnız master push · aspire do push → 15 servis image → ghcr.
+  # needs: build-test (kapı) · if: yalnız master push · aspire do push → 14 servis image → ghcr.
   image:
     needs: build-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write             # ghcr'a image yaz + Platform.Auth oku
-    env:
-      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # aspire build restore'u da Platform.Auth çeker
+      packages: write             # ghcr'a image yaz
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -54,7 +47,7 @@ jobs:
       - name: ghcr login
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/ecommerce/<servis> (15 image).
+      # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/ecommerce/<servis> (14 image).
       # aspire tag'i = aspire-deploy-<zaman damgası> (değişken); CD kararlı tag ister.
       - name: Image bas + ghcr'a it
         run: aspire do push --apphost src/aspire/AppHost/AppHost.csproj --non-interactive
@@ -63,9 +56,9 @@ jobs:
       # CD (deploy job) :latest + imagePullPolicy Always + rollout restart ile yeni kodu çeker.
       - name: latest tag retag + push
         run: |
-          for svc in catalog-api stock-api basket-api order-api payment-api customer-api \
-                     checkout-orchestrator reviews-api library-api discount-api mail-mcp \
-                     notification-agent file-api gateway storefront-api; do
+          for svc in identity-server catalog-api basket-api order-api payment-api customer-api \
+                     reviews-api library-api stock-api discount-api \
+                     file-api personalization-api scout-agent gateway; do
             repo="ghcr.io/hasancagri/ecommerce/$svc"
             src=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${repo}:aspire-deploy-" | head -1)
             if [ -n "$src" ]; then docker tag "$src" "$repo:latest" && docker push "$repo:latest"; fi
@@ -96,7 +89,7 @@ jobs:
           ssh -i ~/.ssh/deploy root@91.132.49.70 '
             set -e
             kubectl apply -f /tmp/deploy-k8s/
-            apps=$(kubectl -n ecommerce get deploy -o name | grep -vE "postgres|rabbitmq|elasticsearch")
+            apps=$(kubectl -n ecommerce get deploy -o name | grep -vE "postgres|rabbitmq|redis")
             kubectl -n ecommerce rollout restart $apps
             kubectl -n ecommerce rollout status $apps --timeout=300s
           '

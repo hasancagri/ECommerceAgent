@@ -1,62 +1,82 @@
-# Altyapı — namespace + Postgres (tüm BC DB'leri init ile) + RabbitMQ + Elasticsearch.
-# ÖĞRENME/DEV kurulumu: tek Postgres instance (çok DB), ephemeral depo (PVC yok), security kapalı ES.
-# PROD NOTU: PG parolası burada düz (dev-içi, cluster-only, ufw-kapalı 5432); prod'da Secret + PVC + managed.
-# ES host şartı: node'da `vm.max_map_count=262144` (sysctl, /etc/sysctl.conf'a kalıcı — manifest'te değil).
+# Altyapı — namespace + Postgres(ParadeDB) + RabbitMQ + Redis. PVC KALICI (ephemeral değil):
+# katalog (22k) + kullanıcı/sohbet verisi restart'ta durur. ES SÖKÜLDÜ (arama Catalog pg-hibrit'e katlandı).
+# Postgres = ParadeDB (pg_search BM25 + pgvector); catalogDb'de extension init'te açılır. Init idempotent.
+# DEV NOTU: PG parolası düz (cluster-only, ufw-kapalı 5432); prod'da Secret + managed + büyük PVC.
 ---
 apiVersion: v1
 kind: Namespace
 metadata: { name: ecommerce }
 ---
-# Postgres init: ilk açılışta tüm BC veritabanlarını oluşturur (idempotent değil — yalnız boş volume'da koşar).
+# Init (idempotent .sh): 12 BC DB'sini guard'lı oluştur + catalogDb'ye pg_search/vector extension.
+# initdb.d yalnız BOŞ veri dizininde koşar; guard ikinci-güvenlik (PVC + elle apply senaryosu).
 apiVersion: v1
 kind: ConfigMap
 metadata: { name: postgres-init, namespace: ecommerce }
 data:
-  init.sql: |
-    CREATE DATABASE "catalogDb";
-    CREATE DATABASE "basketDb";
-    CREATE DATABASE "orderDb";
-    CREATE DATABASE "paymentDb";
-    CREATE DATABASE "stockDb";
-    CREATE DATABASE "storefrontDb";
-    CREATE DATABASE "customerDb";
-    CREATE DATABASE "checkoutDb";
-    CREATE DATABASE "discountDb";
-    CREATE DATABASE "fileDb";
-    CREATE DATABASE "reviewsDb";
-    CREATE DATABASE "libraryDb";
+  init.sh: |
+    #!/bin/bash
+    set -e
+    for db in catalogDb basketDb orderDb paymentDb customerDb fileDb identityDb \
+              reviewsDb libraryDb stockDb discountDb personalizationDb scoutDb; do
+      if ! psql -U "$POSTGRES_USER" -tAc "SELECT 1 FROM pg_database WHERE datname='$db'" | grep -q 1; then
+        psql -U "$POSTGRES_USER" -c "CREATE DATABASE \"$db\""
+      fi
+    done
+    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d catalogDb -c "CREATE EXTENSION IF NOT EXISTS pg_search;"
+    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d catalogDb -c "CREATE EXTENSION IF NOT EXISTS vector;"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: postgres-data, namespace: ecommerce }
+spec:
+  accessModes: [ ReadWriteOnce ]
+  storageClassName: local-path
+  resources: { requests: { storage: 10Gi } }
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: postgres, namespace: ecommerce }
 spec:
   replicas: 1
+  strategy: { type: Recreate }   # RWO PVC — eski+yeni pod aynı anda mount edemez
   selector: { matchLabels: { app: postgres } }
   template:
     metadata: { labels: { app: postgres } }
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: paradedb/paradedb:0.26.6-pg17
           env:
             - { name: POSTGRES_USER, value: postgres }
             - { name: POSTGRES_PASSWORD, value: CatalogPg2026 }   # DEV-only; prod'da Secret
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }   # mount-kökü initdb tuzağı (lost+found)
           ports: [ { containerPort: 5432 } ]
           volumeMounts:
             - { name: init, mountPath: /docker-entrypoint-initdb.d }
+            - { name: data, mountPath: /var/lib/postgresql/data }
       volumes:
         - { name: init, configMap: { name: postgres-init } }
+        - { name: data, persistentVolumeClaim: { claimName: postgres-data } }
 ---
 apiVersion: v1
 kind: Service
 metadata: { name: postgres, namespace: ecommerce }
 spec: { selector: { app: postgres }, ports: [ { port: 5432, targetPort: 5432 } ] }
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: rabbitmq-data, namespace: ecommerce }
+spec:
+  accessModes: [ ReadWriteOnce ]
+  storageClassName: local-path
+  resources: { requests: { storage: 2Gi } }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: rabbitmq, namespace: ecommerce }
 spec:
   replicas: 1
+  strategy: { type: Recreate }
   selector: { matchLabels: { app: rabbitmq } }
   template:
     metadata: { labels: { app: rabbitmq } }
@@ -65,6 +85,10 @@ spec:
         - name: rabbitmq
           image: rabbitmq:3.13-management
           ports: [ { containerPort: 5672 }, { containerPort: 15672 } ]
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/rabbitmq }
+      volumes:
+        - { name: data, persistentVolumeClaim: { claimName: rabbitmq-data } }
 ---
 apiVersion: v1
 kind: Service
@@ -73,29 +97,22 @@ spec:
   selector: { app: rabbitmq }
   ports: [ { name: amqp, port: 5672, targetPort: 5672 }, { name: mgmt, port: 15672, targetPort: 15672 } ]
 ---
+# Redis = HybridCache L2 (paylaşımlı önbellek). Bayat-toleranslı → PVC YOK (ephemeral kabul).
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: elasticsearch, namespace: ecommerce }
+metadata: { name: redis, namespace: ecommerce }
 spec:
   replicas: 1
-  selector: { matchLabels: { app: elasticsearch } }
+  selector: { matchLabels: { app: redis } }
   template:
-    metadata: { labels: { app: elasticsearch } }
+    metadata: { labels: { app: redis } }
     spec:
       containers:
-        - name: elasticsearch
-          image: docker.elastic.co/elasticsearch/elasticsearch:8.19.4
-          ports: [ { containerPort: 9200 } ]
-          env:
-            - { name: discovery.type, value: single-node }
-            - { name: xpack.security.enabled, value: "false" }
-            - { name: ES_JAVA_OPTS, value: "-Xms512m -Xmx512m" }
-            - { name: bootstrap.memory_lock, value: "false" }
-          resources:
-            requests: { memory: "1Gi" }
-            limits: { memory: "1536Mi" }
+        - name: redis
+          image: redis:7-alpine
+          ports: [ { containerPort: 6379 } ]
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: elasticsearch, namespace: ecommerce }
-spec: { selector: { app: elasticsearch }, ports: [ { port: 9200, targetPort: 9200 } ] }
+metadata: { name: redis, namespace: ecommerce }
+spec: { selector: { app: redis }, ports: [ { port: 6379, targetPort: 6379 } ] }
