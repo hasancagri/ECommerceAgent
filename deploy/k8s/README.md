@@ -7,7 +7,7 @@ image basar, GHCR'ye iter, buradaki manifest'leri SSH ile cluster'a uygular + ap
 - `00-infra.yaml` — namespace `ecommerce` + Postgres(**ParadeDB** pg17: pg_search+pgvector) + RabbitMQ + Redis.
   Postgres+RabbitMQ **PVC kalıcı** (local-path); init (idempotent .sh) 12 BC DB'si + catalogDb extension.
 - `10-services.yaml` — 14 servis (identity-server + 13 API). Image `:latest` + `imagePullPolicy Always`.
-  Issuer tek string `https://id.91.132.49.70.sslip.io` (slash YOK). Sırlar `secretKeyRef`. Probe /alive+/health.
+  Issuer tek string `https://id.hasancagridemiriz.com` (slash YOK). Sırlar `secretKeyRef`. Probe /alive+/health.
 - `20-ingress.yaml` — Traefik ingress + cert-manager Let's Encrypt. `app` host (web+API path-split),
   `id` host (identity). **checkout kapsam DIŞI** (payment-api boot olur, PG/BankSim yok).
 
@@ -41,7 +41,7 @@ kubectl -n ecommerce create secret generic gateway-admin  --from-literal=apikey=
 ```
 
 ### 4. Google Console
-Yetkili redirect URI ekle: `https://id.91.132.49.70.sslip.io/signin-google`.
+Yetkili redirect URI ekle: `https://id.hasancagridemiriz.com/signin-google`.
 
 ### 5. İlk bring-up (sıfırdan cluster — CD'den önce elle)
 ```bash

@@ -1,5 +1,5 @@
 # 14 ECommerce servisi — image :latest + imagePullPolicy Always (CD rollout yeni image çeker).
-# Issuer TEK string, trailing-slash YOK: https://id.91.132.49.70.sslip.io (token iss = SetIssuer; servis
+# Issuer TEK string, trailing-slash YOK: https://id.hasancagridemiriz.com (token iss = SetIssuer; servis
 # IdentityOption__Issuer birebir eşleşmeli — slash tuzağı). Sırlar secretKeyRef (cluster'da bir kez; Task 5).
 # Probe: liveness /alive, readiness /health. checkout kapsam DIŞI → payment PG-link env'leri yok.
 # SÖKÜLDÜ: storefront-api, checkout-orchestrator, mail-mcp, notification-agent (+ES/kibana/mailpit).
@@ -24,10 +24,10 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__identityDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=identityDb" }
             # issuer HTTPS zorunlu (Program.cs guard) — ingress TLS + ForwardedHeaders ile http backend yeter.
-            - { name: "OpenIddict__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "OpenIddict__Issuer", value: "https://id.hasancagridemiriz.com" }
             # react-web (Clients[0]) redirect'leri canlı web host'una — fresh DB seed'i bu override'ı alır.
-            - { name: "AppRegistry__Apps__0__Clients__0__RedirectUris__0", value: "https://app.91.132.49.70.sslip.io/callback" }
-            - { name: "AppRegistry__Apps__0__Clients__0__PostLogoutRedirectUris__0", value: "https://app.91.132.49.70.sslip.io/" }
+            - { name: "AppRegistry__Apps__0__Clients__0__RedirectUris__0", value: "https://hasancagridemiriz.com/callback" }
+            - { name: "AppRegistry__Apps__0__Clients__0__PostLogoutRedirectUris__0", value: "https://hasancagridemiriz.com/" }
             - { name: "BootstrapAdmin__Email", valueFrom: { secretKeyRef: { name: identity-admin, key: email } } }
             - { name: "BootstrapAdmin__Password", valueFrom: { secretKeyRef: { name: identity-admin, key: password } } }
             - { name: "Authentication__Google__ClientId", valueFrom: { secretKeyRef: { name: google, key: clientid } } }
@@ -64,8 +64,8 @@ spec:
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
             - { name: "ConnectionStrings__redis", value: "redis:6379" }
             - { name: "ImportOptions__PublicBaseUrl", value: "http://catalog-api:8080" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "catalog.api" }
             - { name: "AdminApiKeyOptions__AdminApiKey", valueFrom: { secretKeyRef: { name: gateway-admin, key: apikey } } }
             # Hibrit/semantik arama query-embedding (011, pgvector kNN + RRF). Yoksa BM25-only'ye düşer.
@@ -99,8 +99,8 @@ spec:
             - { name: "ConnectionStrings__basketDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=basketDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
             - { name: "ConnectionStrings__redis", value: "redis:6379" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "basket.api" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
@@ -131,8 +131,8 @@ spec:
             - { name: "ConnectionStrings__orderDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=orderDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
             - { name: "ConnectionStrings__redis", value: "redis:6379" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "order.api" }
             - { name: "SagaAuth__ClientId", value: "order-saga" }
             - { name: "SagaAuth__ClientSecret", value: "order-saga-secret" }
@@ -168,8 +168,8 @@ spec:
             - { name: "ConnectionStrings__paymentDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=paymentDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
             - { name: "ConnectionStrings__redis", value: "redis:6379" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "payment.api" }
             - { name: "SagaAuth__ClientId", value: "payment-s2s" }
             - { name: "SagaAuth__ClientSecret", value: "payment-s2s-secret" }
@@ -206,8 +206,8 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__customerDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=customerDb" }
             - { name: "ConnectionStrings__redis", value: "redis:6379" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "customer.api" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
@@ -237,8 +237,8 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__reviewsDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=reviewsDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "reviews.api" }
             - { name: "services__order-api__http__0", value: "http://order-api:8080" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
@@ -269,8 +269,8 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__libraryDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=libraryDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "library.api" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
@@ -300,8 +300,8 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__stockDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=stockDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "stock.api" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
@@ -331,8 +331,8 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__discountDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=discountDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "IdentityOption__Audience", value: "discount.api" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
@@ -402,8 +402,8 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__personalizationDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=personalizationDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
 ---
@@ -431,8 +431,8 @@ spec:
           env:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__scoutDb", value: "Host=postgres;Port=5432;Username=postgres;Password=CatalogPg2026;Database=scoutDb" }
-            - { name: "IdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
+            - { name: "IdentityOption__Address", value: "https://id.hasancagridemiriz.com" }
+            - { name: "IdentityOption__Issuer", value: "https://id.hasancagridemiriz.com" }
             - { name: "ScoutOptions__ApiKey", valueFrom: { secretKeyRef: { name: openai, key: apikey } } }
             - { name: "services__catalog-api__http__0", value: "http://catalog-api:8080" }
             - { name: "services__reviews-api__http__0", value: "http://reviews-api:8080" }

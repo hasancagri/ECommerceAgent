@@ -27,10 +27,10 @@ metadata:
 spec:
   ingressClassName: traefik
   tls:
-    - hosts: [ "app.91.132.49.70.sslip.io" ]
+    - hosts: [ "hasancagridemiriz.com" ]
       secretName: app-tls
   rules:
-    - host: "app.91.132.49.70.sslip.io"
+    - host: "hasancagridemiriz.com"
       http:
         paths:
           - { path: /api,   pathType: Prefix, backend: { service: { name: gateway, port: { number: 8080 } } } }
@@ -47,10 +47,10 @@ metadata:
 spec:
   ingressClassName: traefik
   tls:
-    - hosts: [ "id.91.132.49.70.sslip.io" ]
+    - hosts: [ "id.hasancagridemiriz.com" ]
       secretName: id-tls
   rules:
-    - host: "id.91.132.49.70.sslip.io"
+    - host: "id.hasancagridemiriz.com"
       http:
         paths:
           - { path: /, pathType: Prefix, backend: { service: { name: identity-server, port: { number: 8080 } } } }

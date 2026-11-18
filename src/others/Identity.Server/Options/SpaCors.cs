@@ -9,6 +9,6 @@ public static class SpaCors
     public static readonly string[] AllowedOrigins =
     [
         "http://localhost:5173",                       // dev (Vite)
-        "https://app.91.132.49.70.sslip.io",           // canlı web (k3s ingress)
+        "https://hasancagridemiriz.com",           // canlı web (k3s ingress)
     ];
 }
