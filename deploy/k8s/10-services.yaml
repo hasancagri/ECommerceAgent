@@ -66,6 +66,8 @@ spec:
             - { name: "IdentityOption__Issuer", value: "https://id.91.132.49.70.sslip.io" }
             - { name: "IdentityOption__Audience", value: "catalog.api" }
             - { name: "AdminApiKeyOptions__AdminApiKey", valueFrom: { secretKeyRef: { name: gateway-admin, key: apikey } } }
+            # Hibrit/semantik arama query-embedding (011, pgvector kNN + RRF). Yoksa BM25-only'ye düşer.
+            - { name: "OpenAiEmbeddingOptions__ApiKey", valueFrom: { secretKeyRef: { name: openai, key: apikey } } }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
 ---
