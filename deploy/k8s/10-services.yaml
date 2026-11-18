@@ -32,8 +32,10 @@ spec:
             - { name: "BootstrapAdmin__Password", valueFrom: { secretKeyRef: { name: identity-admin, key: password } } }
             - { name: "Authentication__Google__ClientId", valueFrom: { secretKeyRef: { name: google, key: clientid } } }
             - { name: "Authentication__Google__ClientSecret", valueFrom: { secretKeyRef: { name: google, key: clientsecret } } }
-          livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
-          readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          # identity-server ServiceDefaults /health+/alive KULLANMAZ (EF+Razor istisnası) → tcpSocket probe
+          # (port dinliyor = ayakta; http health ucu yok, httpGet 404 → yanlış CrashLoop).
+          livenessProbe:  { tcpSocket: { port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
+          readinessProbe: { tcpSocket: { port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
 ---
 apiVersion: v1
 kind: Service
@@ -172,6 +174,10 @@ spec:
             - { name: "SagaAuth__ClientId", value: "payment-s2s" }
             - { name: "SagaAuth__ClientSecret", value: "payment-s2s-secret" }
             - { name: "services__customer-api__http__0", value: "http://customer-api:8080" }
+            # checkout kapsam DIŞI ama PgPaymentLinkOptions ValidateOnStart+[Required] → boot için dummy
+            # (PG yok, hiç kullanılmaz; gerçek değer checkout dönünce secretKeyRef'le gelir).
+            - { name: "PgPaymentLinkOptions__StoreApiKey", value: "disabled" }
+            - { name: "PgPaymentLinkOptions__CallbackSecret", value: "disabled" }
           livenessProbe:  { httpGet: { path: /alive,  port: 8080 }, initialDelaySeconds: 20, periodSeconds: 15 }
           readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
 ---
