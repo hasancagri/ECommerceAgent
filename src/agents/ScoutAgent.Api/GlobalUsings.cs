@@ -18,5 +18,6 @@ global using ScoutAgent.Api.Constants;
 global using ScoutAgent.Api.Dependencies;
 global using ScoutAgent.Api.Extensions;
 global using ScoutAgent.Api.Options;
+global using ScoutAgent.Api.RateLimiting;
 global using ScoutAgent.Api.Domains.Conversations;
 global using ScoutAgent.Api.Domains.Conversations.ValueObjects;

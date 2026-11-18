@@ -19,6 +19,10 @@ public static class MartenExtensions
                 opts.Schema.For<Conversation>()
                     .DocumentAlias(ScoutSchemaConstants.ConversationAlias)
                     .Index(x => x.UserId);
+
+                // 020-B: gün-başına kullanım sayacı (string Id = "{partition}:{yyyyMMdd}").
+                opts.Schema.For<RateLimiting.ScoutUsageDaily>()
+                    .DocumentAlias(ScoutSchemaConstants.UsageDailyAlias);
             })
             .IntegrateWithWolverine()
             .ApplyAllDatabaseChangesOnStartup();

@@ -19,7 +19,7 @@ public static class ChatEndpointExtension
         group.MapPost("/messages", async (
             SendMessageRequest request, ICurrentUser currentUser, HttpContext http,
             IMessageBus bus, ScoutAgent.Api.Options.ScoutOptions options,
-            ILoggerFactory loggerFactory, CancellationToken ct) =>
+            DailyUsageGuard usageGuard, ILoggerFactory loggerFactory, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Message))
                 return Results.BadRequest(new { message = "Mesaj boş olamaz." });
@@ -29,6 +29,12 @@ public static class ChatEndpointExtension
 
             currentUser.Load(http.User);
             Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
+
+            // 020-B: gün-başına kalıcı rate cap (LLM çağrısından ÖNCE). anonim IP / login sub partition.
+            var partition = ScoutUsageKey.Partition(userId, http.Connection.RemoteIpAddress?.ToString());
+            var dailyCap = userId is null ? options.AnonPerDay : options.UserPerDay;
+            if (!await usageGuard.TryConsumeAsync(partition, dailyCap, ct))
+                return Results.Json(new { message = ScoutResourceConstants.TOO_MANY_REQUESTS }, statusCode: 429);
 
             try
             {
