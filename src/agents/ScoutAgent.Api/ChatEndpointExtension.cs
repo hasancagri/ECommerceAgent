@@ -45,6 +45,8 @@ public static class ChatEndpointExtension
             }
             catch (Exception ex)
             {
+                // 020-B: hard-fail → günlük slotu iade (kullanıcı cevapsız kaldı, kotası yanmasın).
+                await usageGuard.ReleaseAsync(partition, ct);
                 // Yerel model / MCP ucu erişilemez → 503 anlaşılır hata (FR-008). Exception LOGLANIR (teşhis).
                 loggerFactory.CreateLogger("ScoutChat").LogError(ex,
                     "SendMessage patladı — msg='{Msg}' userId={UserId}", request.Message, userId);

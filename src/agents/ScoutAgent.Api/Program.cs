@@ -50,7 +50,9 @@ builder.Services.AddRateLimiter(limiter =>
         {
             PermitLimit = permit,
             Window = TimeSpan.FromMinutes(1),
-            AutoReplenishment = true,
+            // false: pencere acquire-anında kontrol edilir (arka-plan timer YOK) → boşta kalan partition
+            // yerleşik idle-cleanup'la geri alınır. true olsaydı her IP kalıcı timer+limiter → bellek sızar.
+            AutoReplenishment = false,
         });
     });
     limiter.OnRejected = async (ctx, ct) =>
