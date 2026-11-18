@@ -37,13 +37,29 @@ spec:
           - { path: /files, pathType: Prefix, backend: { service: { name: gateway, port: { number: 8080 } } } }
           - { path: /,      pathType: Prefix, backend: { service: { name: web,     port: { number: 80 } } } }
 ---
+# SPA (web origin) → id.host discovery/token/jwks XHR'ları cross-origin → CORS şart. Identity'nin
+# SpaCors'u (compile-time) yeni image gelene dek domain'i içermeyebilir → Traefik CORS middleware ile
+# ACAO enjekte edilir (image'dan bağımsız, kalıcı).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata: { name: id-cors, namespace: ecommerce }
+spec:
+  headers:
+    accessControlAllowOriginList: [ "https://hasancagridemiriz.com" ]
+    accessControlAllowMethods: [ "GET", "POST", "OPTIONS" ]
+    accessControlAllowHeaders: [ "*" ]
+    accessControlMaxAge: 100
+    addVaryHeader: true
+---
 # id host: tüm yollar identity-server (OpenIddict + Razor /Account, /connect, /.well-known, /signin-google).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: identity
   namespace: ecommerce
-  annotations: { cert-manager.io/cluster-issuer: "letsencrypt-prod" }
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/router.middlewares: ecommerce-id-cors@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
