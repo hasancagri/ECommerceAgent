@@ -19,7 +19,7 @@ public static class ChatEndpointExtension
         group.MapPost("/messages", async (
             SendMessageRequest request, ICurrentUser currentUser, HttpContext http,
             IMessageBus bus, ScoutAgent.Api.Options.ScoutOptions options,
-            ILoggerFactory loggerFactory, CancellationToken ct) =>
+            DailyUsageGuard usageGuard, ILoggerFactory loggerFactory, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Message))
                 return Results.BadRequest(new { message = "Mesaj boş olamaz." });
@@ -30,6 +30,12 @@ public static class ChatEndpointExtension
             currentUser.Load(http.User);
             Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
 
+            // 020-B: gün-başına kalıcı rate cap (LLM çağrısından ÖNCE). anonim IP / login sub partition.
+            var partition = ScoutUsageKey.Partition(userId, http.Connection.RemoteIpAddress?.ToString());
+            var dailyCap = userId is null ? options.AnonPerDay : options.UserPerDay;
+            if (!await usageGuard.TryConsumeAsync(partition, dailyCap, ct))
+                return Results.Json(new { message = ScoutResourceConstants.TOO_MANY_REQUESTS }, statusCode: 429);
+
             try
             {
                 var result = await bus.InvokeAsync<FeatureObjectResultModel<SendMessage.Response>>(
@@ -39,12 +45,14 @@ public static class ChatEndpointExtension
             }
             catch (Exception ex)
             {
+                // 020-B: hard-fail → günlük slotu iade (kullanıcı cevapsız kaldı, kotası yanmasın).
+                await usageGuard.ReleaseAsync(partition, ct);
                 // Yerel model / MCP ucu erişilemez → 503 anlaşılır hata (FR-008). Exception LOGLANIR (teşhis).
                 loggerFactory.CreateLogger("ScoutChat").LogError(ex,
                     "SendMessage patladı — msg='{Msg}' userId={UserId}", request.Message, userId);
                 return Results.Problem(statusCode: 503, title: "Kâşif şu an hizmet veremiyor, biraz sonra tekrar dene.");
             }
-        });
+        }).RequireRateLimiting("chat");
 
         // GET /conversations — kullanıcının sohbet geçmişi (giriş şart, yalnız kendi).
         group.MapGet("/conversations", async (

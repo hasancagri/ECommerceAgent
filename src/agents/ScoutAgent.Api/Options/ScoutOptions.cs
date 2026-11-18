@@ -21,6 +21,13 @@ public sealed class ScoutOptions
     // transkript normal kullanımda yeter; aşırı uzun sohbet/dev-metin OpenAI maliyetini/bağlamı şişirmesin).
     public int MaxMessageLength { get; set; } = 2000;
     public int MaxContextMessages { get; set; } = 60;
+
+    // 020: rate limit. Anonim (IP) sıkı, login (sub) gevşek. Dakika = burst (A, in-memory);
+    // gün = kalıcı cap (B, Marten). OpenAI hard-limit nihai tavan; bunlar adalet + tek-kullanıcı tavanı.
+    public int AnonPerMinute { get; set; } = 5;
+    public int AnonPerDay { get; set; } = 30;
+    public int UserPerMinute { get; set; } = 20;
+    public int UserPerDay { get; set; } = 200;
 }
 
 // 007: BC MCP uçları (fasat YOK — statik liste; adresler service discovery'den gelir). Config-güdümlü:
