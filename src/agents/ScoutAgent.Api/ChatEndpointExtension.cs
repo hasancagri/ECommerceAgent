@@ -50,7 +50,7 @@ public static class ChatEndpointExtension
                     "SendMessage patladı — msg='{Msg}' userId={UserId}", request.Message, userId);
                 return Results.Problem(statusCode: 503, title: "Kâşif şu an hizmet veremiyor, biraz sonra tekrar dene.");
             }
-        });
+        }).RequireRateLimiting("chat");
 
         // GET /conversations — kullanıcının sohbet geçmişi (giriş şart, yalnız kendi).
         group.MapGet("/conversations", async (

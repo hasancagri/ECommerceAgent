@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using ScoutAgent.Api;
 
@@ -32,6 +34,32 @@ builder.Services.AddOptions<McpEndpointsOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<McpEndpointsOptions>>().Value);
 
+// 020-A: burst rate limit (dakika-pencere, in-memory). Partition: login sub / anonim IP; limit auth'a
+// göre. Aşınca 429 (B ile aynı gövde). UseRateLimiter auth'tan SONRA → partition kullanıcıyı bilir.
+builder.Services.AddRateLimiter(limiter =>
+{
+    limiter.AddPolicy("chat", context =>
+    {
+        var opts = context.RequestServices.GetRequiredService<ScoutOptions>();
+        var currentUser = context.RequestServices.GetRequiredService<ICurrentUser>();
+        currentUser.Load(context.User);
+        Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
+        var key = ScoutUsageKey.Partition(userId, context.Connection.RemoteIpAddress?.ToString());
+        var permit = userId is null ? opts.AnonPerMinute : opts.UserPerMinute;
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permit,
+            Window = TimeSpan.FromMinutes(1),
+            AutoReplenishment = true,
+        });
+    });
+    limiter.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await ctx.HttpContext.Response.WriteAsJsonAsync(new { message = ScoutResourceConstants.TOO_MANY_REQUESTS }, ct);
+    };
+});
+
 // 007 US4: kimlik doğrulama (sub → sohbet sahipliği). Audience doğrulanmaz — bkz. AuthExtensions.
 builder.AddScoutAuth();
 
@@ -43,6 +71,9 @@ app.MapDefaultEndpoints();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 020-A: auth'tan SONRA (partition login kullanıcıyı çözebilsin).
+app.UseRateLimiter();
 
 // 007: Kâşif sohbet yüzeyi (gateway /api/chat/** → buraya).
 app.MapChatEndpoints();
