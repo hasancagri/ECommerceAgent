@@ -5,9 +5,17 @@ namespace ScoutAgent.Api.Options;
 // 007: Kâşif sohbet beyni yapılandırması (tip'li Options — IConfiguration'dan doğrudan okuma yasak).
 public sealed class ScoutOptions
 {
-    // OpenAI modeli (tool-calling destekli). gpt-4o-mini = ucuz + sağlam tool-call.
+    // OpenAI modeli (tool-calling destekli). gpt-4o-mini = ucuz + sağlam tool-call. Hem genel varsayılan
+    // hem de RouterModel/Agents atanmamışsa düşülecek model.
     [Required]
     public string Model { get; set; } = "gpt-4o-mini";
+
+    // 019: niyet-dağıtıcı (router) modeli — sınıflandırma kolay iş, ucuz/hızlı model yeter. Boş → Model.
+    public string? RouterModel { get; set; }
+
+    // 019: BC anahtarı → model adı (sub-agent başına model). Eksik anahtar → Model varsayılanı.
+    // Ör. { "catalog": "gpt-4o-mini", "library": "gpt-4o" }.
+    public Dictionary<string, string> Agents { get; set; } = new();
 
     // OpenAI API key (sk-...). user-secrets / AppHost secret parametresiyle verilir — git'e GİRMEZ.
     [Required]

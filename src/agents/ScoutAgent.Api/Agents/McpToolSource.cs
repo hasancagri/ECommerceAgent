@@ -4,11 +4,11 @@ using ModelContextProtocol.Client;
 
 namespace ScoutAgent.Api.Agents;
 
-// 007 FR-005a: ScoutAgent her BC MCP ucuna DOĞRUDAN bağlanır (fasat/keşif katmanı YOK). Uç listesi
-// CONFIG-GÜDÜMLÜ (McpEndpointsOptions) — yeni BC = tek config satırı, bu sınıf DEĞİŞMEZ. TÜM uçlar her
-// istekte toplanır (oturum-bağımsız, cache YOK — her istek taze client). Her tool çağrısının HTTP
-// isteği UserTokenForwardingHandler ile kullanıcı token'ını taşır → kişisel uçlar her istekte scope
-// ister (gerçek sınır); token yoksa downstream 401 → o uç atlanır (model "giriş gerekli" der).
+// 007/019: ScoutAgent BC MCP uçlarına DOĞRUDAN bağlanır (fasat YOK). Uç listesi CONFIG-GÜDÜMLÜ
+// (McpEndpointsOptions). 019: sub-agent'lar GetClientAsync ile kendi ucunun client'ını alıp tipli
+// wrapper'da CallToolAsync çağırır (seçilen sub-agent yalnız kendi ucuna bağlanır — kör toplama yok).
+// Her HTTP isteği UserTokenForwardingHandler ile kullanıcı token'ını taşır → kişisel uçlar scope ister
+// (gerçek sınır); token yoksa downstream 401 → wrapper structuredContent null → nazik "giriş gerekli".
 public sealed class McpToolSource(
     McpEndpointsOptions options,
     IHttpClientFactory httpClientFactory,
@@ -17,32 +17,18 @@ public sealed class McpToolSource(
     // Program.cs AddHttpClient bu adla kaydeder — tek kaynak (typo'lu çift sessizce koparır).
     public const string HttpClientName = "mcp";
 
-    // collector: tool çıktılarını yakalamak için (SendMessage verir — reply.items oradan dolar).
-    public async Task<IList<AITool>> GetToolsAsync(ToolResultCollector collector, CancellationToken ct)
-    {
-        // Uçlara PARALEL bağlan — süre = en yavaş TEK uç (sıralı toplam DEĞİL). Ölü/yavaş uç (401/404 +
-        // SSE fallback) diğerlerini bekletmez. Her uç kendi hatasını yutar (FR-008).
-        var perEndpoint = await Task.WhenAll(options.Endpoints.Select(async endpoint =>
-        {
-            try
-            {
-                var client = await CreateClientAsync(endpoint, ct);
-                var endpointTools = await client.ListToolsAsync(cancellationToken: ct);
-                // Her tool'u yakalayıcıyla sar — çıktı collector'a yazılır (AIFunction olanlar; değilse aynen).
-                return endpointTools
-                    .Select(t => t is AIFunction f ? (AITool)new CapturingFunction(f, collector) : t)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                // Bir uç erişilemezse (BC down / token yoksa 401) o aracı atla — diğerleri çalışır (FR-008).
-                loggerFactory.CreateLogger<McpToolSource>()
-                    .LogWarning(ex, "MCP ucu erişilemedi: {Endpoint}", endpoint.Name);
-                return new List<AITool>();
-            }
-        }));
+    // 019: MCP sonucu BC'den PascalCase/camelCase gelebilir → case-insensitive deserialize (sub-agent'lar
+    // kullanır: structuredContent.Deserialize<SomutTip>(JsonOptions)). Reflection YOK; T derleme-zamanı.
+    public static readonly System.Text.Json.JsonSerializerOptions JsonOptions =
+        new() { PropertyNameCaseInsensitive = true };
 
-        return perEndpoint.SelectMany(x => x).ToList();
+    // 019: bir uca MCP client ver — sub-agent tool wrapper'ı CallToolAsync'i bunun üstünde çağırır
+    // (tipli wrapper deseni: wrapper girdiyi/çıktı tipini bilir, sniff/reflection yok). Her çağrı taze.
+    public async Task<McpClient> GetClientAsync(string endpointName, CancellationToken ct)
+    {
+        var endpoint = options.Endpoints.FirstOrDefault(e => e.Name == endpointName)
+            ?? throw new InvalidOperationException($"Bilinmeyen MCP ucu: {endpointName}");
+        return await CreateClientAsync(endpoint, ct);
     }
 
     private async Task<McpClient> CreateClientAsync(McpEndpoint endpoint, CancellationToken ct)

@@ -18,7 +18,8 @@ public static class SendMessage
     // Anon istemci-transkript turu (role: "user"/"assistant"). Login'de yok sayılır — sunucu kaydı otoriter.
     public record HistoryTurn(string Role, string Text);
 
-    public record ReplyItem(string Tool, System.Text.Json.JsonElement Result);
+    // 019 (B): Result TİPLİ — ToolResults ayna-tipi (JsonElement yalnız bilinmeyen tool fallback).
+    public record ReplyItem(string Tool, object Result);
 
     public class Reply
     {
@@ -36,7 +37,6 @@ public static class SendMessage
 
     public class SendMessageHandler(
         ScoutAgentFactory agentFactory,
-        McpToolSource toolSource,
         IDocumentSession session,
         ScoutOptions options)
     {
@@ -50,9 +50,9 @@ public static class SendMessage
             var isAuthenticated = command.UserId is Guid uid && uid != Guid.Empty;
 
             // Tur boyunca tool çıktılarını yakala (MAF yanıtta surface etmiyor → reply.items buradan).
+            // 019: router agent — sub-agent tool'ları lazy; niyete göre yalnız ilgili MCP ucu bağlanır.
             var collector = new ToolResultCollector();
-            var tools = await toolSource.GetToolsAsync(collector, ct);
-            var agent = agentFactory.CreateAgent(tools);
+            var agent = agentFactory.CreateRouter(collector);
 
             // Girişli: kayıt yükle/oluştur (sahiplik kontrolü) + kullanıcı mesajını ekle.
             Conversation? conversation = null;
@@ -166,86 +166,13 @@ public static class SendMessage
                 .ToList();
         }
 
-        // Yakalanan tool çıktılarını reply.items'a çevirir (collector'dan — MAF yanıtına bağlı değil).
-        // MCP sonucu string(JSON)/JsonElement/obje olabilir → normalize edip JsonElement döndür.
+        // 019 (B): collector artık TİPLİ nesne tutuyor — sub-agent'ın tool wrapper'ı MCP
+        // structuredContent'i `Deserialize<SomutTip>` etti. Burada sniff/unwrap/reflection YOK; doğrudan
+        // reply.items'a. camelCase serileştirme (ItemsJsonOptions + endpoint) React şeklini korur.
         private static IReadOnlyList<ReplyItem> BuildItems(ToolResultCollector collector) =>
             collector.Results
                 .Where(r => r.Result is not null)
-                .Select(r => new ReplyItem(r.Tool, ToElement(r.Result!)))
+                .Select(r => new ReplyItem(r.Tool, r.Result!))
                 .ToList();
-
-        private static System.Text.Json.JsonElement ToElement(object result)
-        {
-            // 1) Ham sonucu JsonElement'e getir.
-            System.Text.Json.JsonElement el;
-            switch (result)
-            {
-                case System.Text.Json.JsonElement je:
-                    el = je; break;
-                case string s:
-                    var t = s.TrimStart();
-                    if ((t.StartsWith('{') || t.StartsWith('[')))
-                    {
-                        try { return Unwrap(System.Text.Json.JsonDocument.Parse(s).RootElement.Clone()); }
-                        catch { return System.Text.Json.JsonSerializer.SerializeToElement(new { text = s }); }
-                    }
-                    return System.Text.Json.JsonSerializer.SerializeToElement(new { text = s });
-                default:
-                    el = System.Text.Json.JsonSerializer.SerializeToElement(result); break;
-            }
-            return Unwrap(el);
-        }
-
-        // MCP sonucu birçok şekle sarmalanabilir (sürüm/transport'a göre): `CallToolResult`
-        // (structuredContent / content[].text), ya da AIContent TextContent (`{"$type":"text","Text":"<json>"}`),
-        // ya da bunların dizisi. Hepsini açıp iç JSON'u (React'ın beklediği top-level `items`) döndürür.
-        private static System.Text.Json.JsonElement Unwrap(System.Text.Json.JsonElement el)
-        {
-            // Dizi → ilk JSON-veren bloğu aç.
-            if (el.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                foreach (var item in el.EnumerateArray())
-                {
-                    var inner = Unwrap(item);
-                    if (inner.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
-                        && !inner.TryGetProperty("$type", out _))
-                        return inner;
-                }
-                return el;
-            }
-
-            if (el.ValueKind != System.Text.Json.JsonValueKind.Object) return el;
-
-            // CallToolResult.structuredContent — tool dönüşü doğrudan burada.
-            if (el.TryGetProperty("structuredContent", out var sc)
-                && sc.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array)
-                return sc.Clone();
-
-            // TextContent / content[].text — JSON string içeren metin alanı (büyük `Text` ve küçük `text`).
-            if (TryParseTextProp(el, "Text", out var t1)) return t1;
-            if (TryParseTextProp(el, "text", out var t2)) return t2;
-
-            if (el.TryGetProperty("content", out var content)
-                && content.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                foreach (var block in content.EnumerateArray())
-                {
-                    if (TryParseTextProp(block, "text", out var tc)) return tc;
-                    if (TryParseTextProp(block, "Text", out var tcu)) return tcu;
-                }
-            }
-            return el;
-        }
-
-        private static bool TryParseTextProp(System.Text.Json.JsonElement el, string prop, out System.Text.Json.JsonElement parsed)
-        {
-            parsed = default;
-            if (!el.TryGetProperty(prop, out var txt) || txt.ValueKind != System.Text.Json.JsonValueKind.String)
-                return false;
-            var raw = (txt.GetString() ?? string.Empty).TrimStart();
-            if (!raw.StartsWith('{') && !raw.StartsWith('[')) return false;
-            try { parsed = System.Text.Json.JsonDocument.Parse(raw).RootElement.Clone(); return true; }
-            catch { return false; }
-        }
     }
 }

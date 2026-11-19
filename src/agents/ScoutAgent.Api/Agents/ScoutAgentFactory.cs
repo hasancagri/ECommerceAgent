@@ -1,19 +1,36 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using ScoutAgent.Api.Options;
+using ScoutAgent.Api.SubAgents;
 
 namespace ScoutAgent.Api.Agents;
 
-// 007: Kâşif agent'ı — enjekte IChatClient (OpenAI kablosu Program.cs DI'da). Agent per-istek
-// verilen araç kutusuyla kurulur (agent Singleton kuralının token muadili: durum çağrı anında enjekte).
-public sealed class ScoutAgentFactory(IChatClient chatClient) : ISingletonDependency
+// 019: Router + BC-başına sub-agent (agent-as-tool). Router (ucuz model) niyeti anlar → sub-agent
+// tool'larından birini (veya çok-alanlı istekte birkaçını) seçer. Sub-agent tool'ları LAZY
+// (AIFunctionFactory): yalnız router o tool'u ÇAĞIRINCA ilgili MCP ucuna bağlanılır → seçilmeyen uç
+// hiç yoklanmaz (SC-001). Her sub-agent kendi modeliyle (FR-004) + dar prompt'uyla çalışır. Leaf MCP
+// tool'ları CapturingFunction ile sarılı → sonuç collector'a (reply.items). Agent Singleton kuralı:
+// per-istek kurulan router, kullanıcı token'ı çağrı anında UserTokenForwardingHandler ile taşınır.
+public sealed class ScoutAgentFactory(
+    IEnumerable<ISubAgent> subAgents, ChatClientFactory clients, ScoutOptions options) : ISingletonDependency
 {
-    public AIAgent CreateAgent(IList<AITool> tools) =>
-        new ChatClientAgent(chatClient, instructions: SystemPrompt, name: "Kasif", tools: tools);
+    // Router agent'ı kur — her sub-agent kendi lazy tool'unu verir (bağlantı yok; invoke'ta bağlanır).
+    // ToolName'e göre sıralı → reply.items + tool listesi deterministik (D5). collector leaf sonuçları toplar.
+    public AIAgent CreateRouter(ToolResultCollector collector)
+    {
+        var tools = subAgents
+            .OrderBy(s => s.ToolName, StringComparer.Ordinal)
+            .Select(s => s.AsRouterTool(collector))
+            .ToList();
+
+        var routerClient = clients.ForModel(ScoutModelResolver.ResolveRouter(options));
+        return new ChatClientAgent(routerClient, instructions: RouterPrompt, name: "KasifRouter", tools: tools);
+    }
 
     // 014: sohbet için AKILLI başlık (ilk turdan; Claude-tarzı sidebar). 3-5 kelime, kitap-keşfi bağlamı.
     public async Task<string> GenerateTitleAsync(string firstUserMessage, string assistantReply, CancellationToken ct)
     {
-        var response = await chatClient.GetResponseAsync(
+        var response = await clients.ForModel(ScoutModelResolver.ResolveRouter(options)).GetResponseAsync(
             "Aşağıdaki sohbet turundan 3-5 KELİMELİK kısa, öz bir başlık üret (Türkçe, kitap-keşfi " +
             "bağlamı; ör. 'Dostoyevski ucuz kitaplar', 'Rus klasikleri'). SADECE başlığı yaz — tırnak/" +
             "nokta/açıklama YOK.\n\nKullanıcı: " + firstUserMessage + "\nKâşif: " + assistantReply,
@@ -22,42 +39,19 @@ public sealed class ScoutAgentFactory(IChatClient chatClient) : ISingletonDepend
         return title.Length > 60 ? title[..60].TrimEnd() + "…" : title;
     }
 
-    private const string SystemPrompt =
-        "Sen 'Kâşif'sin — bir kitap keşif asistanı. Kullanıcının serbest metnini anlar, uygun aracı " +
-        "çağırır ve sonucu sıcak, kısa bir sohbet diliyle Türkçe anlatırsın. KURALLAR: " +
-        "(1) Bir kitap adı, yazar adı ya da konu geçtiğinde KULLANICIYA SORU SORMADAN hemen `search_books` " +
-        "aracını çağır (ör. 'Nutuk katalogda var mı?' → search_books query='Nutuk'). Netleştirme sorma — " +
-        "önce ara, sonuç boşsa dürüstçe 'bulunamadı' de. Belirli bir kitabın detayı istenirse `get_book` kullan. " +
-        "(1b) Arama sonucu sayfalıysa (toplam, sonuç sayısından çoksa) cevabında kaçıncı sayfada " +
-        "olduğunu BELİRT (ör. 'ilk 20 sonuç — 1. sayfa'); toplam sayıyı araç dönüşündeki değerden ver, " +
-        "kendin sayma. 'devamını getir' / 'sonraki' / 'daha fazla' = SON aramanın bir sonraki sayfası " +
-        "demektir (kitap-serisi/devamı DEĞİL) — 'hangi kitap?' diye SORMA; bağlamdaki son `search_books` " +
-        "sorgusunu+filtrelerini AYNEN al, page+1 ile çağır; cevabında kaçıncı sayfada olduğunu belirt. " +
-        "(1c) Arama sonuçlarını metinde TEK TEK LİSTELEME — ekranda kitaplar KART olarak (ad, yazar, " +
-        "fiyat, kapak, link) ZATEN gösteriliyor. Kitap adı/fiyatını tek tek yazma, markdown resim/link " +
-        "üretme. Sen yalnız 1-2 cümlelik KISA bir giriş/özet geç (ör. 'Dostoyevski'den şu kitapları " +
-        "buldum:' + varsa toplam/sayfa bilgisi + 'devamını getir' önerisi). Kartları tekrar etme. " +
-        "(1d) Yayınevi süzmesi: kullanıcı belirli yayınevi isterse/istemezse `search_books`'u FİLTRE " +
-        "parametreleriyle çağır — 'sadece X Yayınları' / 'X'den istiyorum' → publisher='X'; " +
-        "'X'den istemiyorum' / 'X hariç' → excludePublisher='X'. Süzme YAPMADAN 'X'den buldum' DEME — " +
-        "yalnız parametreyi gerçekten verdiysen öyle söyle; aksi halde süzemediğini dürüstçe belirt. " +
-        "(1e) Diğer süzme/sıralama `search_books` parametreleri: cilt tipi 'ciltli olsun'→binding='ciltli', " +
-        "'karton kapak'→binding='karton'; fiyat '100 TL altı'→maxPrice=100, '50 TL üstü'→minPrice=50, " +
-        "'50-150 arası'→minPrice=50,maxPrice=150; sıralama 'ucuzdan pahalıya'→sort='price_asc', " +
-        "'pahalıdan ucuza'→sort='price_desc', 'en yeni'→sort='newest', 'çok satan/en çok satış/popüler'→" +
-        "sort='popular'; 'satışta/stokta olanlar'→onlySalable=true; 'indirimdeki/indirimli'→onlyDiscounted=true. " +
-        "Sayfa: kullanıcı SAYI verirse kullan ('150 sayfadan az'→maxPageCount=150, '400 sayfadan çok'→" +
-        "minPageCount=400); sayı vermeden 'az sayfa/kısa kitap'→maxPageCount=200 (varsayılan), 'uzun/kalın " +
-        "kitap'→minPageCount=400 (varsayılan). " +
-        "Birden fazla ölçüt aynı anda verilebilir (ör. en-çok-satan + ucuz + az-sayfa = sort='popular' + " +
-        "maxPrice + maxPageCount). " +
-        "(2) Kitap/adres/sipariş/kitaplık bilgisini YALNIZ araç dönüşünden aktar — fiyat, kapak, künye " +
-        "ASLA uydurma. " +
-        "(3) Konu kitap keşfi ve kullanıcının kendi verisi dışındaysa (ör. hava durumu) kapsamını nazikçe " +
-        "söyle, araç çağırma. " +
-        "(3a) Kullanıcı kişisel verisini sorar (sepet, siparişler, kitaplık, adresler) ama ilgili araç " +
-        "kutunda YOKSA, bu giriş gerektirdiği içindir — nazikçe giriş yapmasını iste, uydurma/çöp cevap " +
-        "verme. Arama geçmişini SİLME isteğinde (araç yok) geçmiş ekranından silebileceğini söyle. " +
-        "(4) İç kimlikleri (GUID) kullanıcıya gösterme. " +
-        "(5) Uzun listeleri kısa tut; ayrıntı için kullanıcıyı davet et.";
+    // Router YALNIZ dağıtım yapar — işi sub-agent'lara devreder. Alan bilgisi sub-agent prompt'larında.
+    private const string RouterPrompt =
+        "Sen 'Kâşif'sin — bir kitap keşif asistanının yönlendiricisisin. Kullanıcının mesajındaki NİYETİ " +
+        "anla ve uygun uzman aracı çağır; isteği AYNEN o araca ilet (request parametresi). KURALLAR: " +
+        "(1) Kitap arama/detay/künye/fiyat/sayfa/yayınevi/sıralama/'devamını getir' → `catalog_agent`. " +
+        "(2) Bir kitabın yorumları/puanı → `reviews_agent`. " +
+        "(3) Kişisel: sepet → `basket_agent`, siparişler → `order_agent`, kitaplık → `library_agent`, " +
+        "adresler → `customer_agent`, arama geçmişi → `personalization_agent`. " +
+        "(4) Bir mesaj birden çok alanı kapsıyorsa (ör. 'sepetim ve Dostoyevski kitapları') İLGİLİ " +
+        "araçların HEPSİNİ çağır. " +
+        "(5) Konu kitap keşfi ya da kullanıcının kendi verisi DIŞINDAysa (ör. hava durumu) hiçbir araç " +
+        "çağırma; kapsamını nazikçe söyle. " +
+        "(6) Araç sonuçları kullanıcıya KART olarak gösteriliyor — sen yalnız 1-2 cümlelik KISA bir " +
+        "giriş/özet yaz, kitapları/kartları metinde TEKRAR LİSTELEME. " +
+        "(7) İç kimlikleri (GUID) kullanıcıya gösterme.";
 }

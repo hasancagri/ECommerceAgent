@@ -36,6 +36,23 @@ aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon t
     kalıcı siler → **DeleteConversation** (DELETE, HARD). İkisi de sahiplik-korumalı (başkasınınki 404).  `(DeleteConversation.Handle)`
     Anon muadili istemcide (sessionStorage; sunucu çağrısı yok).
 
+## Planlanan: 019 router → sub-agent dağıtımı _(planned)_
+
+Bugünkü 3-4-5. adımlar (kör araç kutusu + tek düz "Kasif" agent) şu akışla değişir:
+
+- 🟪 **Niyet dağıtımı:** Router agent (ucuz model) gelen mesajın niyetini anlar → BC-başına
+  sub-agent'lardan birini (veya çok-alanlı istekte birkaçını) seçer. Router sub-agent'ları
+  AsAIFunction ile *tool* olarak görür (agent-as-tool); seçimi LLM yapar — D3'e sadık (kural-
+  sınıflandırıcı DEĞİL). _(planned RouteToSubAgent)_
+- 🟨 **Sub-agent (BC-başına, 7):** Catalog / Reviews / Basket / Order / Library / Customer /
+  Personalization. Her biri YALNIZ kendi `/mcp` ucuna bağlanır → **kör toplama biter** (seçilmeyen
+  uç hiç çağrılmaz); her biri kısa, kendi alanına özel prompt taşır. _(planned)_
+- 🟪 **Agent-başına model:** router ucuz/hızlı, zor sub-agent güçlü model (model-keyed client;
+  sağlayıcı karışabilir). _(planned)_
+- 🟧 **Sub-agent tipli çıktı:** her sub-agent şemaya uyan yapılı cevap üretir; tool sonucu yine
+  CapturingFunction ile yakalanır → `items` birebir (yakalama + token-forward desenleri KORUNUR).
+  _(planned SubAgentReplied)_
+
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **Yalnız MCP.** Agent BC'lere REST/gRPC ile DEĞİL, yalnız MCP tool'uyla erişir (agent kimliği budur;
@@ -65,3 +82,7 @@ aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon t
 - 🟥 (closed: "anon sayfalama login zorlar mı" → HAYIR; anon istemci-transkriptle tam sayfalanır).
 - 🟥 (closed: "sayfa izi nasıl" → cevap metnine iz; ayrı durum tablosu yok).
 - 🟥 (closed: "bulut mu local mi" → bu dilim bulut gpt-4o-mini; local-LLM kuzey-yıldız ayrı dilim).
+- 🟥 (open, 019: "niyet routing tek düz agent mı, router+sub-agent mi" → router+sub-agent;
+  D3'ün LLM-routing kararı KORUNUR — kural-sınıflandırıcı yine reddedilir — ama tek düz agent
+  agent-as-tool router'a evrilir: kör MCP toplama biter, agent-başına model açılır. 019 implement
+  bitince closed'a döner).
