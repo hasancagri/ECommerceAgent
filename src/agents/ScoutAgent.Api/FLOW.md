@@ -12,7 +12,9 @@ aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon t
 ## Süreç
 
 1. 👤 kullanıcı chat'e mesaj yazar → 🟦 **SendMessage** (POST `/api/chat/v1/messages`;        `(SendMessage.Handle)`
-   mesaj-güdümlü, `?q=` URL YOK).
+   mesaj-güdümlü, `?q=` URL YOK). **020-voice:** mesaj metni SESLE de gelebilir — 🩷 ses              `(Transcribe.Handle)`
+   OpenAI AudioClient'la metne çevrilir (POST `/api/chat/v1/transcribe`, stateless yardımcı uç,
+   diske yazılmaz), metin composer'a düşer; OTOMATİK GÖNDERME YOK — domain süreci değişmez.
 2. 🟪 Login ise `Conversation` yüklenir, bağlam `[özet]+[son N]` kurulur; anon ise istemci-transkript
    gövdeden gelir (oturumluk, sunucuda saklanmaz).
 3. 🟪 Araç kutusu auth'a göre süzülür — anon = yalnız açık tool'lar (`search_books`/`get_book`/
