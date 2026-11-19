@@ -54,6 +54,43 @@ public static class ConversationEndpointExtension
             }
         }).RequireRateLimiting("chat");
 
+        // 020-voice: POST /transcribe — ses → metin. Opsiyonel bearer (anonim serbest, FR-012). Çevirme
+        // sohbetten AYRI gün-kotası (önek "tx:"). Guard slice'ta (400); OpenAI hatası → 503 + kota iade.
+        group.MapPost("/transcribe", async (
+            IFormFile file, ICurrentUser currentUser, HttpContext http,
+            IMessageBus bus, ScoutAgent.Api.Options.ScoutOptions options,
+            DailyUsageGuard usageGuard, ILoggerFactory loggerFactory, CancellationToken ct) =>
+        {
+            if (file is null || file.Length <= 0)
+                return Results.BadRequest(new { message = "Ses dosyası boş." });
+
+            currentUser.Load(http.User);
+            Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
+
+            // Sohbet kotasından BAĞIMSIZ sayaç ("tx:" öneki) — STT pahalı, sohbeti yemesin.
+            var partition = "tx:" + ScoutUsageKey.Partition(userId, http.Connection.RemoteIpAddress?.ToString());
+            var dailyCap = userId is null ? options.TranscribeAnonPerDay : options.TranscribeUserPerDay;
+            if (!await usageGuard.TryConsumeAsync(partition, dailyCap, ct))
+                return Results.Json(new { message = ScoutResourceConstants.TOO_MANY_REQUESTS }, statusCode: 429);
+
+            try
+            {
+                await using var stream = file.OpenReadStream();
+                var query = new Transcribe.Query(
+                    stream, file.FileName, file.ContentType, file.Length, options.MaxAudioBytes);
+                var result = await bus.InvokeAsync<FeatureObjectResultModel<Transcribe.Response>>(query, ct);
+                return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                // OpenAI erişilemez/çevirme hatası → kota iade (cevapsız kaldı) + 503 nazik hata (FR-008).
+                await usageGuard.ReleaseAsync(partition, ct);
+                loggerFactory.CreateLogger("ScoutTranscribe").LogError(ex,
+                    "Transcribe patladı — userId={UserId} bytes={Bytes}", userId, file.Length);
+                return Results.Problem(statusCode: 503, title: "Şu an çeviremedim, yazarak dene.");
+            }
+        }).DisableAntiforgery().RequireRateLimiting("chat");
+
         // GET /conversations — kullanıcının sohbet geçmişi (giriş şart, yalnız kendi).
         group.MapGet("/conversations", async (
             ICurrentUser currentUser, HttpContext http, IMessageBus bus, CancellationToken ct) =>

@@ -32,6 +32,14 @@ public sealed class ScoutOptions
     public int AnonPerDay { get; set; } = 30;
     public int UserPerMinute { get; set; } = 20;
     public int UserPerDay { get; set; } = 200;
+
+    // 020-voice: sesle soru çevirme (STT). Model OpenAI AudioClient'a verilir (varsayılan gpt-4o-transcribe;
+    // ileride whisper-1 fallback). Çevirme sohbetten pahalı → AYRI gün-kotası (önek "tx:"); anon sıkı, login
+    // gevşek. MaxAudioBytes sunucu-tarafı boyut tavanı (istemci ≈60sn cap'ine güvenme — İlke VIII/maliyet).
+    public string TranscribeModel { get; set; } = "gpt-4o-transcribe";
+    public int TranscribeAnonPerDay { get; set; } = 20;
+    public int TranscribeUserPerDay { get; set; } = 100;
+    public long MaxAudioBytes { get; set; } = 10 * 1024 * 1024;
 }
 
 // 007: BC MCP uçları (fasat YOK — statik liste; adresler service discovery'den gelir). Config-güdümlü:
