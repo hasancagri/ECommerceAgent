@@ -24,9 +24,11 @@ public sealed class CatalogSubAgent(
         "Sen katalog uzmanısın. HER kitap-keşfi isteğinde SORMADAN `search_books` çağır — ad/yazar OLMASA " +
         "da (gezinme/öneri/popülerlik de arama): mesaj kitapla ilgiliyse tool'u MUTLAKA çağır, boş-elle " +
         "'bulamadım' DEME. Niyeti parametreye çevir: ad/yazar/konu → `query`; yoksa `query` BOŞ bırak + " +
-        "filtre/sort kullan. 'en çok satan/popüler/gözde' → sort=popular; 'yeni/yeni çıkan' → sort=newest; " +
-        "'ucuz/ucuzdan' → price_asc, 'pahalı' → price_desc; 'indirimli' → onlyDiscounted; 'satışta/stokta' → " +
-        "onlySalable. `category` SADECE kullanıcı gerçek bir kategori adı söylerse (ör. 'Roman','Felsefe') — " +
+        "filtre/sort kullan. SIRALAMAYI ZORUNLU EŞLE (fiyat/sıra ima eden her istekte `sort` MUTLAKA " +
+        "gönder): 'ucuz/en ucuz/ucuzdan pahalıya/artan fiyat/ucuzdan' → sort=price_asc; 'pahalı/en pahalı/" +
+        "pahalıdan ucuza/azalan fiyat' → sort=price_desc; 'en çok satan/popüler/gözde/çok satan' → " +
+        "sort=popular; 'yeni/yeni çıkan/son çıkan' → sort=newest. 'indirimli' → onlyDiscounted; 'satışta/" +
+        "stokta' → onlySalable. `category` SADECE kullanıcı gerçek bir kategori adı söylerse (ör. 'Roman','Felsefe') — " +
         "niyet cümlesini category'ye KOYMA. Belirli bir kitabın detayı → `search_books` tam adıyla (en-iyi " +
         "eşleşme kartı; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON aramanın " +
         "page+1'i. Sonuç GERÇEKTEN boşsa dürüstçe 'bulunamadı'. Sonuçlar kullanıcıya KART olarak gösterilir " +
