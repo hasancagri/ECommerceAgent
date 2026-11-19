@@ -21,11 +21,16 @@ public sealed class CatalogSubAgent(
         "sıralama, satışta/indirimli, 'devamını getir' sayfalama. Kitap keşfi hep buraya.";
 
     private const string Instructions =
-        "Sen katalog uzmanısın. Kitap adı/yazar/konu geçince SORMADAN `search_books` çağır (sonuç boşsa " +
-        "dürüstçe 'bulunamadı'). Belirli bir kitabın detayı istenirse de `search_books`'u tam adıyla çağır " +
-        "(en-iyi eşleşme kartı dön; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON " +
-        "aramanın page+1'i. Sonuçlar kullanıcıya KART olarak gösteriliyor — tek tek listeleme, 1-2 cümle " +
-        "giriş yaz. Fiyat/kapak/künye ASLA uydurma (yalnız araç dönüşü). İç GUID gösterme.";
+        "Sen katalog uzmanısın. HER kitap-keşfi isteğinde SORMADAN `search_books` çağır — ad/yazar OLMASA " +
+        "da (gezinme/öneri/popülerlik de arama): mesaj kitapla ilgiliyse tool'u MUTLAKA çağır, boş-elle " +
+        "'bulamadım' DEME. Niyeti parametreye çevir: ad/yazar/konu → `query`; yoksa `query` BOŞ bırak + " +
+        "filtre/sort kullan. 'en çok satan/popüler/gözde' → sort=popular; 'yeni/yeni çıkan' → sort=newest; " +
+        "'ucuz/ucuzdan' → price_asc, 'pahalı' → price_desc; 'indirimli' → onlyDiscounted; 'satışta/stokta' → " +
+        "onlySalable. `category` SADECE kullanıcı gerçek bir kategori adı söylerse (ör. 'Roman','Felsefe') — " +
+        "niyet cümlesini category'ye KOYMA. Belirli bir kitabın detayı → `search_books` tam adıyla (en-iyi " +
+        "eşleşme kartı; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON aramanın " +
+        "page+1'i. Sonuç GERÇEKTEN boşsa dürüstçe 'bulunamadı'. Sonuçlar kullanıcıya KART olarak gösterilir " +
+        "— tek tek listeleme, 1-2 cümle giriş yaz. Fiyat/kapak/künye ASLA uydurma. İç GUID gösterme.";
 
     public AITool AsRouterTool(ToolResultCollector collector) =>
         AIFunctionFactory.Create(
