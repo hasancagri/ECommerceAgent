@@ -2,7 +2,8 @@ namespace Catalog.Api.Domains.Products.Features.Queries;
 
 // 018: tek kitap detayı (ISBN veya Id) — REST-only (nokta-fetch arama değil, anahtar lookup → Marten,
 // Gtin unique-index). get_book MCP tool'u 018'de SÖKÜLDÜ (Catalog = kitap-only; sohbette tekil-detay
-// yok, derin künye React detay sayfasından). Anonim; kişisel veri İÇERMEZ.
+// yok, derin künye React detay sayfasından). Anonim; kişisel veri İÇERMEZ. Yanıt React BookDetailDto
+// sözleşmesinin TAMAMINI doldurur (stok/indirim/sayaç/cilt/zincir dahil — eksik alan "boş" render eder).
 public static class GetBook
 {
     public record Query(string? Isbn, Guid? Id);
@@ -10,14 +11,26 @@ public static class GetBook
     public class Response
     {
         public Guid Id { get; set; }
+        public string Isbn { get; set; } = default!;
         public string Title { get; set; } = default!;
         public string Authors { get; set; } = default!;
+        public IReadOnlyList<string> Translators { get; set; } = [];
         public string? Publisher { get; set; }
         public string? Category { get; set; }
+        public IReadOnlyList<string> CategoryChain { get; set; } = []; // üst→alt
+        public IReadOnlyList<string> RelatedCategories { get; set; } = [];
+        public IReadOnlyList<string> Tags { get; set; } = [];
         public decimal? Price { get; set; }
+        public decimal? DiscountRate { get; set; } // etkin oran (0-1); liste fiyatı ezilmez (003)
+        public int StockCount { get; set; }
         public bool IsSalable { get; set; }
         public int? PageCount { get; set; }
+        public string? PublishedOn { get; set; } // ISO yyyy-MM-dd
         public string? Language { get; set; }
+        public string? Binding { get; set; } // cilt tipi (okunur etiket); Unknown → null
+        public int? Rating { get; set; } // 0-5 snapshot
+        public int RatingCount { get; set; }
+        public int PurchaseCount { get; set; }
         public string? CoverUrl { get; set; }
         public string Description { get; set; } = default!;
     }
@@ -49,20 +62,61 @@ public static class GetBook
                 ? await session.LoadAsync<Category>(product.CategoryId, ct)
                 : null;
 
+            // Kategori zinciri: leaf + ataları yükle → ResolveChain [leaf, ata] → üst→alt için ters çevir.
+            var chainNames = new List<string>();
+            if (category is not null)
+            {
+                var chainDict = new Dictionary<Guid, Category> { [category.Id] = category };
+                if (category.ParentCategoryId is { } pid)
+                {
+                    var parent = await session.LoadAsync<Category>(pid, ct);
+                    if (parent is not null) chainDict[parent.Id] = parent;
+                }
+                chainNames = CategoryNaming.ResolveChain(product.CategoryId, chainDict).Names;
+                chainNames.Reverse();
+            }
+
+            var related = product.RelatedCategoryIds.Count > 0
+                ? await session.Query<Category>()
+                    .Where(c => product.RelatedCategoryIds.Contains(c.Id)).ToListAsync(ct)
+                : [];
+
             return FeatureObjectResultModel<Response>.Ok(new Response
             {
                 Id = product.Id,
+                Isbn = product.Gtin,
                 Title = product.Name,
                 Authors = string.Join(", ", authors.Select(a => a.Name)),
+                Translators = product.Translators.ToList(),
                 Publisher = publisher?.Name,
                 Category = category?.Name,
+                CategoryChain = chainNames,
+                RelatedCategories = related.Select(c => c.Name).ToList(),
+                Tags = product.Tags.Select(t => t.Value).Distinct().ToList(),
                 Price = product.Price?.Amount,
+                DiscountRate = product.DiscountRate,
+                StockCount = product.StockCount,
                 IsSalable = product.IsSalable,
                 PageCount = product.PageCount,
+                PublishedOn = product.PublishedOn?.ToString("yyyy-MM-dd"),
                 Language = product.Language,
+                Binding = BindingLabel(product.Binding),
+                Rating = product.Rating,
+                RatingCount = product.RatingCount,
+                PurchaseCount = product.PurchaseCount,
                 CoverUrl = product.ImageUrl,
                 Description = product.Description,
             });
         }
+
+        // Cilt tipi → okunur etiket (React doğrudan gösterir). Unknown → null (satır render edilmez).
+        private static string? BindingLabel(BindingType binding) => binding switch
+        {
+            BindingType.KartonKapak => "Karton Kapak",
+            BindingType.Ciltli => "Ciltli",
+            BindingType.KendindenKapak => "Kendinden Kapak",
+            BindingType.Plastik => "Plastik Kapak",
+            _ => null,
+        };
     }
 }

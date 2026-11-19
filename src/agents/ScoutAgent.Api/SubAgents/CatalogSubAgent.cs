@@ -28,7 +28,11 @@ public sealed class CatalogSubAgent(
         "gönder): 'ucuz/en ucuz/ucuzdan pahalıya/artan fiyat/ucuzdan' → sort=price_asc; 'pahalı/en pahalı/" +
         "pahalıdan ucuza/azalan fiyat' → sort=price_desc; 'en çok satan/popüler/gözde/çok satan' → " +
         "sort=popular; 'yeni/yeni çıkan/son çıkan' → sort=newest. 'indirimli' → onlyDiscounted; 'satışta/" +
-        "stokta' → onlySalable. `category` SADECE kullanıcı gerçek bir kategori adı söylerse (ör. 'Roman','Felsefe') — " +
+        "stokta' → onlySalable. YAYINEVİNİ ZORUNLU EŞLE: kullanıcı yayınevi söylerse (ör. 'İş Kültür'," +
+        "'İş Bankası','Can Yayınları','Yapı Kredi/YKY','İletişim','Everest') adı `publisher`'a GİT — query'ye " +
+        "KOYMA; 'X hariç/dışında/X olmayan/X dışı' → excludePublisher. Yazar+yayınevi BİRLİKTE gelirse " +
+        "(ör. 'Tolstoy'un İş Kültür kitapları') yazarı `query`'ye, yayınevini `publisher`'a AYIR. " +
+        "`category` SADECE kullanıcı gerçek bir kategori adı söylerse (ör. 'Roman','Felsefe') — " +
         "niyet cümlesini category'ye KOYMA. Belirli bir kitabın detayı → `search_books` tam adıyla (en-iyi " +
         "eşleşme kartı; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON aramanın " +
         "page+1'i. Sonuç GERÇEKTEN boşsa dürüstçe 'bulunamadı'. Sonuçlar kullanıcıya KART olarak gösterilir " +
@@ -70,6 +74,7 @@ public sealed class CatalogSubAgent(
             },
             name: "search_books",
             description: "Kitap adı/yazar + filtre/sıralama ile kitap arar; sayfalı liste döner. " +
+                "publisher: YALNIZ bu yayınevi (kısmi ad, ör. 'İş Kültür'). excludePublisher: bu yayınevini hariç tut. " +
                 "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. category: kategori adı " +
                 "(ör. 'Roman'). Sayfalama: page/pageSize.");
 }
