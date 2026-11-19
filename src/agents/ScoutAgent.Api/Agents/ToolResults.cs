@@ -1,20 +1,15 @@
 namespace ScoutAgent.Api.Agents;
 
 // 019 (B): MCP tool sonuçlarının TOOL-BAŞINA ayna-tipleri. ScoutAgent BC tipine erişemez (İlke I
-// izolasyon) → şekli KOPYALAR (bilinçli tekrar; sözleşme = AD). Tip tool başına (bir sub-agent birden
-// çok tool çağırabilir; catalog = search_books LİSTE + get_book TEKİL). Sub-agent'ın tool wrapper'ı MCP
-// structuredContent'i `Deserialize<SomutTip>` eder (generic, reflection YOK) → reply.items tipli
-// (sniff + LLM uydurması YOK, FR-005 korunur). React tool adına göre render eder.
+// izolasyon) → şekli KOPYALAR (bilinçli tekrar; sözleşme = AD). Tip tool başına. Sub-agent'ın tool
+// wrapper'ı MCP structuredContent'i `Deserialize<SomutTip>` eder (generic, reflection YOK) → reply.items
+// tipli (sniff + LLM uydurması YOK, FR-005 korunur). React tool adına göre render eder.
 
-// catalog
+// catalog (018: get_book SÖKÜLDÜ — tekil kitap da search_books; derin künye React detay sayfasında)
 public sealed record SearchBooksResult(IReadOnlyList<SearchBookItem> Items, long Total, int Page);
 public sealed record SearchBookItem(
     Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
     string? CoverUrl, string? Publisher, string? Isbn);
-
-public sealed record GetBookResult(
-    Guid Id, string Title, string Authors, string? Publisher, string? Category, decimal? Price,
-    bool IsSalable, int? PageCount, string? Language, string? CoverUrl, string Description);
 
 // reviews
 public sealed record GetBookReviewsResult(

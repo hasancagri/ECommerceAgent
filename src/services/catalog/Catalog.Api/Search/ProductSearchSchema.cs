@@ -11,35 +11,29 @@ public sealed class ProductSearchSchemaInitializer(
 {
     private const string Schema = SchemaConstants.CatalogSchemaName; // catalogManagement
     private const string ProductTable = $"{Schema}.mt_doc_product";
-    public const string EmbeddingTable = $"{Schema}.product_embedding";
+    private const string EmbeddingTable = $"{Schema}.product_embedding"; // 018 söküm: yalnız DROP için
     public const string Bm25Index = "product_bm25_idx";
 
-    // BM25 index — mt_doc_product'ın TÜM `data` JSONB'si tek alan olarak (yeni tablo YOK; MVCC otomatik).
-    // Ad/açıklama/etiket + diğer string alanlar aranabilir olur (gürültü kabul; sorgu `data @@@`).
-    // NOT: Çok ayrı `(data->>'X')` expression'ı ParadeDB "data defined more than once" verir — tek `data`.
-    // FLAG (İ/ı): whole-jsonb default tokenizer lowercase; Tags ASCII-ikizi (009) köprü kurar, Name/Desc
-    // dotless-ı için ileride WITH text_fields ICU config'i eklenebilir (sürüme göre, canlı doğrulama).
-    private static readonly string CreateBm25 = $"""
-        CREATE INDEX IF NOT EXISTS {Bm25Index}
-        ON {ProductTable}
-        USING bm25 (id, data);
-        """;
+    // BM25 index — mt_doc_product'ın TÜM `data` JSONB'si, json_fields fast+expand_dots ile (018, ParadeDB
+    // 0.26.6). `fast` → numeric alt-alanlar range + fast; `expand_dots` → nested yollar (Price.Amount).
+    // Böylece tek index TÜM sorguyu karşılar (lexical + yapısal filtre + sort + kategori). Sorgu deseni:
+    // `WHERE id @@@ 'data.Name:x AND data.Price.Amount:[100 TO 300] AND data.CategoryId:"<uuid>"'`
+    // (alan yolu `data.<path>`, anchor `id @@@`); relevance Top-K `ORDER BY paradedb.score(id)`.
+    // Türkçe (İ/ı): default tokenizer bugünkü ILIKE ile PARİTE (yaygın ASCII katlar; kusursuz İ/ı folding
+    // backlog — regresyon DEĞİL, 0.26.6 tokenizer'ları da Türkçe-özel katlamıyor). Tek ParadeDB index kuralı:
+    // bir relation'da tek bm25 index olur. (011 "data defined more than once" kısıtı — tek `data` korunur.)
+    private static readonly string CreateBm25 =
+        $"CREATE INDEX IF NOT EXISTS {Bm25Index} ON {ProductTable} " +
+        "USING bm25 (id, data) WITH (json_fields='{\"data\": {\"fast\": true, \"expand_dots\": true}}');";
 
     private static readonly string[] Statements =
     [
         "CREATE EXTENSION IF NOT EXISTS pg_search;",
-        "CREATE EXTENSION IF NOT EXISTS vector;",
         CreateBm25,
-        $"""
-         CREATE TABLE IF NOT EXISTS {EmbeddingTable} (
-             product_id uuid PRIMARY KEY,
-             embedding  vector(1536) NOT NULL
-         );
-         """,
-        $"""
-         CREATE INDEX IF NOT EXISTS product_embedding_hnsw
-         ON {EmbeddingTable} USING hnsw (embedding vector_cosine_ops);
-         """,
+        // 018 söküm: semantik ayak kaldırıldı — eski embedding tablosu + HNSW index idempotent düşer
+        // (mevcut DB'de kalıntı bırakma). `vector` extension başka tüketicisi yok; tablo CASCADE ile
+        // index'iyle gider. Yeni DB'de IF EXISTS → no-op.
+        $"DROP TABLE IF EXISTS {EmbeddingTable} CASCADE;",
     ];
 
     public async Task StartAsync(CancellationToken cancellationToken)

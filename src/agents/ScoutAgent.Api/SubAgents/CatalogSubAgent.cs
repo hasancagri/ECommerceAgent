@@ -7,8 +7,9 @@ using ScoutAgent.Api.Agents;
 
 namespace ScoutAgent.Api.SubAgents;
 
-// 019: katalog uzmanı — KENDİ LLM'i + model. İKİ tool'unu açıkça bilir: search_books (LİSTE) +
-// get_book (TEKİL); her birinin girdisi elle, çıktısı bilinen tip (sniff/reflection yok).
+// 019/018: katalog uzmanı — KENDİ LLM'i + model. TEK tool: search_books (LİSTE); girdisi elle, çıktısı
+// bilinen tip (sniff/reflection yok). get_book (tekil) 018'de SÖKÜLDÜ — tekil kitap da search_books
+// (tam ad → en-iyi eşleşme kartı); derin künye React detay sayfasında (kart tıkla), sohbette değil.
 public sealed class CatalogSubAgent(
     McpToolSource mcp, ChatClientFactory clients, ScoutOptions options)
     : ISubAgent, ISingletonDependency
@@ -21,9 +22,10 @@ public sealed class CatalogSubAgent(
 
     private const string Instructions =
         "Sen katalog uzmanısın. Kitap adı/yazar/konu geçince SORMADAN `search_books` çağır (sonuç boşsa " +
-        "dürüstçe 'bulunamadı'). Belirli kitap detayı → `get_book`. 'devamını getir/sonraki' = SON aramanın " +
-        "page+1'i. Sonuçlar kullanıcıya KART olarak gösteriliyor — tek tek listeleme, 1-2 cümle giriş yaz. " +
-        "Fiyat/kapak/künye ASLA uydurma (yalnız araç dönüşü). İç GUID gösterme.";
+        "dürüstçe 'bulunamadı'). Belirli bir kitabın detayı istenirse de `search_books`'u tam adıyla çağır " +
+        "(en-iyi eşleşme kartı dön; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON " +
+        "aramanın page+1'i. Sonuçlar kullanıcıya KART olarak gösteriliyor — tek tek listeleme, 1-2 cümle " +
+        "giriş yaz. Fiyat/kapak/künye ASLA uydurma (yalnız araç dönüşü). İç GUID gösterme.";
 
     public AITool AsRouterTool(ToolResultCollector collector) =>
         AIFunctionFactory.Create(
@@ -32,7 +34,7 @@ public sealed class CatalogSubAgent(
                 var agent = new ChatClientAgent(
                     clients.ForModel(ScoutModelResolver.Resolve(options, "catalog")),
                     instructions: Instructions, name: ToolName,
-                    tools: [SearchBooks(collector), GetBook(collector)]);
+                    tools: [SearchBooks(collector)]);
                 var response = await agent.RunAsync(request, cancellationToken: ct);
                 return response.Text ?? string.Empty;
             },
@@ -43,7 +45,8 @@ public sealed class CatalogSubAgent(
         AIFunctionFactory.Create(
             async (string? query, int page, int pageSize, string? publisher, string? excludePublisher,
                    string? binding, decimal? minPrice, decimal? maxPrice, string? sort, bool onlySalable,
-                   bool onlyDiscounted, int? minPageCount, int? maxPageCount, CancellationToken ct) =>
+                   bool onlyDiscounted, int? minPageCount, int? maxPageCount, string? category,
+                   CancellationToken ct) =>
             {
                 var client = await mcp.GetClientAsync("catalog", ct);
                 var result = await client.CallToolAsync("search_books", new Dictionary<string, object?>
@@ -52,7 +55,7 @@ public sealed class CatalogSubAgent(
                     ["excludePublisher"] = excludePublisher, ["binding"] = binding, ["minPrice"] = minPrice,
                     ["maxPrice"] = maxPrice, ["sort"] = sort, ["onlySalable"] = onlySalable,
                     ["onlyDiscounted"] = onlyDiscounted, ["minPageCount"] = minPageCount,
-                    ["maxPageCount"] = maxPageCount,
+                    ["maxPageCount"] = maxPageCount, ["category"] = category,
                 }, cancellationToken: ct);
                 var typed = result.StructuredContent is { } sc
                     ? sc.Deserialize<SearchBooksResult>(McpToolSource.JsonOptions) : null;
@@ -61,23 +64,6 @@ public sealed class CatalogSubAgent(
             },
             name: "search_books",
             description: "Kitap adı/yazar + filtre/sıralama ile kitap arar; sayfalı liste döner. " +
-                "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. Sayfalama: page/pageSize.");
-
-    // get_book — girdi elle (isbn|id), çıktı GetBookResult (TEKİL; bulunamazsa null).
-    private AITool GetBook(ToolResultCollector collector) =>
-        AIFunctionFactory.Create(
-            async (string? isbn, string? id, CancellationToken ct) =>
-            {
-                var client = await mcp.GetClientAsync("catalog", ct);
-                var result = await client.CallToolAsync("get_book", new Dictionary<string, object?>
-                {
-                    ["isbn"] = isbn, ["id"] = id,
-                }, cancellationToken: ct);
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<GetBookResult>(McpToolSource.JsonOptions) : null;
-                collector.Add("get_book", typed);
-                return typed;
-            },
-            name: "get_book",
-            description: "Tek bir kitabın künyesini/detayını ISBN veya id ile getirir.");
+                "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. category: kategori adı " +
+                "(ör. 'Roman'). Sayfalama: page/pageSize.");
 }
