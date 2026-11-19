@@ -1,6 +1,9 @@
+using System.ClientModel;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+using OpenAI;
 using ScoutAgent.Api;
 using ScoutAgent.Api.Domains.Conversations;
 
@@ -33,6 +36,17 @@ builder.Services.AddOptions<McpEndpointsOptions>()
     .BindConfiguration(nameof(McpEndpointsOptions))
     .ValidateOnStart();
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<McpEndpointsOptions>>().Value);
+
+// OpenAI ChatClient → IChatClient (gpt-4o-mini). UseFunctionInvocation ŞART: modelin tool_call'ını
+// OTOMATİK yürütür (MCP tool'u çağır, sonucu modele geri besle, nihai cevap). Onsuz tool çalışmaz.
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    var scout = sp.GetRequiredService<ScoutOptions>();
+    IChatClient client = new OpenAIClient(new ApiKeyCredential(scout.ApiKey))
+        .GetChatClient(scout.Model)
+        .AsIChatClient();
+    return client.AsBuilder().UseFunctionInvocation().Build();
+});
 
 // 020-A: burst rate limit (dakika-pencere, in-memory). Partition: login sub / anonim IP; limit auth'a
 // göre. Aşınca 429 (B ile aynı gövde). UseRateLimiter auth'tan SONRA → partition kullanıcıyı bilir.
