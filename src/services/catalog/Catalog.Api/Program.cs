@@ -32,8 +32,8 @@ builder.Services.AddCachingAspect("catalog");
 
 builder.Services.AddHttpContextAccessor();
 // 014: query-only MCP ucu GERİ (ADR adr-mcp-inward-agent — first-party agent-içi MCP, İlke I meşru
-// kanal; dış/BYO yüzey kapalı). YALNIZ ScoutAgent tüketir; anonim kitap arama/detay (search_books,
-// get_book). Tool'lar assembly taramasıyla bulunur (Features/Agents/Queries/*.cs [McpServerToolType]).
+// kanal; dış/BYO yüzey kapalı). YALNIZ ScoutAgent tüketir; anonim kitap arama (search_books; 018'de
+// get_book SÖKÜLDÜ). Tool'lar assembly taramasıyla bulunur (Features/Agents/Queries/*.cs [McpServerToolType]).
 builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
 
 // 012: OPSİYONEL JWT (007 deseni) — arama ucu login kullanıcıyı token'dan çözer (UserSearched capture).
@@ -74,18 +74,10 @@ builder.Services.AddScoped<AdminApiKeyEndpointFilter>();
 // Mesaj/kuyruk tetiği YOK (kullanıcı kararı); Wolverine keşfiyle ilgisiz, düz hosted service.
 builder.Services.AddHostedService<Catalog.Api.Process.ImportJobWorker>();
 
-// 011: hibrit arama şema nesneleri (ParadeDB eklenti + BM25 index + product_embedding tablo/HNSW).
-// AddCatalogMarten'DEN SONRA kaydedilir → Marten'in şema-apply hosted service'inden SONRA koşar
-// (mt_doc_product kurulmuş olur); idempotent ham DDL.
+// 018: arama şema nesneleri (ParadeDB pg_search eklenti + BM25 index; 018 söküm: embedding tablo/HNSW
+// idempotent DROP). AddCatalogMarten'DEN SONRA kaydedilir → Marten'in şema-apply hosted service'inden
+// SONRA koşar (mt_doc_product kurulmuş olur); idempotent ham DDL.
 builder.Services.AddHostedService<Catalog.Api.Search.ProductSearchSchemaInitializer>();
-
-// 011 US2/US3: sorgu-anı embedding (OpenAI). Anahtar OPSİYONEL (yoksa semantik ayak devre-dışı,
-// BM25 tam çalışır) → ValidateOnStart YOK. HttpClient fabrikası QueryEmbeddingClient için.
-builder.Services.AddHttpClient();
-builder.Services.AddOptions<Catalog.Api.Search.Embedding.OpenAiEmbeddingOptions>()
-    .BindConfiguration(nameof(Catalog.Api.Search.Embedding.OpenAiEmbeddingOptions));
-builder.Services.AddSingleton(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Search.Embedding.OpenAiEmbeddingOptions>>().Value);
 
 var app = builder.Build();
 // AppHost WithHttpHealthCheck("/health") bu ucu yoklar (Development-only map).

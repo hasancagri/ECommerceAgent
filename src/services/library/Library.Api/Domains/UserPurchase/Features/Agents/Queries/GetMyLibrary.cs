@@ -4,9 +4,9 @@ using ModelContextProtocol.Server;
 
 namespace Library.Api.Domains.UserPurchase.Features.Agents.Queries;
 
-// 007 US2: kullanıcının kitaplığı (satın aldıkları). UserPurchase yalnız ProductId tutar (künye yok) —
-// başlık istenirse model get_book ile zenginleştirir (cross-tool; Library aggregate'e dokunulmaz).
-// Scope: library.read (MapMcp üzerinde). YALNIZ çağıranın verisi (UserId token'dan).
+// 007 US2: kullanıcının kitaplığı (satın aldıkları). UserPurchase yalnız ProductId tutar (künye yok);
+// başlık/künye React kitaplık ekranında id'den çözülür (018: get_book MCP söküldü — sohbette zenginleştirme
+// yok). Scope: library.read (MapMcp üzerinde). YALNIZ çağıranın verisi (UserId token'dan).
 public static class GetMyLibrary
 {
     public record Query(Guid UserId);
@@ -43,7 +43,7 @@ public static class GetMyLibrary
     {
         [McpServerTool(Name = "get_my_library")]
         [Description("Giriş yapmış kullanıcının kitaplığındaki (satın aldığı) kitapların kimliklerini döner. " +
-                     "Başlık/künye için get_book ile zenginleştir. YALNIZ çağıranın verisi.")]
+                     "Başlık/künye React kitaplık ekranında gösterilir. YALNIZ çağıranın verisi.")]
         public static async Task<Response> GetMyLibrary(
             IMessageBus bus, ICurrentUser currentUser, IHttpContextAccessor http,
             CancellationToken cancellationToken = default)

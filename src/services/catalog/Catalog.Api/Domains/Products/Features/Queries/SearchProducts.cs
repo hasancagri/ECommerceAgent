@@ -1,43 +1,32 @@
 using Catalog.Api.Search;
-using Catalog.Api.Search.Embedding;
 
 namespace Catalog.Api.Domains.Products.Features.Queries;
 
-// 011 US1+US2: kitap arama (anonim keşif). mode=keyword (BM25, embedding'siz MVP) | semantic (kNN,
-// sorgu-anı embedding). Hibrit ayrı slice (HybridSearch). Boş sorgu → boş liste (hata YOK, FR-003).
-// Salt-okur; aggregate mutasyonu yok. SQL host-gerekli → canlı doğrulanır (İlke VI saf-domain dışı).
+// 018 US1: kitap arama (anonim keşif) — TEK birleşik yol. Metin/filtre/sort/browse hepsi SearchRequest'e
+// dolar, ProductSearchQueries.SearchAsync tek ParadeDB sorgusuyla çözer (aday yükleme YOK). Boş sorgu +
+// filtre-only + browse aynı yol. Salt-okur; SQL host-gerekli → canlı doğrulanır (İlke VI saf-domain dışı).
 public static class SearchProducts
 {
-    public enum SearchMode { Keyword, Semantic }
+    public record Query(SearchRequest Request);
 
-    public record SearchProductsQuery(string? Query, int? Limit, int? Offset, SearchMode Mode);
-
-    public class SearchProductsQueryHandler(ProductSearchQueries queries, QueryEmbeddingClient embedder)
+    public class Response
     {
-        public async Task<FeatureListResultModel<ProductSummary>> Handle(
-            SearchProductsQuery query, CancellationToken ct)
+        public IReadOnlyList<ProductSummary> Items { get; set; } = [];
+        public long Total { get; set; }
+        public int Page { get; set; }
+    }
+
+    public class SearchProductsQueryHandler(ProductSearchQueries queries)
+    {
+        public async Task<FeatureObjectResultModel<Response>> Handle(Query query, CancellationToken ct)
         {
-            if (SearchParameters.IsBlankQuery(query.Query))
-                return FeatureListResultModel<ProductSummary>.Ok([]); // boş sorgu = güvenli boş sonuç.
-
-            var text = SearchParameters.NormalizeQuery(query.Query!);
-            var limit = SearchParameters.NormalizeLimit(query.Limit);
-            var offset = SearchParameters.NormalizeOffset(query.Offset);
-
-            IReadOnlyList<Guid> ids;
-            if (query.Mode == SearchMode.Semantic)
+            var page = await queries.SearchAsync(query.Request, ct);
+            return FeatureObjectResultModel<Response>.Ok(new Response
             {
-                var vector = await embedder.EmbedAsync(text, ct);
-                if (vector is null) return FeatureListResultModel<ProductSummary>.Ok([]); // embedding yok → boş.
-                ids = await queries.SemanticAsync(vector, limit, offset, ct);
-            }
-            else
-            {
-                ids = await queries.Bm25Async(text, limit, offset, ct);
-            }
-
-            var products = await queries.ResolveOrderedAsync(ids, ct);
-            return FeatureListResultModel<ProductSummary>.Ok(products.Select(ProductSummary.From).ToList());
+                Items = page.Items.Select(ProductSummary.From).ToList(),
+                Total = page.Total,
+                Page = Math.Max(query.Request.Page, 1),
+            });
         }
     }
 }

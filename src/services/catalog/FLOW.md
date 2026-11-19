@@ -70,22 +70,19 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    kararı TERSİNE) — `CoverIngested(isbn,url)` tüketilir, Gtin'le ürün bulunur,          ` Product.SetImage)`
    kapak adresi dolar (idempotent); kapak gelmeyen ürün kapaksız kalır (iş durmaz).
    DLQ deseni aynı (retry → error-queue).
-8. 🟩 Hibrit arama (011) — pg-hibrit, ParadeDB (pg_search + pgvector); anonim keşif,        `(ProductSearchSchemaInitializer,`
-   mt_doc_product BM25 index + ayrı product_embedding tablosu (Marten'e dokunmaz):          ` ProductEndpointExtension)`
-8a. 🟦 BM25 keyword ara (011 US1) — pg_search BM25 index (ad+açıklama+etiket,               `(ProductSearchQueries.Bm25Async,`
-   ICU tokenizer) üstünde `@@@` + `pdb.score` → alaka-sıralı sonuç. Embedding GEREKMEZ.      ` SearchProducts)`
-8b. 🟪 Embedding üret+yükle (011 US2) — OpenAI offline batch (008 deseni, ad+yazar+          `(IngestEmbeddings, QueryEmbeddingClient,`
-   açıklama+etiket) → admin ingest → product_embedding; kNN (`<=>` kosinüs) "benzer/          ` ProductSearchQueries.SemanticAsync,`
-   anlamca". Sorgu-vektörü arama-anı OpenAI'den; ürün vektörü offline (bir kez).              ` SimilarProducts)`
-8c. 🟪 RRF füzyon (011 US3) — BM25 + vektör sıralamalarını Reciprocal Rank Fusion ile       `(RrfFusion.Combine, HybridSearch)`
-   birleştir (skor normalize GEREKMEZ, sıra-tabanlı) → tek hibrit sonuç.
-   **096 embedding omurgası SÖKÜLMÜŞTÜ (Ollama); 011 OpenAI + ParadeDB ile bilinçli geri.**
+8. 🟩 Birleşik arama (018) — ParadeDB pg_search BM25 TEK motor; anonim keşif,               `(ProductSearchSchemaInitializer,`
+   mt_doc_product tek BM25 index (fast-field + ICU; Marten'e dokunmaz):                      ` ProductEndpointExtension)`
+8a. 🟦 Ara (018 US1) — metin+filtre+sort+sayfalama TEK SearchRequest → tek SQL:             `(ProductSearchQueries.SearchAsync,`
+   metin var → `@@@`+`paradedb.score` (alaka); açık sort → fast-field ORDER BY;             ` SearchPredicateBuilder, SearchProducts,`
+   metin+sort yok → `paradedb.all()` + popülerlik. Filtre (yayınevi/fiyat/sayfa/cilt/        ` SearchBooks.Tool)`
+   kategori/satışta/indirimli) `@@@` clause + SQL predicate. Sıralı id → künye (Marten,
+   sıra korunur). REST `/products/search` + MCP `search_books` AYNI yol (mode YOK).
+   **018: semantik/embedding/RRF/pgvector SÖKÜLDÜ — BM25 tek motor; semantik ileride yeni spec.**
    Yayın filtresi yok — her ürün keşfedilebilir.
-8d. 🟧 **Kullanıcı aradı** ⇨ Personalization (012/014) — login aramada `UserSearched(userId, query,   `(SearchBooks.Tool)`
-   mode, resultCount, searchedAt)` yayınlanır (fanout). **014 (F1): yayın noktası REST ucundan
-   ScoutAgent `search_books` MCP tool'una TAŞINDI** — keşif artık sohbetten geçer; `/products/search`
-   REST ucu saf okuma kaldı (yayınlamaz). Opsiyonel JWT'den userId; anonim/boş sorgu yayınlamaz.
-   Publish ayrık + hata-yutar → arama sonucunu etkilemez.
+8b. 🟧 **Kullanıcı aradı** ⇨ Personalization (012/014) — login aramada `UserSearched(userId, query,   `(SearchBooks.Tool)`
+   mode, resultCount, searchedAt)` yayınlanır (fanout). **014 (F1): yayın noktası ScoutAgent
+   `search_books` MCP tool'u** — keşif sohbetten geçer; `/products/search` REST ucu saf okuma
+   (yayınlamaz). Opsiyonel JWT'den userId; anonim/boş sorgu yayınlamaz. Publish ayrık + hata-yutar.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

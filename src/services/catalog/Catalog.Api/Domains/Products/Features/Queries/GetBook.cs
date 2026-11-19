@@ -1,9 +1,8 @@
-using System.ComponentModel;
-using ModelContextProtocol.Server;
+namespace Catalog.Api.Domains.Products.Features.Queries;
 
-namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
-
-// 007 US1: tek kitap detayı (ISBN veya Id). Anonim; MCP tool sarmalayıcısı aynı dosyada.
+// 018: tek kitap detayı (ISBN veya Id) — REST-only (nokta-fetch arama değil, anahtar lookup → Marten,
+// Gtin unique-index). get_book MCP tool'u 018'de SÖKÜLDÜ (Catalog = kitap-only; sohbette tekil-detay
+// yok, derin künye React detay sayfasından). Anonim; kişisel veri İÇERMEZ.
 public static class GetBook
 {
     public record Query(string? Isbn, Guid? Id);
@@ -64,25 +63,6 @@ public static class GetBook
                 CoverUrl = product.ImageUrl,
                 Description = product.Description,
             });
-        }
-    }
-
-    [McpServerToolType]
-    public static class Tool
-    {
-        [McpServerTool(Name = "get_book")]
-        [Description("Tek bir kitabın detayını ISBN veya kitap kimliğiyle döner (ad, yazar, yayınevi, " +
-                     "kategori, fiyat, sayfa, dil, kapak, açıklama). Anonim; kişisel veri İÇERMEZ.")]
-        public static async Task<Response?> GetBook(
-            IMessageBus bus,
-            [Description("Kitabın ISBN'i (opsiyonel; id verilmezse kullanılır)")] string? isbn = null,
-            [Description("Kitabın kimliği (opsiyonel GUID metni)")] string? id = null,
-            CancellationToken cancellationToken = default)
-        {
-            Guid? parsedId = Guid.TryParse(id, out var g) ? g : null;
-            var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
-                new Query(isbn, parsedId), cancellationToken);
-            return result.IsSuccess ? result.Data : null;
         }
     }
 }

@@ -1,87 +1,102 @@
 using System.Globalization;
+using System.Text;
 
 namespace Catalog.Api.Search;
 
-// 011 T004/T007/T013: ParadeDB ham-SQL arama yürütücüsü. BM25 (@@@ + pdb.score), kNN (<=> kosinüs),
-// benzer (ürün vektörü→komşu). Her sorgu SIRALI productId listesi döner; künye aynı BC'den Marten'le
-// çözülür (sıra korunur). Marten LINQ bu operatörleri bilmez → kendi NpgsqlDataSource'u.
-// FLAG (canlı doğrula): @@@ çok-alan OR skoru, ::pdb.icu, pdb.score vs paradedb.score — sürüme göre.
+// 018: ParadeDB ham-SQL birleşik arama yürütücüsü (BM25 `@@@` + `paradedb.score`/fast-field sort).
+// TEK yol (SearchAsync): metin/filtre/sort/browse tek SQL'de; sıralı productId → künye aynı BC'den
+// Marten'le çözülür (sıra korunur). Marten LINQ bu operatörleri bilmez → kendi NpgsqlDataSource'u.
+// (Semantik/kNN/embedding ayağı 018'de SÖKÜLDÜ — ileride yeni spec.)
 public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySession session)
     : IScopedDependency
 {
     private const string ProductTable = $"{SchemaConstants.CatalogSchemaName}.mt_doc_product";
-    private const string EmbeddingTable = $"{SchemaConstants.CatalogSchemaName}.product_embedding";
 
-    // US1 — BM25 keyword: tüm `data` JSONB üstünde alaka-sıralı (index tek `data` alanı — ParadeDB
-    // çok-expression'ı reddeder). $1=sorgu metni, $2=limit, $3=offset.
-    private const string Bm25Sql = $"""
-        SELECT id FROM {ProductTable}
-        WHERE data @@@ $1
-        ORDER BY pdb.score(id) DESC
-        LIMIT $2 OFFSET $3
-        """;
-
-    // US2 — anlamca ara: sorgu-vektör ($1 = '[...]'::vector) → en yakın komşular (kosinüs).
-    private const string SemanticSql = $"""
-        SELECT product_id FROM {EmbeddingTable}
-        ORDER BY embedding <=> $1::vector
-        LIMIT $2 OFFSET $3
-        """;
-
-    // US2 — benzer kitaplar: ISBN'in ürün vektörü → komşular (kendini ele). Vektör yoksa boş.
-    private const string SimilarSql = $"""
-        WITH target AS (
-            SELECT e.product_id AS pid, e.embedding AS vec
-            FROM {EmbeddingTable} e
-            JOIN {ProductTable} p ON p.id = e.product_id
-            WHERE p.data->>'Gtin' = $1
-            LIMIT 1
-        )
-        SELECT e.product_id FROM {EmbeddingTable} e, target
-        WHERE e.product_id <> target.pid
-        ORDER BY e.embedding <=> target.vec
-        LIMIT $2
-        """;
-
-   // Türkçe dolgu/soru kelimeleri — doğal-cümle sorgularında ("… listeler misin") BM25'i kirletir
-    // (başlığında "…Misin?" geçen kitaplar eşleşir). BM25 öncesi elenir. (Gerçek niyet/varlık ayıklama
-    // ScoutAgent işi — bu küratörlü liste ara-çözüm.)
-    private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
+    // 018 T011: TEK birleşik arama yolu — tüm müşteri aramaları (metin/filtre/sort/browse) buraya.
+    // SearchPredicateBuilder @@@ clause + SQL predicate kurar, mod ORDER BY'ı seçer; tek SQL filtre+sort+
+    // sayfalamayı DB'de yapar (aday yükleme YOK). Total süzülmüş sayıyı yansıtır (sayfalama öncesi).
+    public async Task<SearchPage> SearchAsync(SearchRequest request, CancellationToken ct)
     {
-        "mi","mı","mu","mü","misin","mısın","musun","müsün","misiniz","mısınız",
-        "var","yok","bana","benim","için","ile","ve","veya","bir","bu","şu","ki","ya",
-        "listeler","listele","listeleyebilir","göster","getir","öner","öner","bul","ara",
-        "arıyorum","istiyorum","bulur","getirir","verir","söyler",
-        "kitap","kitabı","kitabını","kitaplar","kitapları","kitaplarını","eser","eseri","eserleri",
-        "hakkında","nedir","kimdir","kim","ne","nasıl","hangi","lütfen","bana",
-    };
+        // 1. Publisher ad→id SET (Marten). Ad verilip hiç eşleşme yoksa sonuç boş (dahil süzgeci boş tutar).
+        IReadOnlyList<Guid>? includePub = null, excludePub = null;
+        if (!string.IsNullOrWhiteSpace(request.Publisher))
+        {
+            includePub = await ResolvePublisherIdsAsync(request.Publisher.Trim(), ct);
+            if (includePub.Count == 0) return SearchPage.Empty;
+        }
+        if (!string.IsNullOrWhiteSpace(request.ExcludePublisher))
+            excludePub = await ResolvePublisherIdsAsync(request.ExcludePublisher.Trim(), ct);
 
-    public Task<IReadOnlyList<Guid>> Bm25Async(string query, int limit, int offset, CancellationToken ct)
-    {
-        // Sanitize (apostrof/özel karakter 500 verir) → terimler. Dolgu + çok-kısa (≤2, TR ekleri "in/ın")
-        // elenir. Her terim bir alanda OLMALI (AND) — tek ortak kelime ("george") gürültüsünü keser.
-        // jsonb index ALT-ALAN ister: `(Name:t OR Description:t OR Tags.Value:t)` AND'leri.
-        var terms = SanitizeBm25(query)
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Where(t => t.Length >= 3 && !StopWords.Contains(t))
-            .ToList();
-        if (terms.Count == 0) return Task.FromResult<IReadOnlyList<Guid>>([]);
+        // 2. Predicate + mod.
+        var predicate = SearchPredicateBuilder.Build(request, includePub, excludePub);
+        var hasText = Bm25Terms.Extract(request.Text).Count > 0;
+        var mode = SearchModeResolver.Resolve(hasText, request.Sort);
 
-        var pdbQuery = string.Join(" AND ",
-            terms.Select(t => $"(Name:{t} OR Description:{t} OR Tags.Value:{t})"));
-        return ReadIdsAsync(Bm25Sql, ct, pdbQuery, limit, offset);
+        // 3. WHERE + dinamik param'lar. Clause varsa `@@@ $1`, yoksa `paradedb.all()`; SQL predicate'ler AND.
+        var args = new List<object>();
+        var where = new StringBuilder();
+        if (predicate.PdbClause is { } clause)
+        {
+            args.Add(clause);
+            where.Append($"id @@@ ${args.Count}");
+        }
+        else where.Append("id @@@ paradedb.all()");
+        foreach (var f in predicate.SqlFilters)
+        {
+            args.Add(f.Value);
+            where.Append($" AND {f.Column} {f.Op} ${args.Count}");
+        }
+
+        // 4. Total (süzülmüş; sayfalama/sıralama öncesi).
+        var total = await ScalarLongAsync(
+            $"SELECT count(*) FROM {ProductTable} WHERE {where}", ct, args.ToArray());
+        if (total == 0) return SearchPage.Empty;
+
+        // 5. Sayfa id'leri — mod ORDER BY + LIMIT/OFFSET.
+        var limit = SearchParameters.NormalizeLimit(request.PageSize);
+        var offset = (Math.Max(request.Page, 1) - 1) * limit;
+        var pageArgs = new List<object>(args) { limit, offset };
+        var pageSql = $"SELECT id FROM {ProductTable} WHERE {where} " +
+                      $"ORDER BY {OrderByClause(mode, request.Sort)} " +
+                      $"LIMIT ${pageArgs.Count - 1} OFFSET ${pageArgs.Count}";
+        var ids = await ReadIdsAsync(pageSql, ct, pageArgs.ToArray());
+
+        // 6. Sıralı künye (Marten; DB sırası otoriter).
+        var products = await ResolveOrderedAsync(ids, ct);
+        return new SearchPage(products, total);
     }
 
-    private static string SanitizeBm25(string query) =>
-        System.Text.RegularExpressions.Regex.Replace(
-            System.Text.RegularExpressions.Regex.Replace(query, @"[^\p{L}\p{N}\s]", " "),
-            @"\s+", " ").Trim();
+    // Publisher adı → eşleşen id'ler (Contains, ad fuzzy → çok yayınevi mümkün).
+    private async Task<IReadOnlyList<Guid>> ResolvePublisherIdsAsync(string name, CancellationToken ct) =>
+        await session.Query<Publisher>()
+            .Where(p => p.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .Select(p => p.Id)
+            .ToListAsync(ct);
 
-    public Task<IReadOnlyList<Guid>> SemanticAsync(float[] queryVector, int limit, int offset, CancellationToken ct) =>
-        ReadIdsAsync(SemanticSql, ct, ToVectorLiteral(queryVector), limit, offset);
+    // Mod → ORDER BY. Relevance = BM25 skoru (Top-K pushdown); FieldSort/DefaultBrowse = jsonb fast-field
+    // (Normal scan; 22k'da kabul, ≥1M typed-kolon backlog — research.md). `data.X` SQL ORDER BY'da kullanılamaz.
+    private static string OrderByClause(SearchMode mode, SortOption? sort) => mode switch
+    {
+        SearchMode.Relevance => "paradedb.score(id) DESC",
+        SearchMode.FieldSort => sort switch
+        {
+            SortOption.PriceAsc => "(data->'Price'->>'Amount')::numeric ASC NULLS LAST",
+            SortOption.PriceDesc => "(data->'Price'->>'Amount')::numeric DESC NULLS LAST",
+            SortOption.Newest => "(data->>'PublishedOn')::date DESC NULLS LAST",
+            _ => "(data->>'PurchaseCount')::int DESC NULLS LAST", // Popular
+        },
+        _ => "(data->>'PurchaseCount')::int DESC NULLS LAST", // DefaultBrowse = popülerlik
+    };
 
-    public Task<IReadOnlyList<Guid>> SimilarAsync(string isbn, int limit, CancellationToken ct) =>
-        ReadIdsAsync(SimilarSql, ct, isbn, limit);
+    private async Task<long> ScalarLongAsync(string sql, CancellationToken ct, params object[] args)
+    {
+        await using var conn = await dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        foreach (var arg in args)
+            cmd.Parameters.Add(new NpgsqlParameter { Value = arg });
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is long l ? l : Convert.ToInt64(result, CultureInfo.InvariantCulture);
+    }
 
     private async Task<IReadOnlyList<Guid>> ReadIdsAsync(string sql, CancellationToken ct, params object[] args)
     {
@@ -105,8 +120,10 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
             .ToDictionary(p => p.Id);
         return ids.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
     }
+}
 
-    // pgvector literal: [0.1,0.2,...] — InvariantGlobalization (010) '.' ondalık garantiler.
-    private static string ToVectorLiteral(float[] vector) =>
-        "[" + string.Join(",", vector.Select(v => v.ToString(CultureInfo.InvariantCulture))) + "]";
+// 018 T011: birleşik arama sonucu — sayfa künyeleri (sıralı) + süzülmüş toplam (sayfalama öncesi).
+public sealed record SearchPage(IReadOnlyList<Product> Items, long Total)
+{
+    public static readonly SearchPage Empty = new([], 0);
 }

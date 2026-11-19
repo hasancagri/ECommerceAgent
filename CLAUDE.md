@@ -90,8 +90,9 @@ tutarı = liste fiyatı; `discount.*` scope'ları, proto ve `discount.events` ku
 **Temiz-sayfa geçişi (2026-10-30):** BYO-agent/MCP duruşu TERK EDİLDİ — EC'deki tüm `/mcp` uçları,
 tool sabitleri (`McpToolNames/Descriptions`), PRM keşfi ve DLQ admin tool'ları söküldü. Hedef yüzey:
 **first-party React ekran + REST API'ler + local LLM danışman** (kişiselleştirilmiş keşif sitesi);
-arama Catalog'da pg-hibrit (pg_search BM25 + pgvector + RRF). İkisi de HENÜZ YOK — bugün dış
-müşteri/admin yüzeyi kapalı, domain davranışları aggregate'lerde duruyor.
+arama Catalog'da **ParadeDB pg_search BM25 TEK motor** (018 birleşik arama; metin+filtre+sort+browse
+tek `SearchAsync` → REST `/products/search` + MCP `search_books` aynı yol; semantik/pgvector/RRF 018'de
+SÖKÜLDÜ, ileride yeni spec). React ekran HENÜZ YOK — domain + arama motoru aggregate/query'de duruyor.
 
 - **Gateway (004, YARP `src/others/Gateway`):** React'ın tek origin'i; rotalar config'te
   (`/api/admin/catalog/**` admin-anahtar korumalı, `/api/catalog/**` + `/files/**` anonim). Kenar
@@ -182,9 +183,11 @@ deseni izler; yetki Dilim 2'de `[RequiredScope]`/JWT'ye bağlanacak (conventions
 
 - **Çok-tedarikçi feed zincirini geri getirme:** Procurement + Supplier (+ Supplier.Gateway /
   IngestionAgent) 050'de söküldü — model first-party, mallar mağazanın. Ürün girişi = ürün-CRUD.
-- **Storefront BC + Elasticsearch/Kibana'yı geri getirme:** söküldü — arama Catalog pg-hibrit'e
-  (pg_search BM25 + pgvector + RRF) katlanıyor. `query_storefront`/`search_products`/ES-DSL + vitrin
-  event'leri (`ReviewSummaryChanged`/`ProductDiscountChanged`) GERİ EKLEME; keşif pg-hibrit'le gelir.
+- **Storefront BC + Elasticsearch/Kibana'yı geri getirme:** söküldü — arama Catalog'da ParadeDB
+  pg_search BM25 TEK motor (018; semantik/pgvector/RRF söküldü). `query_storefront`/`search_products`/
+  ES-DSL + vitrin event'leri (`ReviewSummaryChanged`/`ProductDiscountChanged`) GERİ EKLEME.
+- **Catalog araması için pgvector/embedding/RRF/semantik geri ekleme (018):** birleşik BM25 tek motor;
+  semantik ayak bilinçli söküldü, ancak yeni spec'le döner. `ProductEmbedding` tablosu/kNN/füzyon EKLEME.
 - **MCP'yi DIŞ/BYO yüzey olarak geri getirme:** temiz-sayfa sökümüyle dış-agent MCP yüzeyi çıktı
   (DCR, consent, PRM keşfi, DLQ operatör tool'ları, fasat aboneliği) — bunlar GERİ GELMEZ. **İSTİSNA
   (014, ADR adr-mcp-inward-agent):** first-party ScoutAgent'ın tükettiği **agent-içi query-only MCP**
