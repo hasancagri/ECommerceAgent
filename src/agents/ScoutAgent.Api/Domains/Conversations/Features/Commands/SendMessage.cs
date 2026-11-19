@@ -8,7 +8,7 @@ namespace ScoutAgent.Api.Domains.Conversations.Features.Commands;
 
 // 007 US1+US4: bir sohbet turu. Araç kutusu oturum durumuna göre kurulur → yerel model aracı seçer →
 // cevap {text, items}. items TOOL DÖNÜŞÜNDEN BİREBİR (uydurma 0). Girişli: kayıt yüklenir/oluşturulur,
-// bağlam DB'den kurulur (FR-012 — framework state'ine güvenilmez), kaydedilir, eşik aşılınca özetlenir.
+// bağlam DB'den kurulur (FR-012 — framework state'ine güvenilmez), kaydedilir (tam transkript).
 // Anonim: oturumluk tek mesaj, kalıcı kayıt YOK.
 public static class SendMessage
 {
@@ -84,7 +84,7 @@ public static class SendMessage
                 }
             }
 
-            // Bağlam: girişli → [özet]+[son N] kayıttan (FR-012); anonim → istemci-transkript + son mesaj.
+            // Bağlam: girişli → son N kayıttan (FR-012); anonim → istemci-transkript + son mesaj.
             var contextMessages = BuildContext(conversation, command.Message, command.History,
                 options.MaxContextMessages, options.MaxMessageLength);
             var runResponse = await agent.RunAsync(contextMessages, cancellationToken: ct);
@@ -116,8 +116,6 @@ public static class SendMessage
                     : null;
                 conversation.AddAssistantMessage(reply.Text, itemsJson);
                 if (!string.IsNullOrWhiteSpace(title)) conversation.SetTitle(title);
-                // Özetleme KAPALI — tam transkript taşınıyor (başından sonuna); özete gerek yok + boşuna
-                // OpenAI turu olurdu. (Sohbet aşırı uzarsa üst-sınır/özet ileride geri gelebilir.)
                 session.Store(conversation);
                 await session.SaveChangesAsync(ct);
                 conversationId = conversation.Id;
@@ -166,35 +164,6 @@ public static class SendMessage
                     m.Role == ValueObjects.ChatRole.Assistant ? MeaiChatRole.Assistant : MeaiChatRole.User,
                     Clip(m.Text, maxTurnLen)))
                 .ToList();
-        }
-
-        private static MeaiChatRole ToRole(ContextRole role) => role switch
-        {
-            ContextRole.System => MeaiChatRole.System,
-            ContextRole.Assistant => MeaiChatRole.Assistant,
-            _ => MeaiChatRole.User,
-        };
-
-        // Eşik aşılınca pencere dışındaki eskileri özetle (bağlam maliyeti sabit — FR-011/SC-005).
-        private async Task MaybeSummarizeAsync(Conversation conversation, CancellationToken ct)
-        {
-            var unsummarized = conversation.Messages.Count - conversation.SummarizedUpTo;
-            if (unsummarized <= options.SummaryThreshold)
-                return;
-
-            var upTo = conversation.Messages.Count - options.WindowSize;
-            if (upTo <= conversation.SummarizedUpTo)
-                return;
-
-            var slice = conversation.Messages.Take(upTo).Skip(conversation.SummarizedUpTo);
-            var transcript = string.Join("\n", slice.Select(m => $"{m.Role}: {m.Text}"));
-            var existing = string.IsNullOrWhiteSpace(conversation.Summary)
-                ? string.Empty
-                : $"Önceki özet: {conversation.Summary}\n\n";
-
-            var summary = await agentFactory.SummarizeAsync(existing + transcript, ct);
-            if (!string.IsNullOrWhiteSpace(summary))
-                conversation.ApplySummary(summary, upTo);
         }
 
         // Yakalanan tool çıktılarını reply.items'a çevirir (collector'dan — MAF yanıtına bağlı değil).

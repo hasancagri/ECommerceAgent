@@ -86,39 +86,4 @@ public class ConversationTests
         c.Messages[^1].Text.ShouldBe("Kâşif cevabı");
     }
 
-    [Fact]
-    public void ApplySummary_ValidInput_SetsSummaryAndAdvancesSummarizedUpTo()
-    {
-        var c = Conversation.Start(Guid.NewGuid(), "ilk").Data!;
-        c.AddAssistantMessage("cevap");
-
-        var result = c.ApplySummary("Sohbet özeti", 2);
-
-        result.IsSuccess.ShouldBeTrue();
-        c.Summary.ShouldBe("Sohbet özeti");
-        c.SummarizedUpTo.ShouldBe(2);
-    }
-
-    [Fact]
-    public void ApplySummary_IndexBeforeExisting_ReturnsError()
-    {
-        var c = Conversation.Start(Guid.NewGuid(), "ilk").Data!;
-        c.AddAssistantMessage("cevap");
-        c.ApplySummary("özet", 2);
-
-        var result = c.ApplySummary("yeni özet", 1); // geriye gidemez
-
-        result.IsSuccess.ShouldBeFalse();
-        c.SummarizedUpTo.ShouldBe(2);
-    }
-
-    [Fact]
-    public void ApplySummary_IndexBeyondMessages_ReturnsError()
-    {
-        var c = Conversation.Start(Guid.NewGuid(), "ilk").Data!;
-
-        var result = c.ApplySummary("özet", 5); // mesaj sayısını aşar
-
-        result.IsSuccess.ShouldBeFalse();
-    }
 }

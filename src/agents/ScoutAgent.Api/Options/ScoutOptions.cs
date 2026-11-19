@@ -13,10 +13,6 @@ public sealed class ScoutOptions
     [Required]
     public string ApiKey { get; set; } = default!;
 
-    // Hafıza: modele giden ham mesaj penceresi (son N) + özet eşiği (mesaj sayısı aşınca damıt).
-    public int WindowSize { get; set; } = 10;
-    public int SummaryThreshold { get; set; } = 20;
-
     // 014: kötüye-kullanım/maliyet guard'ı. Tek mesaj uzunluğu + bağlama alınan en çok mesaj (tam
     // transkript normal kullanımda yeter; aşırı uzun sohbet/dev-metin OpenAI maliyetini/bağlamı şişirmesin).
     public int MaxMessageLength { get; set; } = 2000;

@@ -17,10 +17,6 @@ public class Conversation : AggregateRoot
     private readonly List<ChatMessage> _messages = new();
     public IReadOnlyList<ChatMessage> Messages => _messages;
 
-    // Eskiler damıtıldıkça dolan rolling özet + özete dahil edilmiş son mesaj indeksi (çift-özet engeli).
-    public string? Summary { get; private set; }
-    public int SummarizedUpTo { get; private set; }
-
     private Conversation()
     {
     }
@@ -93,23 +89,6 @@ public class Conversation : AggregateRoot
             return ResultDomain.Error(new MessageItem
             { Property = nameof(text), Code = ScoutResourceConstants.CONVERSATION_MESSAGE_EMPTY });
         _messages.Add(ChatMessage.Create(ChatRole.Assistant, text.Trim(), DateTime.UtcNow, itemsJson));
-        UpdatedTime = DateTime.UtcNow;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Rolling özeti günceller ve SummarizedUpTo'yu ilerletir (çift-özetleme engeli). Boş özet
-    /// reddedilir; upToIndex geriye gidemez ve mesaj sayısını aşamaz.</summary>
-    public ResultDomain ApplySummary(string summary, int upToIndex)
-    {
-        if (string.IsNullOrWhiteSpace(summary))
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(summary), Code = ScoutResourceConstants.VALUE_EMPTY });
-        if (upToIndex < SummarizedUpTo || upToIndex > _messages.Count)
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(upToIndex), Code = ScoutResourceConstants.VALUE_EMPTY });
-
-        Summary = summary.Trim();
-        SummarizedUpTo = upToIndex;
         UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }
