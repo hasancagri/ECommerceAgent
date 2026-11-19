@@ -19,7 +19,7 @@ builder.Services.AddHttpContextAccessor();
 // Tek MCP client HttpClient'ı (service discovery ServiceDefaults'ta ekli). İsteğin kendi bearer'ını
 // downstream /mcp çağrısına taşır (UserTokenForwardingHandler); token yoksa header düşer → kişisel uç 401.
 builder.Services.AddTransient<ScoutAgent.Api.Agents.UserTokenForwardingHandler>();
-builder.Services.AddHttpClient("mcp")
+builder.Services.AddHttpClient(ScoutAgent.Api.Agents.McpToolSource.HttpClientName)
     .AddHttpMessageHandler<ScoutAgent.Api.Agents.UserTokenForwardingHandler>();
 
 // Tip'li Options (IConfiguration'dan doğrudan okuma yok).

@@ -14,6 +14,9 @@ public sealed class McpToolSource(
     IHttpClientFactory httpClientFactory,
     ILoggerFactory loggerFactory) : ISingletonDependency
 {
+    // Program.cs AddHttpClient bu adla kaydeder — tek kaynak (typo'lu çift sessizce koparır).
+    public const string HttpClientName = "mcp";
+
     // collector: tool çıktılarını yakalamak için (SendMessage verir — reply.items oradan dolar).
     public async Task<IList<AITool>> GetToolsAsync(ToolResultCollector collector, CancellationToken ct)
     {
@@ -46,7 +49,7 @@ public sealed class McpToolSource(
     {
         // Tek "mcp" client (UserTokenForwardingHandler ekli — Program.cs): isteğin bearer'ını taşır,
         // yoksa düz gider. Service discovery çözümlü (ServiceDefaults).
-        var httpClient = httpClientFactory.CreateClient("mcp");
+        var httpClient = httpClientFactory.CreateClient(HttpClientName);
 
         var transport = new HttpClientTransport(
             new HttpClientTransportOptions

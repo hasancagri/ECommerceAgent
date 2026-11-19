@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
 
 namespace ScoutAgent.Api.Agents;
 
@@ -13,7 +14,7 @@ public sealed class UserTokenForwardingHandler(IHttpContextAccessor httpContextA
     {
         var authorization = httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
         if (!string.IsNullOrWhiteSpace(authorization))
-            request.Headers.TryAddWithoutValidation("Authorization", authorization);
+            request.Headers.TryAddWithoutValidation(HeaderNames.Authorization, authorization);
 
         return base.SendAsync(request, cancellationToken);
     }
