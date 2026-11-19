@@ -62,8 +62,7 @@ public sealed class CatalogSubAgent(
                     ["onlyDiscounted"] = onlyDiscounted, ["minPageCount"] = minPageCount,
                     ["maxPageCount"] = maxPageCount, ["category"] = category,
                 }, cancellationToken: ct);
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<SearchBooksResult>(McpToolSource.JsonOptions) : null;
+                var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
                 collector.Add("search_books", typed);
                 return typed;
             },

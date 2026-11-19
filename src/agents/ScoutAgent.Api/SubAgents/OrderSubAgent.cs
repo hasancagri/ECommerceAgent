@@ -41,8 +41,7 @@ public sealed class OrderSubAgent(
                 {
                     ["status"] = status,
                 }, cancellationToken: ct);
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<GetMyOrdersResult>(McpToolSource.JsonOptions) : null;
+                var typed = McpToolSource.DeserializeResult<GetMyOrdersResult>(result);
                 collector.Add("get_my_orders", typed);
                 return typed;
             },

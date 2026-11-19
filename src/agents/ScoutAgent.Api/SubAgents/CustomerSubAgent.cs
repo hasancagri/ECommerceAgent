@@ -38,8 +38,7 @@ public sealed class CustomerSubAgent(
             {
                 var client = await mcp.GetClientAsync("customer", ct);
                 var result = await client.CallToolAsync("get_my_addresses", cancellationToken: ct);
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<GetMyAddressesResult>(McpToolSource.JsonOptions) : null;
+                var typed = McpToolSource.DeserializeResult<GetMyAddressesResult>(result);
                 collector.Add("get_my_addresses", typed);
                 return typed;
             },
