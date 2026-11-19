@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
@@ -56,10 +58,19 @@ public static class Extensions
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
+        // SigNoz İKİNCİ (ek) OTLP hedefi — Aspire kendi dashboard OTLP endpoint'ini WithEnvironment'ın
+        // ÜSTÜNE enjekte ediyor (precedence'ı kazanıyor) → AppHost'tan OTEL_EXPORTER_OTLP_ENDPOINT ezmek
+        // çalışmaz. Çözüm: kendi env'imizle (SIGNOZ_OTLP_ENDPOINT — Aspire DOKUNMAZ) burada AYRI bir OTLP
+        // exporter ekle. Böylece veri HEM Aspire dashboard'a HEM SigNoz'a gider. Env yoksa (prod) kod no-op.
+        var signozEndpoint = builder.Configuration["SIGNOZ_OTLP_ENDPOINT"];
+        var signoz = string.IsNullOrWhiteSpace(signozEndpoint) ? null : new Uri(signozEndpoint);
+
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
+            if (signoz is not null)
+                logging.AddOtlpExporter(o => { o.Endpoint = signoz; o.Protocol = OtlpExportProtocol.Grpc; });
         });
 
         builder.Services.AddOpenTelemetry()
@@ -68,6 +79,8 @@ public static class Extensions
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();
+                if (signoz is not null)
+                    metrics.AddOtlpExporter(o => { o.Endpoint = signoz; o.Protocol = OtlpExportProtocol.Grpc; });
             })
             .WithTracing(tracing =>
             {
@@ -81,6 +94,8 @@ public static class Extensions
                     // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
                     //.AddGrpcClientInstrumentation()
                     .AddHttpClientInstrumentation();
+                if (signoz is not null)
+                    tracing.AddOtlpExporter(o => { o.Endpoint = signoz; o.Protocol = OtlpExportProtocol.Grpc; });
             });
 
         builder.AddOpenTelemetryExporters();
@@ -91,7 +106,13 @@ public static class Extensions
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+        // SigNoz açıkken Aspire'ın cross-cutting UseOtlpExporter'ını ÇAĞIRMA: OpenTelemetry, signal-specific
+        // AddOtlpExporter (SigNoz, ConfigureOpenTelemetry'de) + UseOtlpExporter'ı AYNI anda YASAKLIYOR
+        // (NotSupportedException). SigNoz varsa yalnız SigNoz'a gider (Aspire dashboard telemetrisi boş kalır —
+        // lokal takas, SigNoz'a bakıyoruz). SigNoz yoksa (prod) eski davranış: UseOtlpExporter → Aspire.
+        var signozSet = !string.IsNullOrWhiteSpace(builder.Configuration["SIGNOZ_OTLP_ENDPOINT"]);
+        var useOtlpExporter = !signozSet
+            && !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
         if (useOtlpExporter)
         {

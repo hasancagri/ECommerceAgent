@@ -253,14 +253,27 @@ catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 // Tüm deploy edilebilir servisleri ghcr'a bağla — tek tek değil, döngüyle. `aspire do push`
 // bunların image'ini basıp ghcr.io/hasancagri/ecommerce/<servis>'e iter. Altyapı (postgres/rabbit/
 // redis/mailpit) public image → girmez.
-foreach (var svc in new[]
+var deployableServices = new[]
 {
     catalogApi, basketApi, orderApi, paymentApi, customerApi,
     reviewsApi, libraryApi, stockApi, discountApi,
     fileApi, personalizationApi, scoutAgentApi, gateway, identityServer
-})
+};
+foreach (var svc in deployableServices)
 {
     svc.WithContainerRegistry(ghcr);
+}
+
+// Observability (SigNoz): lokal çalıştırmada tüm servislere SigNoz OTel Collector adresini ver.
+// DİKKAT (tuzak): Aspire, OTEL_EXPORTER_OTLP_ENDPOINT'i KENDİ dashboard'una enjekte eder ve WithEnvironment'ı
+// EZER (precedence Aspire'da) → o anahtarı override etmek çalışmaz. Çözüm: KENDİ anahtarımız SIGNOZ_OTLP_ENDPOINT
+// (Aspire dokunmaz); ServiceDefaults bunu görünce AYRI bir OTLP exporter ekler → veri hem Aspire dashboard'a
+// hem SigNoz'a gider. SigNoz Aspire DIŞINDA (foundry/docker), bu yüzden sabit localhost:4317 (collector gRPC).
+// YALNIZ run mode: k8s manifest'ine sızmamalı (prod observability ayrı/VPS).
+if (builder.ExecutionContext.IsRunMode)
+{
+    foreach (var svc in deployableServices)
+        svc.WithEnvironment("SIGNOZ_OTLP_ENDPOINT", "http://localhost:4317");
 }
 
 await builder.Build().RunAsync();
