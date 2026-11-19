@@ -38,8 +38,7 @@ public sealed class BasketSubAgent(
             {
                 var client = await mcp.GetClientAsync("basket", ct);
                 var result = await client.CallToolAsync("get_basket", cancellationToken: ct);
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<GetBasketResult>(McpToolSource.JsonOptions) : null;
+                var typed = McpToolSource.DeserializeResult<GetBasketResult>(result);
                 collector.Add("get_basket", typed);
                 return typed;
             },

@@ -1,6 +1,8 @@
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 
 namespace ScoutAgent.Api.Agents;
 
@@ -21,6 +23,18 @@ public sealed class McpToolSource(
     // kullanır: structuredContent.Deserialize<SomutTip>(JsonOptions)). Reflection YOK; T derleme-zamanı.
     public static readonly System.Text.Json.JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
+
+    // 019 FIX: MCP tool sonucunu tipli nesneye çöz. MCP SDK 2.3.1 (+ bu BC'ler) çıktıyı `structuredContent`
+    // DEĞİL `content[0]` TextContent JSON'u olarak döner → yalnız StructuredContent okuyan eski yol hep null
+    // alıyordu (tüm sohbet kartları boş). Önce structuredContent (ileride dolarsa), yoksa ilk TextContent
+    // JSON'u parse. Sub-agent wrapper'ları bunu çağırır (sniff/reflection yok; T derleme-zamanı).
+    public static T? DeserializeResult<T>(CallToolResult result) where T : class
+    {
+        if (result.StructuredContent is { } sc && sc.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
+            return sc.Deserialize<T>(JsonOptions);
+        var text = result.Content.OfType<TextContentBlock>().FirstOrDefault()?.Text;
+        return string.IsNullOrWhiteSpace(text) ? null : System.Text.Json.JsonSerializer.Deserialize<T>(text, JsonOptions);
+    }
 
     // 019: bir uca MCP client ver — sub-agent tool wrapper'ı CallToolAsync'i bunun üstünde çağırır
     // (tipli wrapper deseni: wrapper girdiyi/çıktı tipini bilir, sniff/reflection yok). Her çağrı taze.

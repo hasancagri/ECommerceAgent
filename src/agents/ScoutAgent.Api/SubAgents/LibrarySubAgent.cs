@@ -38,8 +38,7 @@ public sealed class LibrarySubAgent(
             {
                 var client = await mcp.GetClientAsync("library", ct);
                 var result = await client.CallToolAsync("get_my_library", cancellationToken: ct);
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<GetMyLibraryResult>(McpToolSource.JsonOptions) : null;
+                var typed = McpToolSource.DeserializeResult<GetMyLibraryResult>(result);
                 collector.Add("get_my_library", typed);
                 return typed;
             },

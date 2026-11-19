@@ -41,8 +41,7 @@ public sealed class ReviewsSubAgent(
                 {
                     ["productId"] = productId, ["page"] = page, ["pageSize"] = pageSize,
                 }, cancellationToken: ct);
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<GetBookReviewsResult>(McpToolSource.JsonOptions) : null;
+                var typed = McpToolSource.DeserializeResult<GetBookReviewsResult>(result);
                 collector.Add("get_book_reviews", typed);
                 return typed;
             },

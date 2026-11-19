@@ -46,10 +46,8 @@ public sealed class PersonalizationSubAgent(
                     "get_search_history",
                     new Dictionary<string, object?> { ["page"] = page, ["pageSize"] = pageSize },
                     cancellationToken: ct);
-                // structuredContent BİLİNEN tipe (sniff/reflection yok). Null ise (uç başarısız) boş.
-                var typed = result.StructuredContent is { } sc
-                    ? sc.Deserialize<GetSearchHistoryResult>(McpToolSource.JsonOptions)
-                    : null;
+                // Sonuç BİLİNEN tipe (sniff/reflection yok). structuredContent yoksa TextContent JSON. Null ise boş.
+                var typed = McpToolSource.DeserializeResult<GetSearchHistoryResult>(result);
                 collector.Add("get_search_history", typed);
                 return typed;
             },
