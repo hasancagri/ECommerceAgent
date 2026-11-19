@@ -1,17 +1,17 @@
 using ScoutAgent.Api.Domains.Conversations.Features.Commands;
 using ScoutAgent.Api.Domains.Conversations.Features.Queries;
 
-namespace ScoutAgent.Api;
+namespace ScoutAgent.Api.Domains.Conversations;
 
 // 007 chat-api.md: React → Gateway → ScoutAgent. v1 tek-parça yanıt (stream yok, FR-013).
 // /messages opsiyonel bearer (anonim US1); /conversations* giriş şart + sahiplik (US4).
-public static class ChatEndpointExtension
+public static class ConversationEndpointExtension
 {
     // history: anon istemci-transkript (devamlılık/sayfalama). Login'de yok sayılır.
     public record SendMessageRequest(
         Guid? ConversationId, string Message, IReadOnlyList<SendMessage.HistoryTurn>? History = null);
 
-    public static void MapChatEndpoints(this IEndpointRouteBuilder app)
+    public static void MapConversationEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/chat/v1").WithTags("ScoutChat");
 

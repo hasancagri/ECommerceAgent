@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using ScoutAgent.Api;
+using ScoutAgent.Api.Domains.Conversations;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
@@ -77,6 +78,6 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 // 007: Kâşif sohbet yüzeyi (gateway /api/chat/** → buraya).
-app.MapChatEndpoints();
+app.MapConversationEndpoints();
 
 await app.RunAsync();
