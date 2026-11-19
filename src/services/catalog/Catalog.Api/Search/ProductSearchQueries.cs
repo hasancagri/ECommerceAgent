@@ -66,12 +66,19 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
         return new SearchPage(products, total);
     }
 
-    // Publisher adı → eşleşen id'ler (Contains, ad fuzzy → çok yayınevi mümkün).
-    private async Task<IReadOnlyList<Guid>> ResolvePublisherIdsAsync(string name, CancellationToken ct) =>
-        await session.Query<Publisher>()
-            .Where(p => p.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
-            .Select(p => p.Id)
-            .ToListAsync(ct);
+    // Publisher adı → eşleşen id'ler. Token-bazlı: sorgu NameNormalization'la normalize edilir (trim +
+    // boşluk-tekle + ToUpperInvariant — Publisher.NormalizedName ile AYNI sözleşme), token'lara bölünür;
+    // NormalizedName TÜM token'ları (sırasız) içeren yayınevleri eşleşir. Bitişik substring DEĞİL →
+    // "İş Kültür" kısaltması "İş Bankası Kültür Yayınları"yı bulur (araya kelime girse de). Çok eşleşme OK.
+    private async Task<IReadOnlyList<Guid>> ResolvePublisherIdsAsync(string name, CancellationToken ct)
+    {
+        var tokens = NameNormalization.Normalize(name).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) return [];
+        IQueryable<Publisher> q = session.Query<Publisher>();
+        foreach (var token in tokens)
+            q = q.Where(p => p.NormalizedName.Contains(token)); // Marten → ILIKE %token%; AND = hepsi şart.
+        return await q.Select(p => p.Id).ToListAsync(ct);
+    }
 
     // Mod → ORDER BY. Relevance = BM25 skoru (Top-K pushdown); FieldSort/DefaultBrowse = jsonb fast-field
     // (Normal scan; 22k'da kabul, ≥1M typed-kolon backlog — research.md). `data.X` SQL ORDER BY'da kullanılamaz.
