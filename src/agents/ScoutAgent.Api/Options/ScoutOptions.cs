@@ -34,24 +34,23 @@ public sealed class ScoutOptions
 // yeni bir BC MCP ucu gelince buraya (ya da appsettings'e) TEK satır eklenir — McpToolSource kodu değişmez.
 public sealed class McpEndpointsOptions
 {
+    // TÜM uçlar her istekte toplanır (oturum-bağımsız). Kişisel uçlar scope'u SUNUCUDA doğrular
+    // (gerçek sınır); token yoksa downstream 401 → McpToolSource atlar. İstemci-tarafı gating YOK.
     public List<McpEndpoint> Endpoints { get; set; } =
     [
-        // Açık (anon araç kutusunda): kitap arama/detay + kitap yorumları.
-        new() { Name = "catalog", Url = "http://catalog-api/mcp", RequiresAuth = false },
-        new() { Name = "reviews", Url = "http://reviews-api/mcp", RequiresAuth = false },
-        // Kişisel (yalnız login araç kutusunda; uç scope doğrular).
-        new() { Name = "basket", Url = "http://basket-api/mcp", RequiresAuth = true },
-        new() { Name = "order", Url = "http://order-api/mcp", RequiresAuth = true },
-        new() { Name = "library", Url = "http://library-api/mcp", RequiresAuth = true },
-        new() { Name = "customer", Url = "http://customer-api/mcp", RequiresAuth = true },
-        new() { Name = "personalization", Url = "http://personalization-api/mcp", RequiresAuth = true },
+        new() { Name = "catalog", Url = "http://catalog-api/mcp" },
+        new() { Name = "reviews", Url = "http://reviews-api/mcp" },
+        new() { Name = "basket", Url = "http://basket-api/mcp" },
+        new() { Name = "order", Url = "http://order-api/mcp" },
+        new() { Name = "library", Url = "http://library-api/mcp" },
+        new() { Name = "customer", Url = "http://customer-api/mcp" },
+        new() { Name = "personalization", Url = "http://personalization-api/mcp" },
     ];
 }
 
-// Tek MCP ucu tanımı. RequiresAuth=true → kişisel (girişsiz araç kutusuna KONMAZ + sunucu scope ister).
+// Tek MCP ucu tanımı.
 public sealed class McpEndpoint
 {
     public string Name { get; set; } = default!;
     public string Url { get; set; } = default!;
-    public bool RequiresAuth { get; set; }
 }

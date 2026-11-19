@@ -15,11 +15,10 @@ builder.AddScoutMessaging();
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
-// MCP client HttpClient'ları (service discovery ServiceDefaults'ta HttpClient'lara ekli).
-// "mcp-anon" = anonim uç (katalog); "mcp-authed" = kişisel uçlar + kullanıcı token'ını taşıyan handler.
+// Tek MCP client HttpClient'ı (service discovery ServiceDefaults'ta ekli). İsteğin kendi bearer'ını
+// downstream /mcp çağrısına taşır (UserTokenForwardingHandler); token yoksa header düşer → kişisel uç 401.
 builder.Services.AddTransient<ScoutAgent.Api.Agents.UserTokenForwardingHandler>();
-builder.Services.AddHttpClient("mcp-anon");
-builder.Services.AddHttpClient("mcp-authed")
+builder.Services.AddHttpClient("mcp")
     .AddHttpMessageHandler<ScoutAgent.Api.Agents.UserTokenForwardingHandler>();
 
 // Tip'li Options (IConfiguration'dan doğrudan okuma yok).

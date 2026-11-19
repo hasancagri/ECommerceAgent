@@ -51,7 +51,7 @@ public static class SendMessage
 
             // Tur boyunca tool çıktılarını yakala (MAF yanıtta surface etmiyor → reply.items buradan).
             var collector = new ToolResultCollector();
-            var tools = await toolSource.GetToolsAsync(isAuthenticated, collector, ct);
+            var tools = await toolSource.GetToolsAsync(collector, ct);
             var agent = agentFactory.CreateAgent(tools);
 
             // Girişli: kayıt yükle/oluştur (sahiplik kontrolü) + kullanıcı mesajını ekle.
