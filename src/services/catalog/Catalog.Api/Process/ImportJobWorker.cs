@@ -254,7 +254,14 @@ public sealed class ImportJobWorker(
         }
         product.SetAuthors(authorIds);
 
-        // 021: kategori ataması SÖKÜLDÜ; taksonomi (SetEnrichment) + WorkKey Faz 4'te buraya gelir.
+        // 021: kapalı-sözlük taksonomi (SetEnrichment kanonikleştirir) + eser kimliği (WorkKey).
+        product.SetEnrichment(importRow.Genre, importRow.MoodsRaw, importRow.AudienceLevelRaw,
+            importRow.ThemesRaw, importRow.Confidence ?? 0m);
+        product.SetWorkKey(WorkKeyNormalizer.Derive(importRow.AuthorNames, importRow.Name));
+        // Enriched sayacı: tur atanmış (≠ belirsiz) VEYA ≥1 konu kanonikleşti (rapor sinyali).
+        if (product.Genre != BookTaxonomy.Unknown || product.Themes.Count > 0)
+            batch.Enriched++;
+
         product.SetTranslators(importRow.Translators);
         product.SetBookMeta(importRow.PageCount, importRow.PublishedOn, importRow.Language);
         product.SetBinding(importRow.Binding);
@@ -263,7 +270,9 @@ public sealed class ImportJobWorker(
 
         batch.Stores.Add(product);
         batch.Added++;
-        batch.Events.Add(new IntegrationEvents.ProductAdded(product.Gtin, product.Id, importRow.CoverUrl));
+        // 021: Stok Durumu ikili sinyali event'e (false → Stock 0 açar; true → random 20-50).
+        batch.Events.Add(new IntegrationEvents.ProductAdded(
+            product.Gtin, product.Id, importRow.CoverUrl, importRow.InStock));
         // 010: indirim ithali — oran ∈ (0, 0.90] ise Discount'a ilet (ProductId create'ten geldi).
         if (importRow.DiscountRate is { } rate && rate <= 0.90m)
             batch.DiscountEvents.Add(new IntegrationEvents.ProductDiscountImported(product.Id, rate));
@@ -293,7 +302,7 @@ public sealed class ImportJobWorker(
             session.StoreObjects(batch.Stores.Distinct().ToList());
 
         var job = (await session.LoadAsync<ImportJob>(jobId, ct))!;
-        job.RecordProgress(batch.Processed, batch.Added, batch.Skipped, batch.Tagged, batch.Errors);
+        job.RecordProgress(batch.Processed, batch.Added, batch.Skipped, batch.Enriched, batch.Errors);
         session.Store(job);
 
         await session.SaveChangesAsync(ct);
@@ -327,7 +336,7 @@ public sealed class ImportJobWorker(
         public int Processed;
         public int Added;
         public int Skipped;
-        public int Tagged;
+        public int Enriched;
         public List<ImportError> Errors { get; } = new();
         public List<object> Stores { get; } = new();
         public List<IntegrationEvents.ProductAdded> Events { get; } = new();
@@ -338,7 +347,7 @@ public sealed class ImportJobWorker(
             Processed = 0;
             Added = 0;
             Skipped = 0;
-            Tagged = 0;
+            Enriched = 0;
             Errors.Clear();
             Stores.Clear();
             Events.Clear();

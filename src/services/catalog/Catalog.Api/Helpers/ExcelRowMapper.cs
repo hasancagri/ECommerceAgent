@@ -35,8 +35,16 @@ public static class ExcelRowMapper
             Language = Text(cells, "Dil")?.Trim(),
             PublishedOn = Date(Text(cells, "Yayın Tarihi")),
             Binding = ParseBinding(Text(cells, "Cilt Tipi")),
-            // 021: kategori + etiket kolonları SÖKÜLDÜ; taksonomi (tur/ton/seviye/konu) + Stok Durumu
-            // Faz 4'te eklenir.
+            // 021: v11 taksonomi kolonları — HAM parçalar (kanonikleştirme AGGREGATE'te, SetEnrichment).
+            // tur tek değer; ton/konu `;`-ayraçlı çoklu; guven kesir (virgül toleranslı parse).
+            Genre = Text(cells, "tur")?.Trim(),
+            MoodsRaw = SplitTaxonomy(Text(cells, "ton")),
+            AudienceLevelRaw = Text(cells, "seviye")?.Trim(),
+            ThemesRaw = SplitTaxonomy(Text(cells, "konu")),
+            Confidence = Decimal(cells, "guven"),
+            // 021: Kitapyurdu "Stok Durumu" ikili sinyali — "SATIŞ YOK" prefix'i satış-dışı (tükenmiş/
+            // satışta değil); diğer tüm metin (kargo/temin) ve boş hücre satışta (iyimser default).
+            InStock = !StartsWithSatisYok(Text(cells, "Stok Durumu")),
             // 010: İndirim oranı — "İndirim %" ZATEN kesir (0.285 = %28.5), dönüşüm YOK. >0 ise taşı,
             // aksi null (indirim yok). Aralık guard'ı (≤0.90) worker'da yayın anında.
             DiscountRate = Decimal(cells, "İndirim %") is { } dr && dr > 0 ? dr : null,
@@ -92,6 +100,20 @@ public static class ExcelRowMapper
                 .Distinct()
                 .ToList();
 
+    // 021: taksonomi çoklu değer — YALNIZ `;` ayraç (değerlerin kendisinde '/' ve ',' VAR,
+    // ör. "sanat/yaratıcılık" — SplitNames'in virgülü bunları bölerdi). Kanonikleştirme yok (aggregate).
+    private static List<string> SplitTaxonomy(string? cell)
+        => string.IsNullOrWhiteSpace(cell)
+            ? new List<string>()
+            : cell.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => s.Length > 0)
+                .ToList();
+
+    // "SATIŞ YOK*" (TÜKENMİŞ / Satışta Değil) = satış-dışı; boş/diğer metin satışta.
+    private static bool StartsWithSatisYok(string? stockStatus)
+        => stockStatus?.Trim().StartsWith("SATIŞ YOK", StringComparison.OrdinalIgnoreCase) ?? false;
+
     private static BindingType ParseBinding(string? cell) => cell?.Trim().ToUpperInvariant() switch
     {
         "KARTON KAPAK" => BindingType.KartonKapak,
@@ -126,6 +148,13 @@ public sealed class ImportRow
     public string PublisherName { get; init; } = default!;
     public List<string> Translators { get; init; } = new();
     public decimal? DiscountRate { get; init; }
+    // 021: v11 taksonomi (ham — kanonikleştirme SetEnrichment'te) + stok sinyali.
+    public string? Genre { get; init; }
+    public List<string> MoodsRaw { get; init; } = new();
+    public string? AudienceLevelRaw { get; init; }
+    public List<string> ThemesRaw { get; init; } = new();
+    public decimal? Confidence { get; init; }
+    public bool InStock { get; init; } = true;
     public int? PageCount { get; init; }
     public string? Language { get; init; }
     public DateOnly? PublishedOn { get; init; }

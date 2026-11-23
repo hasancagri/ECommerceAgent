@@ -31,6 +31,12 @@ public class ExcelRowMapperTests
             ["Kapak URL"] = "https://img.kitapyurdu.com/v1/getImage/fn:1",
             ["Açıklama"] = "Distopya klasiği.",
             ["Yazar Açıklaması"] = "George Orwell: 1903 doğumlu.",
+            ["tur"] = "roman",
+            ["ton"] = "karanlık;tedirgin edici",
+            ["seviye"] = "yetişkin-orta",
+            ["konu"] = "distopya/ütopya;güç/iktidar",
+            ["guven"] = 0.95,
+            ["Stok Durumu"] = "24 Saatte Kargoda",
         };
         mutate?.Invoke(cells);
         return cells;
@@ -58,6 +64,63 @@ public class ExcelRowMapperTests
         row.Description.ShouldBe("Distopya klasiği.");
         row.AuthorBio.ShouldBe("George Orwell: 1903 doğumlu.");
         row.PublisherName.ShouldBe("Can Yayınları"); // sayfa adı = yayınevi (R1)
+        row.Genre.ShouldBe("roman");
+        row.MoodsRaw.ShouldBe(new[] { "karanlık", "tedirgin edici" });
+        row.AudienceLevelRaw.ShouldBe("yetişkin-orta");
+        row.ThemesRaw.ShouldBe(new[] { "distopya/ütopya", "güç/iktidar" });
+        row.Confidence.ShouldBe(0.95m);
+        row.InStock.ShouldBeTrue(); // "24 Saatte Kargoda" = satışta
+    }
+
+    // --- 021: v11 taksonomi + stok sinyali ---
+
+    [Fact]
+    public void Map_MultiValueTaxonomy_SplitsOnSemicolonOnly()
+    {
+        // Değerlerin kendisinde '/' ve ',' var ("sanat/yaratıcılık") — yalnız ';' ayırmalı.
+        var result = ExcelRowMapper.Map("Can Yayınları", 2,
+            ValidCells(c => c["konu"] = "sanat/yaratıcılık;dil/edebiyat"));
+
+        result.Row!.ThemesRaw.ShouldBe(new[] { "sanat/yaratıcılık", "dil/edebiyat" });
+    }
+
+    [Fact]
+    public void Map_NoTaxonomyColumns_EmptyAndNull()
+    {
+        var cells = ValidCells();
+        cells.Remove("tur"); cells.Remove("ton"); cells.Remove("seviye");
+        cells.Remove("konu"); cells.Remove("guven");
+
+        var result = ExcelRowMapper.Map("Can Yayınları", 2, cells);
+
+        result.Error.ShouldBeNull();
+        result.Row!.Genre.ShouldBeNull();
+        result.Row.MoodsRaw.ShouldBeEmpty();
+        result.Row.ThemesRaw.ShouldBeEmpty();
+        result.Row.Confidence.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("SATIŞ YOK (TÜKENMİŞ)", false)]
+    [InlineData("SATIŞ YOK (kitapyurdu.com'da Satışta Değil)", false)]
+    [InlineData("24 Saatte Kargoda", true)]
+    [InlineData("Genellikle 3-5 gün içinde kargoda", true)]
+    public void Map_StockStatus_MapsSatisYokToOutOfStock(string status, bool expectedInStock)
+    {
+        var result = ExcelRowMapper.Map("Can Yayınları", 2, ValidCells(c => c["Stok Durumu"] = status));
+
+        result.Row!.InStock.ShouldBe(expectedInStock);
+    }
+
+    [Fact]
+    public void Map_NoStockStatusColumn_DefaultsInStock()
+    {
+        var cells = ValidCells();
+        cells.Remove("Stok Durumu");
+
+        var result = ExcelRowMapper.Map("Can Yayınları", 2, cells);
+
+        result.Row!.InStock.ShouldBeTrue(); // boş = satışta (iyimser default)
     }
 
     // 021: Etiketler sütunu testleri SÖKÜLDÜ (kolon v11'de yok; taksonomi Faz 4).

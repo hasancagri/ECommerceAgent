@@ -37,7 +37,10 @@ public static class IntegrationEvents
         Guid ProductId,
         // 004 additive (default'lu — eski tüketici kırılmaz): Excel "Kapak URL" kaynağı. File doluysa
         // ve R2'de ISBN yoksa bu adresten indirir; null = eski davranış (staging/R2 yoklama).
-        string? CoverSourceUrl = null);
+        string? CoverSourceUrl = null,
+        // 021 additive: Kitapyurdu "Stok Durumu" ikili sinyali. false = "SATIŞ YOK*" (tükenmiş) →
+        // Stock kaydı 0 adetle açar; true (default) → rastgele 20-50. Gerçek adet İTHAL edilmez.
+        bool InStock = true);
 
     // File.Api → Catalog. Kapak R2'de hazır + registry upsert sonrası yayılır. Url = r2.dev public
     // (CoverUrlResolver çıktısı; r2.dev base Catalog'a sızmaz — İLKE I). Tüketicisi YOK (097 serisi:
