@@ -20,6 +20,12 @@ public class PaginationIntentTests
     [InlineData("tarihi kitaplar")]
     [InlineData("")]
     [InlineData(null)]
+    // Bypass'ı YANLIŞ tetiklememesi gereken, içinde pagination kelimesi GEÇEN gerçek sorgular:
+    [InlineData("bu kitabın devamı var mı")]
+    [InlineData("sonraki baskı")]
+    [InlineData("daha fazla Dostoyevski")]
+    [InlineData("savaşın devamı niteliğindeki romanlar")]
+    [InlineData("Sabahattin Ali'nin sonraki kitapları")]
     public void IsMore_NonPaginationOrEmpty_ReturnsFalse(string? msg) =>
         PaginationIntent.IsMore(msg!).ShouldBeFalse();
 }
