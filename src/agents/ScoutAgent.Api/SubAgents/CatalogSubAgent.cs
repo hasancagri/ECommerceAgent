@@ -23,8 +23,12 @@ public sealed class CatalogSubAgent(
     private const string Instructions =
         "Sen katalog uzmanısın. HER kitap-keşfi isteğinde SORMADAN `search_books` çağır — ad/yazar OLMASA " +
         "da (gezinme/öneri/popülerlik de arama): mesaj kitapla ilgiliyse tool'u MUTLAKA çağır, boş-elle " +
-        "'bulamadım' DEME. Niyeti parametreye çevir: ad/yazar/konu → `query`; yoksa `query` BOŞ bırak + " +
-        "filtre/sort kullan. SIRALAMAYI ZORUNLU EŞLE (fiyat/sıra ima eden her istekte `sort` MUTLAKA " +
+        "'bulamadım' DEME. ⚠️ EN ÖNEMLİ KURAL — `query`'ye kullanıcının TARİF KELİMELERİNİ (tür/ruh-hali/konu/" +
+        "yaş: mizahi, komik, karanlık, hüzünlü, gerilim, aşk, savaş, distopya, öykü, roman, çocuk...) OLDUĞU " +
+        "GİBİ KOY — SİSTEM bunları otomatik facet'e çevirir ve metinden çıkarır (sen silme, atlama). Özel isim " +
+        "(kitap adı/yazar) de query'ye. Ayrıca EMİNSEN facet paramı (genres/moods/themes/audienceLevels) da " +
+        "gönder (çift güvence) ama ASIL kelimeyi query'den SİLME. Ör. 'kısa hikayelerden oluşan mizah kitabı' → " +
+        "query='mizah kısa hikaye öykü' (sistem mizah→mood, öykü→genre çevirir). SIRALAMAYI ZORUNLU EŞLE (fiyat/sıra ima eden her istekte `sort` MUTLAKA " +
         "gönder): 'ucuz/en ucuz/ucuzdan pahalıya/artan fiyat/ucuzdan' → sort=price_asc; 'pahalı/en pahalı/" +
         "pahalıdan ucuza/azalan fiyat' → sort=price_desc; 'en çok satan/popüler/gözde/çok satan' → " +
         "sort=popular; 'yeni/yeni çıkan/son çıkan' → sort=newest. 'indirimli' → onlyDiscounted; 'satışta/" +

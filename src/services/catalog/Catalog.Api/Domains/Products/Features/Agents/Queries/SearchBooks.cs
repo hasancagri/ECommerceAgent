@@ -35,8 +35,15 @@ public static class SearchBooks
             var page = query.Page < 1 ? 1 : query.Page;
             var size = query.PageSize is < 1 or > 20 ? 10 : query.PageSize;
 
+            // 021 "net karşılık, zorlama yok" — İKİ KAYNAK birleşir:
+            // (1) LLM'in gönderdiği facet'ler kanonikleştirilir (sinonim eşle, karşılıksız düşür).
+            // (2) Sunucu, query METNİNİ tarar (BookTaxonomy.ExtractFromText) — LLM mood'u kaçırsa bile
+            //     "mizahi" kelimesi metinde kalmışsa facet'e lift eder; taksonomi kelimeleri metinden
+            //     çıkar (BM25 over-constrain olmasın). Deterministik, ek maliyet yok (mini yeter).
+            //     REST yüzeyi strict kalır (FR-014, TaxonomyFacetValidator); agent yüzeyi hoşgörülü.
+            var fromText = BookTaxonomy.ExtractFromText(query.Search);
             var request = new SearchRequest(
-                Text: query.Search,
+                Text: string.IsNullOrWhiteSpace(fromText.RemainingText) ? null : fromText.RemainingText,
                 Publisher: query.Publisher,
                 ExcludePublisher: query.ExcludePublisher,
                 PriceMin: query.MinPrice,
@@ -46,10 +53,10 @@ public static class SearchBooks
                 Binding: query.Binding is { } b ? (BindingType)b : null,
                 OnlySalable: query.OnlySalable,
                 OnlyDiscounted: query.OnlyDiscounted,
-                Genres: query.Genres,
-                Moods: query.Moods,
-                AudienceLevels: query.AudienceLevels,
-                Themes: query.Themes,
+                Genres: Merge(Canonicalize(query.Genres, BookTaxonomy.ResolveGenre), fromText.Genres),
+                Moods: Merge(Canonicalize(query.Moods, BookTaxonomy.ResolveMood), fromText.Moods),
+                AudienceLevels: Merge(Canonicalize(query.AudienceLevels, BookTaxonomy.ResolveAudienceLevel), fromText.AudienceLevels),
+                Themes: Merge(Canonicalize(query.Themes, BookTaxonomy.ResolveTheme), fromText.Themes),
                 OnlyInStock: query.OnlyInStock,
                 Sort: ParseSort(query.Sort),
                 Page: page,
@@ -85,6 +92,21 @@ public static class SearchBooks
                 p.InStock)).ToList(); // 021: türetilmiş (StockCount>0)
 
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = result.Total, Page = page });
+        }
+
+        // Facet değerlerini sözlüğe çöz (ÇOĞUL: net=tek, zorlama=çoklu fan-out), karşılıksızı düşür; boş → null.
+        private static IReadOnlyList<string>? Canonicalize(IReadOnlyList<string>? values, Func<string, IReadOnlyList<string>> resolve)
+        {
+            if (values is null || values.Count == 0) return null;
+            var mapped = values.SelectMany(resolve).Distinct().ToList();
+            return mapped.Count > 0 ? mapped : null;
+        }
+
+        // İki kaynağı (LLM facet'i + metinden lift) birleştir, tekilleştir; boş → null.
+        private static IReadOnlyList<string>? Merge(IReadOnlyList<string>? llm, IReadOnlyList<string> fromText)
+        {
+            var merged = (llm ?? []).Concat(fromText).Distinct().ToList();
+            return merged.Count > 0 ? merged : null;
         }
 
         // Serbest sort metni → SortOption (REST ucuyla aynı sözlük; bilinçli tekrar — agent slice izole).
