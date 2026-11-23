@@ -15,7 +15,6 @@ global using Wolverine.Marten;
 global using Wolverine.RabbitMQ;
 global using Wolverine;
 global using Catalog.Api.Domains.Products;
-global using Catalog.Api.Domains.Categories;
 global using Catalog.Api.Domains.Authors;
 global using Catalog.Api.Domains.ImportJobs;
 global using Common.Results;

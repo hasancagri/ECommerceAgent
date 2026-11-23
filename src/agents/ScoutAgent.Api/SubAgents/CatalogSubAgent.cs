@@ -32,8 +32,7 @@ public sealed class CatalogSubAgent(
         "'İş Bankası','Can Yayınları','Yapı Kredi/YKY','İletişim','Everest') adı `publisher`'a GİT — query'ye " +
         "KOYMA; 'X hariç/dışında/X olmayan/X dışı' → excludePublisher. Yazar+yayınevi BİRLİKTE gelirse " +
         "(ör. 'Tolstoy'un İş Kültür kitapları') yazarı `query`'ye, yayınevini `publisher`'a AYIR. " +
-        "`category` SADECE kullanıcı gerçek bir kategori adı söylerse (ör. 'Roman','Felsefe') — " +
-        "niyet cümlesini category'ye KOYMA. Belirli bir kitabın detayı → `search_books` tam adıyla (en-iyi " +
+        "Belirli bir kitabın detayı → `search_books` tam adıyla (en-iyi " +
         "eşleşme kartı; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON aramanın " +
         "page+1'i. Sonuç GERÇEKTEN boşsa dürüstçe 'bulunamadı'. Sonuçlar kullanıcıya KART olarak gösterilir " +
         "— tek tek listeleme, 1-2 cümle giriş yaz. Fiyat/kapak/künye ASLA uydurma. İç GUID gösterme.";
@@ -56,7 +55,7 @@ public sealed class CatalogSubAgent(
         AIFunctionFactory.Create(
             async (string? query, int page, int pageSize, string? publisher, string? excludePublisher,
                    string? binding, decimal? minPrice, decimal? maxPrice, string? sort, bool onlySalable,
-                   bool onlyDiscounted, int? minPageCount, int? maxPageCount, string? category,
+                   bool onlyDiscounted, int? minPageCount, int? maxPageCount,
                    CancellationToken ct) =>
             {
                 var client = await mcp.GetClientAsync("catalog", ct);
@@ -66,7 +65,7 @@ public sealed class CatalogSubAgent(
                     ["excludePublisher"] = excludePublisher, ["binding"] = binding, ["minPrice"] = minPrice,
                     ["maxPrice"] = maxPrice, ["sort"] = sort, ["onlySalable"] = onlySalable,
                     ["onlyDiscounted"] = onlyDiscounted, ["minPageCount"] = minPageCount,
-                    ["maxPageCount"] = maxPageCount, ["category"] = category,
+                    ["maxPageCount"] = maxPageCount,
                 }, cancellationToken: ct);
                 var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
                 collector.Add("search_books", typed);
@@ -75,6 +74,5 @@ public sealed class CatalogSubAgent(
             name: "search_books",
             description: "Kitap adı/yazar + filtre/sıralama ile kitap arar; sayfalı liste döner. " +
                 "publisher: YALNIZ bu yayınevi (kısmi ad, ör. 'İş Kültür'). excludePublisher: bu yayınevini hariç tut. " +
-                "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. category: kategori adı " +
-                "(ör. 'Roman'). Sayfalama: page/pageSize.");
+                "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. Sayfalama: page/pageSize.");
 }

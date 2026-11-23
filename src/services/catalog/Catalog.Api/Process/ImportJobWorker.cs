@@ -15,7 +15,6 @@ public sealed class ImportJobWorker(
     IDocumentStore store, IServiceScopeFactory scopes, ILogger<ImportJobWorker> logger) : BackgroundService
 {
     private const int BatchSize = 200;
-    private const string FallbackCategoryName = "Genel";
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -177,8 +176,7 @@ public sealed class ImportJobWorker(
             (await session.Query<Product>().Select(p => p.Gtin).ToListAsync(ct))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase),
             (await session.Query<Author>().ToListAsync(ct)).ToDictionary(a => a.NormalizedName, a => a),
-            (await session.Query<Publisher>().ToListAsync(ct)).ToDictionary(p => p.NormalizedName, p => p),
-            (await session.Query<Category>().ToListAsync(ct)).ToDictionary(c => c.NormalizedName, c => c));
+            (await session.Query<Publisher>().ToListAsync(ct)).ToDictionary(p => p.NormalizedName, p => p));
     }
 
     // 010: sayısal hücreyi NATIVE double geçir (ExcelRowMapper.Decimal/Int double dalını işler) —
@@ -256,22 +254,8 @@ public sealed class ImportJobWorker(
         }
         product.SetAuthors(authorIds);
 
-        // Kategori: leaf (+ opsiyonel üst) get-or-create; boş → "Genel" fallback (FLOW kuralı).
-        var leaf = ResolveCategory(importRow.ParentCategoryName, importRow.LeafCategoryName, lookups.Categories, batch);
-        product.SetCategory(leaf.Id);
-
-        // İlgili kategoriler: YALNIZ çözülebilen (FLOW: "çözülemeyen atlanır") — get-or-create YOK.
-        var related = importRow.RelatedCategoryLeafNames
-            .Select(NameNormalization.Normalize)
-            .Where(lookups.Categories.ContainsKey)
-            .Select(n => lookups.Categories[n].Id)
-            .ToList();
-        product.SetRelatedCategories(related);
-
+        // 021: kategori ataması SÖKÜLDÜ; taksonomi (SetEnrichment) + WorkKey Faz 4'te buraya gelir.
         product.SetTranslators(importRow.Translators);
-        product.SetTags(importRow.Tags); // 009: yalnız YENİ ürün (INSERT-ONLY üstte atladı → ezilmez)
-        if (importRow.Tags.Count > 0)
-            batch.Tagged++;
         product.SetBookMeta(importRow.PageCount, importRow.PublishedOn, importRow.Language);
         product.SetBinding(importRow.Binding);
         product.SetPopularity(importRow.Rating, importRow.RatingCount, importRow.PurchaseCount,
@@ -296,24 +280,6 @@ public sealed class ImportJobWorker(
         cache[normalized] = created;
         batch.Stores.Add(created);
         return created;
-    }
-
-    private static Category ResolveCategory(string? parentName, string? leafName,
-        Dictionary<string, Category> categories, Batch batch)
-    {
-        var effectiveLeaf = string.IsNullOrWhiteSpace(leafName) ? FallbackCategoryName : leafName;
-
-        // leaf == üst (aynı ad) → tek düğüm (leaf==mid gotcha'sının ad-düzeyi hali).
-        if (!string.IsNullOrWhiteSpace(parentName)
-            && !NameNormalization.Normalize(parentName).Equals(NameNormalization.Normalize(effectiveLeaf)))
-        {
-            var parent = GetOrCreate(categories, parentName,
-                name => Category.Create(name).Data!, batch);
-            return GetOrCreate(categories, effectiveLeaf,
-                name => Category.Create(name, parent.Id).Data!, batch);
-        }
-
-        return GetOrCreate(categories, effectiveLeaf, name => Category.Create(name).Data!, batch);
     }
 
     private async Task FlushAsync(Guid jobId, Batch batch, bool dryRun, CancellationToken ct)
@@ -354,8 +320,7 @@ public sealed class ImportJobWorker(
     private sealed record Lookups(
         HashSet<string> ExistingGtins,
         Dictionary<string, Author> Authors,
-        Dictionary<string, Publisher> Publishers,
-        Dictionary<string, Category> Categories);
+        Dictionary<string, Publisher> Publishers);
 
     private sealed class Batch
     {

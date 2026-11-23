@@ -16,10 +16,6 @@ public static class GetBook
         public string Authors { get; set; } = default!;
         public IReadOnlyList<string> Translators { get; set; } = [];
         public string? Publisher { get; set; }
-        public string? Category { get; set; }
-        public IReadOnlyList<string> CategoryChain { get; set; } = []; // üst→alt
-        public IReadOnlyList<string> RelatedCategories { get; set; } = [];
-        public IReadOnlyList<string> Tags { get; set; } = [];
         public decimal? Price { get; set; }
         public decimal? DiscountRate { get; set; } // etkin oran (0-1); liste fiyatı ezilmez (003)
         public int StockCount { get; set; }
@@ -58,28 +54,6 @@ public static class GetBook
             var publisher = product.PublisherId != Guid.Empty
                 ? await session.LoadAsync<Publisher>(product.PublisherId, ct)
                 : null;
-            var category = product.CategoryId != Guid.Empty
-                ? await session.LoadAsync<Category>(product.CategoryId, ct)
-                : null;
-
-            // Kategori zinciri: leaf + ataları yükle → ResolveChain [leaf, ata] → üst→alt için ters çevir.
-            var chainNames = new List<string>();
-            if (category is not null)
-            {
-                var chainDict = new Dictionary<Guid, Category> { [category.Id] = category };
-                if (category.ParentCategoryId is { } pid)
-                {
-                    var parent = await session.LoadAsync<Category>(pid, ct);
-                    if (parent is not null) chainDict[parent.Id] = parent;
-                }
-                chainNames = CategoryNaming.ResolveChain(product.CategoryId, chainDict).Names;
-                chainNames.Reverse();
-            }
-
-            var related = product.RelatedCategoryIds.Count > 0
-                ? await session.Query<Category>()
-                    .Where(c => product.RelatedCategoryIds.Contains(c.Id)).ToListAsync(ct)
-                : [];
 
             return FeatureObjectResultModel<Response>.Ok(new Response
             {
@@ -89,10 +63,6 @@ public static class GetBook
                 Authors = string.Join(", ", authors.Select(a => a.Name)),
                 Translators = product.Translators.ToList(),
                 Publisher = publisher?.Name,
-                Category = category?.Name,
-                CategoryChain = chainNames,
-                RelatedCategories = related.Select(c => c.Name).ToList(),
-                Tags = product.Tags.Select(t => t.Value).Distinct().ToList(),
                 Price = product.Price?.Amount,
                 DiscountRate = product.DiscountRate,
                 StockCount = product.StockCount,

@@ -2,7 +2,6 @@ global using Catalog.Api.Constants;
 // --- hoisted (sade using'ler dosyalardan taşındı) ---
 global using Catalog.Api.Domains.Authors;
 global using Catalog.Api.Domains.Publishers;
-global using Catalog.Api.Domains.Categories;
 global using Catalog.Api.Domains.Products;
 global using Catalog.Api.Domains.Products.ValueObjects;
 global using Catalog.Api.Search;

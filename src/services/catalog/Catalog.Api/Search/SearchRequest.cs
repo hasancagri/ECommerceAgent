@@ -12,7 +12,6 @@ public sealed record SearchRequest(
     int? PageMin = null,
     int? PageMax = null,
     BindingType? Binding = null,
-    Guid? CategoryId = null,
     bool OnlySalable = false,
     bool OnlyDiscounted = false,
     SortOption? Sort = null,

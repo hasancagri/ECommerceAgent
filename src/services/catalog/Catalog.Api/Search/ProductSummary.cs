@@ -7,14 +7,12 @@ public sealed record ProductSummary(
     string Name,
     string? ImageUrl,
     decimal? Price,
-    decimal? DiscountRate,
-    IReadOnlyList<string> Tags)
+    decimal? DiscountRate)
 {
     public static ProductSummary From(Product p) => new(
         p.Gtin,
         p.Name,
         p.ImageUrl,
         p.Price?.Amount,
-        p.DiscountRate,
-        p.Tags.Select(t => t.Value).Distinct().ToList());
+        p.DiscountRate);
 }

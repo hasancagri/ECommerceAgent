@@ -14,8 +14,6 @@ public class ExcelRowMapperTests
             ["Yazar"] = "George Orwell",
             ["ISBN"] = "9789750718533",
             ["Çevirmen"] = "Celâl Üster",
-            ["Kategori"] = "Kitap > Edebiyat > Roman (Çeviri)",
-            ["İlgili Kategoriler"] = "Kitap > Edebiyat > Roman (Çeviri)",
             ["Sayfa Sayısı"] = 352,
             ["Dil"] = "TÜRKÇE",
             ["Yayın Tarihi"] = "25.04.2019",
@@ -49,8 +47,6 @@ public class ExcelRowMapperTests
         row.Isbn.ShouldBe("9789750718533");
         row.AuthorNames.ShouldBe(new[] { "George Orwell" });
         row.Translators.ShouldBe(new[] { "Celâl Üster" });
-        row.ParentCategoryName.ShouldBe("Edebiyat");
-        row.LeafCategoryName.ShouldBe("Roman (Çeviri)");
         row.PageCount.ShouldBe(352);
         row.Language.ShouldBe("TÜRKÇE");
         row.PublishedOn.ShouldBe(new DateOnly(2019, 4, 25));
@@ -64,37 +60,8 @@ public class ExcelRowMapperTests
         row.PublisherName.ShouldBe("Can Yayınları"); // sayfa adı = yayınevi (R1)
     }
 
-    // --- 009: Etiketler sütunu ---
-
-    [Fact]
-    public void Map_TagsCell_SplitsTrimsDistinct()
-    {
-        var result = ExcelRowMapper.Map("Can Yayınları", 2,
-            ValidCells(c => c["Etiketler"] = "distopya, gözetim , distopya"));
-
-        result.Row!.Tags.ShouldBe(new[] { "distopya", "gözetim" }); // trim + Distinct (ham)
-    }
-
-    [Fact]
-    public void Map_NoTagsColumn_EmptyList()
-    {
-        var cells = ValidCells();
-        cells.Remove("Etiketler"); // eski formatlı Excel — sütun yok (geriye-uyum)
-
-        var result = ExcelRowMapper.Map("Can Yayınları", 2, cells);
-
-        result.Error.ShouldBeNull();
-        result.Row!.Tags.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void Map_DoubleComma_SkipsEmpty()
-    {
-        var result = ExcelRowMapper.Map("Can Yayınları", 2,
-            ValidCells(c => c["Etiketler"] = "a,, b,"));
-
-        result.Row!.Tags.ShouldBe(new[] { "a", "b" });
-    }
+    // 021: Etiketler sütunu testleri SÖKÜLDÜ (kolon v11'de yok; taksonomi Faz 4).
+    // SplitNames (trim/boş-ele/dedup) Map_MultipleAuthors'ta kapsanır.
 
     [Fact]
     public void Map_DiscountCell_ReadsFraction()
@@ -173,23 +140,6 @@ public class ExcelRowMapperTests
             ValidCells(c => c["Yazar"] = "George Orwell, Aldous Huxley, George Orwell"));
 
         result.Row!.AuthorNames.ShouldBe(new[] { "George Orwell", "Aldous Huxley" });
-    }
-
-    [Fact]
-    public void Map_SingleLevelCategory_LeafWithoutParent()
-    {
-        var result = ExcelRowMapper.Map("Can Yayınları", 2, ValidCells(c => c["Kategori"] = "Kitap > Edebiyat"));
-
-        result.Row!.ParentCategoryName.ShouldBeNull();
-        result.Row.LeafCategoryName.ShouldBe("Edebiyat");
-    }
-
-    [Fact]
-    public void Map_EmptyCategory_LeafNull()
-    {
-        var result = ExcelRowMapper.Map("Can Yayınları", 2, ValidCells(c => c["Kategori"] = null));
-
-        result.Row!.LeafCategoryName.ShouldBeNull(); // süreç "Genel" fallback'ine düşürür
     }
 
     [Fact]

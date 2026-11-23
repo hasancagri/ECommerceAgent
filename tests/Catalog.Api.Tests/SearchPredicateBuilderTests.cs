@@ -11,7 +11,6 @@ namespace Catalog.Api.Tests;
 // BOZUK → SQL predicate. publisherId/excludePublisherId handler'da Marten ile ad→id çözülüp verilir (saf).
 public class SearchPredicateBuilderTests
 {
-    static readonly Guid Cat = Guid.Parse("af0fbbf8-27c8-47cf-81b1-458b2bed7d72");
     static readonly Guid Pub = Guid.Parse("8d841f29-7ed7-4eb0-80d9-0fea9bc9d8e2");
 
     [Fact]
@@ -26,7 +25,7 @@ public class SearchPredicateBuilderTests
     public void Build_TextSingleTerm_BuildsOrGroup()
     {
         var p = SearchPredicateBuilder.Build(new SearchRequest(Text: "Orwell"));
-        p.PdbClause.ShouldBe("(data.Name:Orwell OR data.Description:Orwell OR data.Tags.Value:Orwell)");
+        p.PdbClause.ShouldBe("(data.Name:Orwell OR data.Description:Orwell)");
     }
 
     [Fact]
@@ -34,8 +33,8 @@ public class SearchPredicateBuilderTests
     {
         var p = SearchPredicateBuilder.Build(new SearchRequest(Text: "George Orwell"));
         p.PdbClause.ShouldBe(
-            "(data.Name:George OR data.Description:George OR data.Tags.Value:George) AND " +
-            "(data.Name:Orwell OR data.Description:Orwell OR data.Tags.Value:Orwell)");
+            "(data.Name:George OR data.Description:George) AND " +
+            "(data.Name:Orwell OR data.Description:Orwell)");
     }
 
     [Fact]
@@ -44,13 +43,6 @@ public class SearchPredicateBuilderTests
         // Bm25Terms tüm terimleri eler (dolgu/soru) → yapısal filtre de yoksa match-all.
         var p = SearchPredicateBuilder.Build(new SearchRequest(Text: "bana bir kitap misin"));
         p.PdbClause.ShouldBeNull();
-    }
-
-    [Fact]
-    public void Build_CategoryId_AddsQuotedTerm()
-    {
-        var p = SearchPredicateBuilder.Build(new SearchRequest(CategoryId: Cat));
-        p.PdbClause.ShouldBe($"data.CategoryId:\"{Cat}\"");
     }
 
     static readonly Guid Pub2 = Guid.Parse("11111111-2222-3333-4444-555555555555");
@@ -146,15 +138,14 @@ public class SearchPredicateBuilderTests
     [Fact]
     public void Build_MultipleFilters_JoinWithAndInDeterministicOrder()
     {
-        // Sıra: text → publisher → category → binding → price → page → salable → discounted.
+        // Sıra: text → publisher → binding → price → page → salable → discounted (021: kategori çıktı).
         var p = SearchPredicateBuilder.Build(
-            new SearchRequest(Text: "Orwell", CategoryId: Cat, Binding: BindingType.Ciltli,
+            new SearchRequest(Text: "Orwell", Binding: BindingType.Ciltli,
                 PriceMin: 100m, PriceMax: 300m, OnlySalable: true, OnlyDiscounted: true),
             publisherIds: [Pub]);
         p.PdbClause.ShouldBe(
-            "(data.Name:Orwell OR data.Description:Orwell OR data.Tags.Value:Orwell) AND " +
+            "(data.Name:Orwell OR data.Description:Orwell) AND " +
             $"data.PublisherId:\"{Pub}\" AND " +
-            $"data.CategoryId:\"{Cat}\" AND " +
             "data.Binding:2 AND " +
             "data.Price.Amount:[100 TO 300] AND " +
             "data.IsSalable:true AND " +

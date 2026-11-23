@@ -17,9 +17,10 @@ public static class SearchPredicateBuilder
     {
         var clauses = new List<string>();
 
-        // 1. Text — her terim bir OR-grubu (Name/Description/Tags.Value); gürültü Bm25Terms'te elenir.
+        // 1. Text — her terim bir OR-grubu (Name/Description); gürültü Bm25Terms'te elenir.
+        // (021: Tags.Value çıktı; Faz 6'da taksonomi alanları bu gruba girer.)
         foreach (var t in Bm25Terms.Extract(request.Text))
-            clauses.Add($"(data.Name:{t} OR data.Description:{t} OR data.Tags.Value:{t})");
+            clauses.Add($"(data.Name:{t} OR data.Description:{t})");
 
         // 2. Publisher — ad handler'da Marten ile id SET'ine çözülür (Contains → çok yayınevi mümkün).
         // Quoted phrase (term() uuid'de tokenize edip 0 döner); çok id → OR-grubu.
@@ -29,11 +30,7 @@ public static class SearchPredicateBuilder
             clauses.Add(publisherIds.Count == 1 ? terms.First() : "(" + string.Join(" OR ", terms) + ")");
         }
 
-        // 3. Category — tek leaf CategoryId, quoted.
-        if (request.CategoryId is { } cat)
-            clauses.Add($"data.CategoryId:\"{cat}\"");
-
-        // 4. Binding — int enum term.
+        // 3. Binding — int enum term. (021: kategori filtresi SÖKÜLDÜ; taksonomi facet'leri Faz 6.)
         if (request.Binding is { } binding)
             clauses.Add($"data.Binding:{(int)binding}");
 

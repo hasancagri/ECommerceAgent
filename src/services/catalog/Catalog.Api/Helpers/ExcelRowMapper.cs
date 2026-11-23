@@ -20,8 +20,6 @@ public static class ExcelRowMapper
         if (string.IsNullOrWhiteSpace(name))
             return new MapResult(null, "Kitap adı boş");
 
-        var (parent, leaf) = ParseCategoryPath(Text(cells, "Kategori"));
-
         var row = new ImportRow
         {
             SheetName = sheetName,
@@ -33,16 +31,12 @@ public static class ExcelRowMapper
             AuthorBio = Text(cells, "Yazar Açıklaması")?.Trim(),
             PublisherName = sheetName.Trim(), // R1: sayfa adı = yayınevi
             Translators = SplitNames(Text(cells, "Çevirmen")),
-            ParentCategoryName = parent,
-            LeafCategoryName = leaf,
-            RelatedCategoryLeafNames = ParseRelatedLeaves(Text(cells, "İlgili Kategoriler")),
             PageCount = Int(cells, "Sayfa Sayısı"),
             Language = Text(cells, "Dil")?.Trim(),
             PublishedOn = Date(Text(cells, "Yayın Tarihi")),
             Binding = ParseBinding(Text(cells, "Cilt Tipi")),
-            // 009: etiketler — virgülle ayrık ham parçalar (normalize AGGREGATE'te, BookTag.Create).
-            // Sütun yok → boş liste (geriye-uyumlu). SplitNames deseni: trim + boş-ele + Distinct.
-            Tags = SplitNames(Text(cells, "Etiketler")),
+            // 021: kategori + etiket kolonları SÖKÜLDÜ; taksonomi (tur/ton/seviye/konu) + Stok Durumu
+            // Faz 4'te eklenir.
             // 010: İndirim oranı — "İndirim %" ZATEN kesir (0.285 = %28.5), dönüşüm YOK. >0 ise taşı,
             // aksi null (indirim yok). Aralık guard'ı (≤0.90) worker'da yayın anında.
             DiscountRate = Decimal(cells, "İndirim %") is { } dr && dr > 0 ? dr : null,
@@ -89,39 +83,6 @@ public static class ExcelRowMapper
     private static int? RoundedRating(decimal? rating)
         => rating is { } r ? (int)Math.Round(r, MidpointRounding.AwayFromZero) : null;
 
-    // "Kitap > Üst > Leaf" → (Üst, Leaf); "Kitap > X" → (null, X); boş → (null, null) = "Genel" fallback.
-    private static (string? Parent, string? Leaf) ParseCategoryPath(string? path)
-    {
-        var segments = SplitPath(path);
-        return segments.Count switch
-        {
-            0 => (null, null),
-            1 => (null, segments[^1]),
-            _ => (segments[^2], segments[^1]),
-        };
-    }
-
-    // İlgili kategoriler: her girdinin LEAF'i alınır (editoryal liste leaf-bazlı; ata zinciri karışmaz).
-    private static List<string> ParseRelatedLeaves(string? cell)
-    {
-        if (string.IsNullOrWhiteSpace(cell)) return new List<string>();
-        return cell.Split(new[] { '|', ';' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => SplitPath(p))
-            .Where(s => s.Count > 0)
-            .Select(s => s[^1])
-            .Distinct()
-            .ToList();
-    }
-
-    // "Kitap" kök düğümü atılır — ağaç ≤2 seviye (kök → leaf) kuralına oturur.
-    private static List<string> SplitPath(string? path)
-        => string.IsNullOrWhiteSpace(path)
-            ? new List<string>()
-            : path.Split('>', StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => s.Length > 0 && !s.Equals("Kitap", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
     private static List<string> SplitNames(string? cell)
         => string.IsNullOrWhiteSpace(cell)
             ? new List<string>()
@@ -164,11 +125,7 @@ public sealed class ImportRow
     public string? AuthorBio { get; init; }
     public string PublisherName { get; init; } = default!;
     public List<string> Translators { get; init; } = new();
-    public List<string> Tags { get; init; } = new();
     public decimal? DiscountRate { get; init; }
-    public string? ParentCategoryName { get; init; }
-    public string? LeafCategoryName { get; init; }
-    public List<string> RelatedCategoryLeafNames { get; init; } = new();
     public int? PageCount { get; init; }
     public string? Language { get; init; }
     public DateOnly? PublishedOn { get; init; }

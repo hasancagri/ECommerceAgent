@@ -31,8 +31,6 @@ public class ProductTests
         product.Gtin.ShouldBe("9789750000001");
         product.Description.ShouldBe("açıklama");
         product.Price!.Amount.ShouldBe(100m);
-        product.CategoryId.ShouldBe(Guid.Empty); // kategori ataması SetCategory ile (seed zorunlu kılar)
-        product.RelatedCategoryIds.ShouldBeEmpty();
         product.AuthorIds.ShouldBeEmpty();
         product.ImageUrl.ShouldBeNull();
     }
@@ -336,67 +334,7 @@ public class ProductTests
         money.Currency.ShouldBe("TRY");
     }
 
-    // --- SetCategory (tek leaf; üst kategori ürüne yazılmaz — ağaçtan çözülür) ---
-
-    [Fact]
-    public void SetCategory_ValidLeaf_AssignsSingleCategory()
-    {
-        var product = NewProduct();
-        var leafId = Guid.NewGuid();
-
-        product.SetCategory(leafId).IsSuccess.ShouldBeTrue();
-        product.CategoryId.ShouldBe(leafId);
-    }
-
-    [Fact]
-    public void SetCategory_EmptyGuid_ReturnsError()
-    {
-        var product = NewProduct();
-
-        var result = product.SetCategory(Guid.Empty);
-
-        result.IsSuccess.ShouldBeFalse();
-        result.Messages!.ShouldContain(m => m.Code == CatalogResourceConstants.PRODUCT_CATEGORY_REQUIRED);
-        product.CategoryId.ShouldBe(Guid.Empty);
-    }
-
-    // --- SetRelatedCategories (editoryal liste; dedup + leaf hariç + boş Guid elenir) ---
-
-    [Fact]
-    public void SetRelatedCategories_DuplicateIds_Deduplicates()
-    {
-        var product = NewProduct();
-        var a = Guid.NewGuid();
-        var b = Guid.NewGuid();
-
-        product.SetRelatedCategories(new[] { a, b, a }).IsSuccess.ShouldBeTrue();
-
-        product.RelatedCategoryIds.ShouldBe(new[] { a, b });
-    }
-
-    [Fact]
-    public void SetRelatedCategories_ContainsPrimaryLeaf_ExcludesLeaf()
-    {
-        var product = NewProduct();
-        var leafId = Guid.NewGuid();
-        var related = Guid.NewGuid();
-        product.SetCategory(leafId);
-
-        product.SetRelatedCategories(new[] { leafId, related }).IsSuccess.ShouldBeTrue();
-
-        product.RelatedCategoryIds.ShouldBe(new[] { related }); // ilgili liste ata/leaf zinciriyle karışmaz
-    }
-
-    [Fact]
-    public void SetRelatedCategories_EmptyAndDefaultIds_ResultsEmptyList()
-    {
-        var product = NewProduct();
-        product.SetRelatedCategories(new[] { Guid.NewGuid() });
-
-        product.SetRelatedCategories(new[] { Guid.Empty }).IsSuccess.ShouldBeTrue();
-
-        product.RelatedCategoryIds.ShouldBeEmpty(); // tam-değiştirme: boş geçerli, önceki liste silinir
-    }
+    // 021: SetCategory/SetRelatedCategories testleri SÖKÜLDÜ (kategori ekseni kalktı).
 
     // --- SetImage ---
 

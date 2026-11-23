@@ -13,7 +13,7 @@ public static class SearchBooks
     public record Query(string? Search, int Page, int PageSize, string? Publisher = null, string? ExcludePublisher = null,
         int? Binding = null, decimal? MinPrice = null, decimal? MaxPrice = null, string? Sort = null,
         bool OnlySalable = false, bool OnlyDiscounted = false,
-        int? MinPageCount = null, int? MaxPageCount = null, string? Category = null);
+        int? MinPageCount = null, int? MaxPageCount = null);
 
     public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl, string? Publisher, string? Isbn);
 
@@ -31,15 +31,6 @@ public static class SearchBooks
             var page = query.Page < 1 ? 1 : query.Page;
             var size = query.PageSize is < 1 or > 20 ? 10 : query.PageSize;
 
-            // Kategori adı/GUID → tek-leaf CategoryId. Verilip çözülemezse sonuç boş (filtre hiçbir şey tutmaz).
-            Guid? categoryId = null;
-            if (!string.IsNullOrWhiteSpace(query.Category))
-            {
-                categoryId = await ResolveCategoryIdAsync(query.Category.Trim(), ct);
-                if (categoryId is null)
-                    return FeatureObjectResultModel<Response>.Ok(new Response { Page = page });
-            }
-
             var request = new SearchRequest(
                 Text: query.Search,
                 Publisher: query.Publisher,
@@ -49,7 +40,6 @@ public static class SearchBooks
                 PageMin: query.MinPageCount,
                 PageMax: query.MaxPageCount,
                 Binding: query.Binding is { } b ? (BindingType)b : null,
-                CategoryId: categoryId,
                 OnlySalable: query.OnlySalable,
                 OnlyDiscounted: query.OnlyDiscounted,
                 Sort: ParseSort(query.Sort),
@@ -85,17 +75,6 @@ public static class SearchBooks
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = result.Total, Page = page });
         }
 
-        // Kategori adı (Türkçe-fold) ya da GUID → tek-leaf CategoryId; eşleşmezse null.
-        private async Task<Guid?> ResolveCategoryIdAsync(string category, CancellationToken ct)
-        {
-            if (Guid.TryParse(category, out var g)) return g;
-            var normalized = NameNormalization.Normalize(category);
-            var match = await session.Query<Category>()
-                .Where(c => c.NormalizedName == normalized && c.ParentCategoryId != null)
-                .FirstOrDefaultAsync(ct);
-            return match?.Id;
-        }
-
         // Serbest sort metni → SortOption (REST ucuyla aynı sözlük; bilinçli tekrar — agent slice izole).
         private static SortOption? ParseSort(string? sort) => sort?.Trim().ToLowerInvariant() switch
         {
@@ -112,7 +91,8 @@ public static class SearchBooks
     {
         [McpServerTool(Name = "search_books")]
         [Description("Katalogda kitap adı veya yazar adıyla arama yapar; eşleşen kitapları " +
-                     "(ad, yazar, fiyat, satılabilirlik, kapak) döner. Anonim erişilebilir.")]
+                     "(ad, yazar, fiyat, satılabilirlik, kapak) döner. Anonim erişilebilir. " +
+                     "(Tür/ton/seviye/konu facet'leri Faz 6'da eklenir.)")]
         public static async Task<Response> SearchBooks(
             IMessageBus bus, ICurrentUser currentUser, IHttpContextAccessor http,
             [Description("Aranacak kitap adı veya yazar adı (serbest metin)")] string? query = null,
@@ -128,7 +108,6 @@ public static class SearchBooks
             [Description("true → yalnız indirimdeki kitaplar")] bool onlyDiscounted = false,
             [Description("En az sayfa sayısı (kalın/uzun kitap)")] int? minPageCount = null,
             [Description("En fazla sayfa sayısı (az sayfa/kısa kitap)")] int? maxPageCount = null,
-            [Description("Kategori filtresi — tek-leaf CategoryId ya da kategori adı (ör. 'Roman')")] string? category = null,
             CancellationToken cancellationToken = default)
         {
             // Cilt tipi serbest metni enum int'ine çevrilir (içerir, büyük/küçük harf duyarsız); eşleşmezse null.
@@ -141,7 +120,7 @@ public static class SearchBooks
 
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
                 new Query(query, page, pageSize, publisher, excludePublisher, bindingValue, minPrice, maxPrice, sort,
-                    onlySalable, onlyDiscounted, minPageCount, maxPageCount, category), cancellationToken);
+                    onlySalable, onlyDiscounted, minPageCount, maxPageCount), cancellationToken);
 
             // 014 US4: login + dolu-sorguda UserSearched yayınla (fanout → Personalization 013). Arama
             // sonucunu ETKİLEMEZ — ayrık + hata-yutar. Anonim (Id boş) ya da boş sorgu → yayınlanmaz.
