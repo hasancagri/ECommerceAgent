@@ -56,9 +56,7 @@ public static class SendMessage
             var isAuthenticated = command.UserId is Guid uid && uid != Guid.Empty;
 
             // Tur boyunca tool çıktılarını yakala (MAF yanıtta surface etmiyor → reply.items buradan).
-            // 019: router agent — sub-agent tool'ları lazy; niyete göre yalnız ilgili MCP ucu bağlanır.
             var collector = new ToolResultCollector();
-            var agent = agentFactory.CreateRouter(collector);
 
             // Girişli: kayıt yükle/oluştur (sahiplik kontrolü) + kullanıcı mesajını ekle.
             Conversation? conversation = null;
@@ -99,6 +97,9 @@ public static class SendMessage
             }
             else
             {
+                // 019: router agent — sub-agent tool'ları lazy; niyete göre yalnız ilgili MCP ucu bağlanır.
+                // Yalnız bu dalda kurulur: pagination bypass router+tool inşasına hiç girmez.
+                var agent = agentFactory.CreateRouter(collector);
                 // Bağlam: girişli → son N kayıttan (FR-012); anonim → istemci-transkript + son mesaj.
                 var contextMessages = BuildContext(conversation, command.Message, command.History,
                     options.MaxContextMessages, options.MaxMessageLength);
