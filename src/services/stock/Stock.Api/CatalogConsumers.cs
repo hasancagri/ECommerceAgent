@@ -6,10 +6,14 @@ namespace Stock.Api;
 // Idempotent: ProductId için kayıt zaten varsa atlar (re-delivery mükerrer açmaz). Rastgele
 // ALTYAPIDA; StockItem.Create(productId, onHand) deterministik (İlke VI). Wolverine *Consumers
 // (çoğul) adını keşfetMEZ → MessagingExtensions IncludeType ZORUNLU.
-public class CatalogConsumers(IMessageBus bus)
+// ATOMISİTE: [Transactional] + metot-param IMessageBus → StockItem yazımı ile StockChanged publish
+// AYNI commit'te (Marten outbox). Elle SaveChangesAsync YOK; ctor-injected bus da YOK (kök publisher
+// enlist etmezdi). Crash penceresi kapalı: ya ikisi de olur ya hiçbiri (kayıp StockChanged → kalıcı 0 stok).
+public class CatalogConsumers
 {
+    [Transactional]
     public async Task Handle(IntegrationEvents.ProductAdded message, IDocumentSession session,
-        CancellationToken ct)
+        IMessageBus bus, CancellationToken ct)
     {
         var exists = await session.Query<StockItem>()
             .AnyAsync(s => s.ProductId == message.ProductId, ct);
@@ -23,8 +27,6 @@ public class CatalogConsumers(IMessageBus bus)
                 $"StockItem.Create reddedildi (ProductId={message.ProductId}, Qty={quantity}).");
 
         session.Store(created.Data!);
-        await session.SaveChangesAsync(ct);
-
         await bus.PublishAsync(new IntegrationEvents.StockChanged(message.ProductId, quantity));
     }
 }
