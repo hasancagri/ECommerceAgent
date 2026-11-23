@@ -13,6 +13,13 @@ public sealed record SearchBookItem(
     string? CoverUrl, string? Publisher, string? Isbn,
     string Genre, IReadOnlyList<string> Moods, bool InStock);
 
+// 021: similar_books (benzer kitap) — eser tekilleştirilmiş, stok-önce. Alan kümesi search_books'la
+// aynı şekle yakın (kart aynı render).
+public sealed record SimilarBooksResult(IReadOnlyList<SimilarBookItem> Items, long Total);
+public sealed record SimilarBookItem(
+    Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, bool InStock,
+    string? CoverUrl, string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods);
+
 // reviews
 public sealed record GetBookReviewsResult(
     IReadOnlyList<ReviewItem> Items, long Total, double Average, int Count, int Page);

@@ -38,7 +38,10 @@ public sealed class CatalogSubAgent(
         "moods=['gerilimli/sürükleyici']. 'roman/öykü/şiir/deneme' → genres. 'çocuk/7 yaş' → " +
         "audienceLevels (yaşa en yakın aralık). 'aşk/savaş/tarih/distopya/kimlik' konu → themes. " +
         "'stokta/mevcut' → onlyInStock. Birden çok uyarsa diziye hepsini koy. Tam karşılık YOKSA uydurma — " +
-        "query serbest metnine bırak. 'ne anlatıyor/özetle' → ÖZET ANLATMA, kartı göster + detay sayfasına yönlendir. " +
+        "query serbest metnine bırak. BENZER KİTAP: 'şuna benzer/buna benzeyen/gibi başka/tarzında' isteğinde " +
+        "ÖNCE `search_books` ile o kitabı bul (productId al), SONRA `similar_books(productId)` çağır — " +
+        "sonuçta aynı eserin başka baskıları gelmez, her eser bir kez. " +
+        "'ne anlatıyor/özetle' → ÖZET ANLATMA, kartı göster + detay sayfasına yönlendir. " +
         "Belirli bir kitabın detayı → `search_books` tam adıyla (en-iyi " +
         "eşleşme kartı; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON aramanın " +
         "page+1'i. Sonuç GERÇEKTEN boşsa dürüstçe 'bulunamadı'. Sonuçlar kullanıcıya KART olarak gösterilir " +
@@ -51,7 +54,7 @@ public sealed class CatalogSubAgent(
                 var agent = new ChatClientAgent(
                     clients.ForModel(ScoutModelResolver.Resolve(options, "catalog")),
                     instructions: Instructions, name: ToolName,
-                    tools: [SearchBooks(collector)]);
+                    tools: [SearchBooks(collector), SimilarBooks(collector)]);
                 var response = await agent.RunAsync(request, cancellationToken: ct);
                 return response.Text ?? string.Empty;
             },
@@ -88,4 +91,23 @@ public sealed class CatalogSubAgent(
                 "moods (karanlık/mizahi-absürt/hüzünlü-melankolik/gerilimli/romantik/ağır-düşündürücü...), " +
                 "audienceLevels (çocuk (4-6)/çocuk (7-10)/genç yetişkin/yetişkin-orta...), " +
                 "themes (aşk-romantizm/distopya-ütopya/savaş-barış/güç-iktidar/tarih-bellek/kimlik...). Sayfalama: page/pageSize.");
+
+    // similar_books — girdi productId + count, çıktı SimilarBooksResult (LİSTE; eser tekilleştirilmiş).
+    private AITool SimilarBooks(ToolResultCollector collector) =>
+        AIFunctionFactory.Create(
+            async (Guid productId, int count, CancellationToken ct) =>
+            {
+                var client = await mcp.GetClientAsync("catalog", ct);
+                var result = await client.CallToolAsync("similar_books", new Dictionary<string, object?>
+                {
+                    ["productId"] = productId, ["count"] = count,
+                }, cancellationToken: ct);
+                var typed = McpToolSource.DeserializeResult<SimilarBooksResult>(result);
+                collector.Add("similar_books", typed);
+                return typed;
+            },
+            name: "similar_books",
+            description: "Bir kitaba BENZER kitapları döner (konu/ton örtüşmesi + aynı yazar/tür). " +
+                "productId: search_books sonucundaki kitabın GUID'i. count: kaç benzer (varsayılan 5, en çok 20). " +
+                "Aynı eserin diğer baskıları gelmez, stokta olanlar önce.");
 }
