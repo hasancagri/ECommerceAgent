@@ -7,6 +7,7 @@ global using Common.Extensions;
 global using Marten.Newtonsoft;
 global using Marten;
 global using Shared;
+global using System.Collections.Frozen;
 global using System.Reflection;
 global using System;
 global using Weasel.Core;
