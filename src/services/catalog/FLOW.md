@@ -15,6 +15,15 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 > **Kategori ağacı KAPALI listedir**: yalnız seed kurar (2 seviye), ebeveyn doğumda sabittir —
 > taşıma/yeniden adlandırma davranışı YOKTUR.
 
+> **019 mini-storm (içerik-temelli keşif, v11 katalog) — _(planned)_:** kullanıcı-etkileşim temelli
+> benzerlik TERK; sınıflandırma YAZMA ANINDA yapılır (v11 Excel LLM pipeline çıktısı), okuma anı
+> deterministik. **Kategori ekseni ÖLÜR** (Category aggregate + RelatedCategoryIds + ağaç + categoryId
+> filtresi) — yerine kapalı-sözlük taksonomi: tür/ton/seviye/konu (+güven). **Etiketler (009 BookTag)
+> ÖLÜR** — kaynak kolon v11'de yok, tür/ton/konu yerini alır. **Eser kimliği (WorkKey):** import anında
+> yazar+parantezsiz-başlıktan türetilip ürüne yazılır; benzerlik aynı eserin baskılarını tekilleştirir.
+> **Stok ikili sinyal:** "SATIŞ YOK*" satırı `ProductAdded(InStock:false)` ile doğar → Stock 0 açar,
+> satıştaki random 20-50; `Product.InStock` hesaplanan özellik (StockCount>0).
+
 ## Süreç
 
 0. 👤 Admin Excel yükler (gateway /api/admin/catalog/imports, anahtar-korumalı)        `(StartImport,`
@@ -52,12 +61,20 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    de eklenir ("karanlık"↔"karanlik", arama köprüsü) → ürün kendi BookTag               ` BookTag.AsciiVariant,`
    listesini taşır (ortak Tag kaydı YOK; değer-eşitliği kitaplar-arası                   ` Product.SetTags)`
    gruplamayı verir). INSERT-ONLY: var olan ISBN etiketi ezilmez.
+   _(019'da ÖLÜR — 4d/4e yerini alır.)_
+4d. 🟦 Taksonomiyi ata (019) — Excel tur/ton/seviye/konu/guven kolonları okunur, kapalı sözlüğe
+   (BookTaxonomy) karşı doğrulanır (liste-dışı değer "belirsiz"e düşer, iş durmaz) → ürün
+   enrichment alanlarını taşır; okuma anında deterministik facet olur. _(planned)_
+4e. 🟦 Eser kimliğini türet (019) — WorkKey = normalize(yazarlar sıralı) + normalize(parantezsiz
+   başlık); import anında hesaplanır, ürüne yazılır. Kullanıcıya/LLM'e görünmez iç alan. _(planned)_
 4c. 🟦 **İndirimi ithal et** (010) — Excel `İndirim %` okunur (ZATEN kesir, 0.285=%28.5);   `(ExcelRowMapper,`
    >0 ∧ ≤0.90 ise ürün yazıldıktan SONRA `ProductDiscountImported(productId, rate)`           ` ImportJobWorker)`
    yayılır ⇨ Discount (ithal: indirim bizim değil Kitapyurdu'nun). 0/boş → event yok.
 6. 🟧 **Ürün doğdu** ⇨ File, Stock (010) — File kapak hattını tetikler; Stock          `(ProductAdded)`
    `ProductAdded`'i tüketip `StockItem.Create(productId, rastgele 30-50)` ile stok
    defteri açar (stok İTHAL edilmez — Excel'de gerçek adet yok).
+   _(019: event'e InStock sinyali eklenir — "SATIŞ YOK*" satırı false taşır; Stock false'a 0,
+   true'ya rastgele 20-50 açar. Gerçek adet yine ithal edilmez, sinyal ikilidir.)_
 5. 🟧⭐ **Ürün değişti** — değişim KANONİK yayınlanır: fiyat decimal;                `(ProductChangedEvent,`
    kategori AD+ID zinciri = leaf + ata (yayın anında ağaçtan çözülür —              ` CategoryNaming.ResolveChain)`
    related GİRMEZ); yazarlar (Id+ad) + yayınevi ADLA (fat event). `IsDeleted`
@@ -83,6 +100,17 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    mode, resultCount, searchedAt)` yayınlanır (fanout). **014 (F1): yayın noktası ScoutAgent
    `search_books` MCP tool'u** — keşif sohbetten geçer; `/products/search` REST ucu saf okuma
    (yayınlamaz). Opsiyonel JWT'den userId; anonim/boş sorgu yayınlamaz. Publish ayrık + hata-yutar.
+8c. 🟦 Facet'le ara (019) — tür/ton/seviye/konu filtreleri aramaya girer (çoklu değer OR; sözlük-dışı
+   değer reddedilir); serbest metin BM25 grubu tur/ton/konu değerlerini de tarar (Etiketler'in
+   yerine). categoryId filtresi ölür. REST + MCP aynı yol. _(planned)_
+8d. 🟦 Benzer kitap bul (019) — similar_books MCP tool'u (yalnız Kâşif): hedef kitabın konu+ton
+   değerleri BM25 örtüşmesiyle aranır + objektif boost (aynı yazar/çevirmen/tür) + hard filtre
+   (dil, çocuk/yetişkin seviye grubu) + WorkKey tekilleştirme (kendi baskıları hariç, eser başına
+   1 sonuç) + stok-önce sıralama. Hedefin enrichment'ı boş/belirsizse fallback: aynı yazar+tür.
+   V1 kaba iskelet — gerçek ayrım V2 embedding (ayrı spec). _(planned)_
+
+🟥 Hotspot (open): 019 — ImportJob `Tagged` sayacının kaderi (öneri: `Enriched`), similar_books
+   sonuç sayısı/boost katsayıları, "stoktaki ürünler" REST filtresi bu dilime girer mi.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

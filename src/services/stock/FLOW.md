@@ -17,6 +17,8 @@ eski Stock BC dijital pivotta sökülmüştü, rezervasyon modeli GERİ GELMEDİ
    adet=rastgele 30-50 (consumer'da üretilir, demo/eğitim verisi — Excel'de gerçek            ` StockItem.Create)`
    adet yok) → `StockItem.Create(productId, adet)` → `StockChanged` yayılır ⇨ Catalog.
    Rastgele ALTYAPIDA; aggregate deterministik (İlke VI). Ürün başına tek kayıt (idempotent).
+   _(019: event'teki InStock sinyaline göre ayrışır — false (Kitapyurdu "SATIŞ YOK") → adet 0
+   ile doğar; true → rastgele 20-50. Bayrak/adet çelişmez; gerçek adet yine ithal edilmez.)_
 2. 🟦 **Satış düşümü** — sipariş akışı eldeki adedi düşer; yetersizse RED                  `(StockItem.Decrease)`
    (aşırı-satış engeli). _(checkout bağlantısı sonraki dilim — bugün çağıranı yok.)_
 3. 🟧⭐ **Adet değişti** ⇨ Catalog — her başarılı atama/düşümde MUTLAK değerle              `(StockChanged)`
