@@ -59,32 +59,70 @@ public sealed class CatalogSubAgent(
             },
             name: ToolName, description: Description);
 
-    // search_books — girdi elle (13 alan), çıktı SearchBooksResult (LİSTE).
+    // search_books — TEK string param (JSON). MAF/UseFunctionInvocation'ın çok-alanlı tipli şema
+    // binding'i KIRILGAN (publisher/price_asc/fiyat alanlarını model gönderince gövdeye hiç girilmiyordu,
+    // sessiz "sorun oluştu"). Tek string param binding'i her zaman sağlam → şemayı baypas edip JSON'u
+    // SUNUCUDA defansif parse ediyoruz (bozuk/çıplak metin → query fallback). query-only zaten çalışıyordu.
     private AITool SearchBooks(ToolResultCollector collector) =>
         AIFunctionFactory.Create(
-            async (string? query, int page, int pageSize, string? publisher, string? excludePublisher,
-                   string? binding, decimal? minPrice, decimal? maxPrice, string? sort, bool onlySalable,
-                   bool onlyDiscounted, int? minPageCount, int? maxPageCount, bool onlyInStock,
-                   CancellationToken ct) =>
+            async (string filters, CancellationToken ct) =>
             {
+                var args = ParseSearchFilters(filters);
                 var client = await mcp.GetClientAsync("catalog", ct);
-                var result = await client.CallToolAsync("search_books", new Dictionary<string, object?>
-                {
-                    ["query"] = query, ["page"] = page, ["pageSize"] = pageSize, ["publisher"] = publisher,
-                    ["excludePublisher"] = excludePublisher, ["binding"] = binding, ["minPrice"] = minPrice,
-                    ["maxPrice"] = maxPrice, ["sort"] = sort, ["onlySalable"] = onlySalable,
-                    ["onlyDiscounted"] = onlyDiscounted, ["minPageCount"] = minPageCount,
-                    ["maxPageCount"] = maxPageCount, ["onlyInStock"] = onlyInStock,
-                }, cancellationToken: ct);
+                var result = await client.CallToolAsync("search_books", args, cancellationToken: ct);
                 var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
                 collector.Add("search_books", typed);
                 return typed;
             },
             name: "search_books",
-            description: "Kitap arar. `query`'ye kullanıcının isteğini olduğu gibi yaz: kitap adı/yazar + " +
-                "tür/ruh-hali/konu/yaş kelimeleri (mizahi, karanlık, distopya, öykü, roman, çocuk, aşk...) — " +
-                "sistem facet'e çevirir. publisher: yayınevi. sort: price_asc/price_desc/newest/popular. " +
-                "binding: karton/ciltli. onlyInStock: stokta. Sayfalama: page/pageSize.");
+            description: "Kitap arar. Tek argüman `filters`: JSON nesnesi (string). Alanlar (hepsi opsiyonel): " +
+                "query (kullanıcının isteği OLDUĞU GİBİ — kitap adı/yazar + tür/ruh-hali/konu/yaş kelimeleri: " +
+                "mizahi, karanlık, distopya, öykü, roman, çocuk, aşk — sistem facet'e çevirir), " +
+                "publisher (yalnız bu yayınevi), excludePublisher (hariç), binding ('karton'/'ciltli'), " +
+                "minPrice, maxPrice (TL sayı), sort ('price_asc'/'price_desc'/'newest'/'popular'), " +
+                "onlySalable, onlyDiscounted, onlyInStock (bool), minPageCount, maxPageCount (sayı), " +
+                "page, pageSize. Örn: {\"query\":\"roman\",\"publisher\":\"Can Yayınları\",\"sort\":\"price_asc\"} " +
+                "ya da sadece {\"query\":\"mizahi öykü\"}.");
+
+    // Model'in yolladığı JSON string'i gevşek parse eder (``` çiti temizle, tip toleranslı, bozuksa
+    // tüm metni query say). Dönen dict doğrudan MCP search_books argümanları.
+    private static Dictionary<string, object?> ParseSearchFilters(string? filters)
+    {
+        var args = new Dictionary<string, object?> { ["page"] = 1, ["pageSize"] = 10 };
+        if (string.IsNullOrWhiteSpace(filters)) return args;
+
+        var text = filters.Trim();
+        if (text.StartsWith("```"))
+            text = text.Trim('`').TrimStart('j', 's', 'o', 'n', 'J', 'S', 'O', 'N').Trim();
+
+        if (!text.StartsWith('{'))
+        {
+            args["query"] = text; // çıplak metin → query
+            return args;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            foreach (var p in doc.RootElement.EnumerateObject())
+            {
+                object? val = p.Value.ValueKind switch
+                {
+                    JsonValueKind.String => p.Value.GetString(),
+                    JsonValueKind.Number => p.Value.TryGetInt32(out var i) ? i : p.Value.GetDecimal(),
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    _ => null,
+                };
+                if (val is not null) args[p.Name] = val;
+            }
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            args["query"] = text; // bozuk JSON → tüm metni query say
+        }
+        return args;
+    }
 
     // similar_books — girdi productId + count, çıktı SimilarBooksResult (LİSTE; eser tekilleştirilmiş).
     private AITool SimilarBooks(ToolResultCollector collector) =>
