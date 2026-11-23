@@ -8,8 +8,10 @@ namespace ScoutAgent.Api.Domains.Conversations;
 public static class ConversationEndpointExtension
 {
     // history: anon istemci-transkript (devamlılık/sayfalama). Login'de yok sayılır.
+    // lastSearch: React'in sakladığı son aramanın filtre+page'i — "devamını getir"de page+1 taşır.
     public record SendMessageRequest(
-        Guid? ConversationId, string Message, IReadOnlyList<SendMessage.HistoryTurn>? History = null);
+        Guid? ConversationId, string Message, IReadOnlyList<SendMessage.HistoryTurn>? History = null,
+        SendMessage.LastSearch? LastSearch = null);
 
     public static void MapConversationEndpoints(this IEndpointRouteBuilder app)
     {
@@ -39,7 +41,8 @@ public static class ConversationEndpointExtension
             try
             {
                 var result = await bus.InvokeAsync<FeatureObjectResultModel<SendMessage.Response>>(
-                    new SendMessage.Command(request.ConversationId, request.Message, userId, request.History), ct);
+                    new SendMessage.Command(request.ConversationId, request.Message, userId, request.History,
+                        request.LastSearch), ct);
 
                 return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
             }
