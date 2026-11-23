@@ -71,7 +71,7 @@ public sealed class CatalogSubAgent(
                 var client = await mcp.GetClientAsync("catalog", ct);
                 var result = await client.CallToolAsync("search_books", args, cancellationToken: ct);
                 var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
-                collector.Add("search_books", typed);
+                collector.Add("search_books", typed, args); // args echo → React sayfalama için saklar
                 return typed;
             },
             name: "search_books",

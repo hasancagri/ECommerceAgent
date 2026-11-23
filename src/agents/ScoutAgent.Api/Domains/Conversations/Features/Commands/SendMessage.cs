@@ -19,7 +19,8 @@ public static class SendMessage
     public record HistoryTurn(string Role, string Text);
 
     // 019 (B): Result TİPLİ — ToolResults ayna-tipi (JsonElement yalnız bilinmeyen tool fallback).
-    public record ReplyItem(string Tool, object Result);
+    // Filters: yalnız search_books'ta dolu (kullanılan arama args'ı; React sayfalama için saklar+taşır).
+    public record ReplyItem(string Tool, object Result, object? Filters = null);
 
     public class Reply
     {
@@ -172,7 +173,7 @@ public static class SendMessage
         private static IReadOnlyList<ReplyItem> BuildItems(ToolResultCollector collector) =>
             collector.Results
                 .Where(r => r.Result is not null)
-                .Select(r => new ReplyItem(r.Tool, r.Result!))
+                .Select(r => new ReplyItem(r.Tool, r.Result!, r.Filters))
                 .ToList();
     }
 }

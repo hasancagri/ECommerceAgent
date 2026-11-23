@@ -6,7 +6,8 @@ namespace ScoutAgent.Api.Agents;
 // sıralı → thread-safe değil). Sıra = çağrı sırası (D5).
 public sealed class ToolResultCollector
 {
-    private readonly List<(string Tool, object? Result)> _results = [];
-    public void Add(string tool, object? result) => _results.Add((tool, result));
-    public IReadOnlyList<(string Tool, object? Result)> Results => _results;
+    private readonly List<(string Tool, object? Result, object? Filters)> _results = [];
+    // filters: yalnız search_books doldurur (kullanılan arama args'ı) — React sayfalama için saklar.
+    public void Add(string tool, object? result, object? filters = null) => _results.Add((tool, result, filters));
+    public IReadOnlyList<(string Tool, object? Result, object? Filters)> Results => _results;
 }
