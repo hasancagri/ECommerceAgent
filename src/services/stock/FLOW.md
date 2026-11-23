@@ -13,12 +13,11 @@ eski Stock BC dijital pivotta sökülmüştü, rezervasyon modeli GERİ GELMEDİ
 1. 🟦 **Stok kaydı açılır / adet atanır** — 👤 admin ürüne mutlak adet girer                `(StockItem.Create,`
    (0 geçerli: tükenmiş kitap kayıtla doğabilir); ürün başına TEK kayıt                    ` StockItem.SetQuantity)`
    (DB-seviyesi teklik). _(giriş yüzeyi yok — REST admin sonraki dilim.)_
-1b. 🟪 **Ürün doğunca stok seed** (010) ⇦ Catalog — `ProductAdded` tüketilir →            `(CatalogConsumers,`
-   adet=rastgele 30-50 (consumer'da üretilir, demo/eğitim verisi — Excel'de gerçek            ` StockItem.Create)`
-   adet yok) → `StockItem.Create(productId, adet)` → `StockChanged` yayılır ⇨ Catalog.
-   Rastgele ALTYAPIDA; aggregate deterministik (İlke VI). Ürün başına tek kayıt (idempotent).
-   _(019: event'teki InStock sinyaline göre ayrışır — false (Kitapyurdu "SATIŞ YOK") → adet 0
-   ile doğar; true → rastgele 20-50. Bayrak/adet çelişmez; gerçek adet yine ithal edilmez.)_
+1b. 🟪 **Ürün doğunca stok seed** (010/021) ⇦ Catalog — `ProductAdded` tüketilir →         `(CatalogConsumers,`
+   `InStock` sinyaline göre ayrışır: false (Kitapyurdu "SATIŞ YOK*") → adet 0 (tükenmiş); ` StockItem.Create)`
+   true → rastgele 20-50. Bayrak/adet çelişmez; gerçek adet İTHAL edilmez (Excel stok %97 boş).
+   → `StockItem.Create(productId, adet)` → `StockChanged` yayılır ⇨ Catalog. Rastgele ALTYAPIDA;
+   aggregate deterministik (İlke VI). Ürün başına tek kayıt (idempotent).
 2. 🟦 **Satış düşümü** — sipariş akışı eldeki adedi düşer; yetersizse RED                  `(StockItem.Decrease)`
    (aşırı-satış engeli). _(checkout bağlantısı sonraki dilim — bugün çağıranı yok.)_
 3. 🟧⭐ **Adet değişti** ⇨ Catalog — her başarılı atama/düşümde MUTLAK değerle              `(StockChanged)`
