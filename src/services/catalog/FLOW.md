@@ -1,8 +1,8 @@
 # Catalog — Domain Süreci (EventStorming)
 
-**BC ne yapar:** Kitap künyesini (ad/açıklama/fiyat/yazar/yayınevi/tek-leaf kategori/kapak) tutar ve
-değişimi fat event'le duyurur. Ürünler **first-party** (feed yok); 091 JSON seed'i SÖKÜLDÜ (098) —
-giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yok).
+**BC ne yapar:** Kitap künyesini (ad/açıklama/fiyat/yazar/yayınevi/taksonomi/kapak) tutar ve değişimi
+fat event'le duyurur. Ürünler **first-party** (feed yok); giriş yolu v11 Excel import (021 — çok-sayfalı,
+INSERT-ONLY, iki-faz dry-run/confirm). Keşif ekseni kapalı-sözlük taksonomi (kategori 021'de SÖKÜLDÜ).
 
 > Duvar dili: 🟦 komut · 🟧 event (⭐ pivotal) · 🟪 policy · 🟨 aggregate · 🟥 hotspot · 🟩 read-model ·
 > ⇨/⇦ BC-arası dikiş (hedef/kaynak BC). Satır sonu backtick `(…)` = koda köprü, süreç değil.
@@ -15,14 +15,14 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 > **Kategori ağacı KAPALI listedir**: yalnız seed kurar (2 seviye), ebeveyn doğumda sabittir —
 > taşıma/yeniden adlandırma davranışı YOKTUR.
 
-> **019 mini-storm (içerik-temelli keşif, v11 katalog) — _(planned)_:** kullanıcı-etkileşim temelli
-> benzerlik TERK; sınıflandırma YAZMA ANINDA yapılır (v11 Excel LLM pipeline çıktısı), okuma anı
-> deterministik. **Kategori ekseni ÖLÜR** (Category aggregate + RelatedCategoryIds + ağaç + categoryId
-> filtresi) — yerine kapalı-sözlük taksonomi: tür/ton/seviye/konu (+güven). **Etiketler (009 BookTag)
-> ÖLÜR** — kaynak kolon v11'de yok, tür/ton/konu yerini alır. **Eser kimliği (WorkKey):** import anında
-> yazar+parantezsiz-başlıktan türetilip ürüne yazılır; benzerlik aynı eserin baskılarını tekilleştirir.
-> **Stok ikili sinyal:** "SATIŞ YOK*" satırı `ProductAdded(InStock:false)` ile doğar → Stock 0 açar,
-> satıştaki random 20-50; `Product.InStock` hesaplanan özellik (StockCount>0).
+> **021 notu (içerik-temelli keşif, v11 katalog — as-built):** kullanıcı-etkileşim temelli benzerlik
+> TERK; sınıflandırma YAZMA ANINDA (v11 Excel LLM pipeline çıktısı), okuma anı deterministik.
+> **Kategori ekseni SÖKÜLDÜ** (Category aggregate + RelatedCategoryIds + ağaç + CategoryNaming +
+> categoryId filtresi) — yerine kapalı-sözlük taksonomi: `Genre`/`Moods`/`AudienceLevel`/`Themes`
+> (+`EnrichmentConfidence`), değerler Türkçe sözlük (`BookTaxonomy`). **Etiketler (009 BookTag) SÖKÜLDÜ.**
+> **Eser kimliği (WorkKey):** import anında yazar+parantezsiz-başlıktan türetilir; benzerlik aynı eserin
+> baskılarını tekilleştirir. **Stok ikili sinyal:** "SATIŞ YOK*" satırı `ProductAdded(InStock:false)` →
+> Stock 0; satıştaki random 20-50; `Product.InStock` hesaplanan (StockCount>0).
 
 ## Süreç
 
@@ -53,34 +53,23 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
    IsSalable'a GİRMEZ. _(Yayıncı yürürlük süreci Discount'ta sonraki dilim.)_
 3. 🟨 **Yazar(lar) + yayınevi bulun-veya-doğur** — her yazar adı                    `(Author.Create, Product.SetAuthors,`
    normalize+aranır (çok-çok, Id listesi); yayınevi tek (çok-bir).                  ` Publisher.Create, Product.SetPublisher)`
-4. 🟦 **Tek leaf kategoriye bağla** — leaf kapalı ağaçtan adla çözülür              `(NameNormalization.Normalize,`
-   (çözülemeyen → "Genel"); üst kategori ürüne YAZILMAZ. İlgili                     ` Product.SetCategory,`
-   kategoriler editoryal liste olarak ayrı atanır (çözülemeyen atlanır).            ` Product.SetRelatedCategories)`
-4b. 🟦 **Etiketleri ata** (009) — Excel `Etiketler` sütunu virgülle bölünür,       `(ExcelRowMapper,`
-   her parça lowercase normalize edilir + Türkçe karakterli olanın ASCII ikizi         ` BookTag.Create,`
-   de eklenir ("karanlık"↔"karanlik", arama köprüsü) → ürün kendi BookTag               ` BookTag.AsciiVariant,`
-   listesini taşır (ortak Tag kaydı YOK; değer-eşitliği kitaplar-arası                   ` Product.SetTags)`
-   gruplamayı verir). INSERT-ONLY: var olan ISBN etiketi ezilmez.
-   _(019'da ÖLÜR — 4d/4e yerini alır.)_
-4d. 🟦 Taksonomiyi ata (019) — Excel tur/ton/seviye/konu/guven kolonları okunur, kapalı sözlüğe
-   (BookTaxonomy) karşı doğrulanır (liste-dışı değer "belirsiz"e düşer, iş durmaz) → ürün
-   enrichment alanlarını taşır; okuma anında deterministik facet olur. _(planned)_
-4e. 🟦 Eser kimliğini türet (019) — WorkKey = normalize(yazarlar sıralı) + normalize(parantezsiz
-   başlık); import anında hesaplanır, ürüne yazılır. Kullanıcıya/LLM'e görünmez iç alan. _(planned)_
+4. 🟦 **Taksonomiyi ata** (021 — kategori ekseni SÖKÜLDÜ) — Excel tur/ton/seviye/     `(ExcelRowMapper,`
+   konu/guven kolonları HAM okunur → `SetEnrichment` kapalı sözlüğe (BookTaxonomy)      ` Product.SetEnrichment)`
+   kanonikleştirir (takma-ad eşle, karşılıksız DÜŞER, tur/seviye geçersiz→"belirsiz",
+   kardinalite kırp, güven clamp). Okuma anında deterministik facet olur.
+4e. 🟦 **Eser kimliğini türet** (021) — WorkKey = normalize(yazarlar sıralı) +        `(WorkKeyNormalizer.Derive,`
+   normalize(parantezsiz başlık); import anında hesaplanır, ürüne yazılır              ` Product.SetWorkKey)`
+   (Türkçe fold → ASCII). Kullanıcıya/LLM'e görünmez iç alan; benzerlik tekilleştirmesi bundan.
 4c. 🟦 **İndirimi ithal et** (010) — Excel `İndirim %` okunur (ZATEN kesir, 0.285=%28.5);   `(ExcelRowMapper,`
    >0 ∧ ≤0.90 ise ürün yazıldıktan SONRA `ProductDiscountImported(productId, rate)`           ` ImportJobWorker)`
    yayılır ⇨ Discount (ithal: indirim bizim değil Kitapyurdu'nun). 0/boş → event yok.
-6. 🟧 **Ürün doğdu** ⇨ File, Stock (010) — File kapak hattını tetikler; Stock          `(ProductAdded)`
-   `ProductAdded`'i tüketip `StockItem.Create(productId, rastgele 30-50)` ile stok
-   defteri açar (stok İTHAL edilmez — Excel'de gerçek adet yok).
-   _(019: event'e InStock sinyali eklenir — "SATIŞ YOK*" satırı false taşır; Stock false'a 0,
-   true'ya rastgele 20-50 açar. Gerçek adet yine ithal edilmez, sinyal ikilidir.)_
-5. 🟧⭐ **Ürün değişti** — değişim KANONİK yayınlanır: fiyat decimal;                `(ProductChangedEvent,`
-   kategori AD+ID zinciri = leaf + ata (yayın anında ağaçtan çözülür —              ` CategoryNaming.ResolveChain)`
-   related GİRMEZ); yazarlar (Id+ad) + yayınevi ADLA (fat event). `IsDeleted`
-   kontratta kalır, hep `false` gider. **Tüketicisi ŞU AN YOK (097):** Library
-   aboneliği söküldü (alarm tetiği öldü) — event ileriye dönük kontrat olarak
-   yayılmaya devam eder (keşif/ML tüketicileri gelecek).
+6. 🟧 **Ürün doğdu** ⇨ File, Stock (010/021) — File kapak hattını tetikler; Stock      `(ProductAdded)`
+   `ProductAdded`'i tüketir: `InStock` sinyaline göre adet (false→0, true→rastgele
+   20-50) ile stok defteri açar. Gerçek adet İTHAL edilmez (Excel stok %97 boş); sinyal ikili.
+5. 🟧⭐ **Ürün değişti** — değişim KANONİK yayınlanır: fiyat decimal; yazarlar        `(ProductChangedEvent)`
+   (Id+ad) + yayınevi ADLA (fat event). `IsDeleted` kontratta kalır, hep `false`.
+   **021: kategori alanları kontrattan SÖKÜLDÜ** (tüketicisiz, 097); taksonomi tüketici
+   doğunca additive eklenir. **Tüketicisi ŞU AN YOK** — ileriye dönük kontrat olarak yayılır.
 6. 🟧 **Ürün doğdu** ⇨ File — yalnız kapak hattını tetikler (ISBN→ürün):            `(ProductAdded)`
    File `ProductAdded`'i tüketir, kapağı çözer. YALNIZ doğumda yayılır.
 6b. 🟧 **Kapak alındı** ⇦ File → 🟪 **Kapak ürüne bağlanır** (004 — 097 kapaksızlık      `(FileConsumers,`
@@ -92,7 +81,8 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 8a. 🟦 Ara (018 US1) — metin+filtre+sort+sayfalama TEK SearchRequest → tek SQL:             `(ProductSearchQueries.SearchAsync,`
    metin var → `@@@`+`paradedb.score` (alaka); açık sort → fast-field ORDER BY;             ` SearchPredicateBuilder, SearchProducts,`
    metin+sort yok → `paradedb.all()` + popülerlik. Filtre (yayınevi/fiyat/sayfa/cilt/        ` SearchBooks.Tool)`
-   kategori/satışta/indirimli) `@@@` clause + SQL predicate. Sıralı id → künye (Marten,
+   satışta/indirimli) `@@@` clause; **taksonomi facet (021) + stokta + exclude-yayınevi `@@@`
+   DIŞI jsonb SQL predicate** (çok-kelime token çarpışması önlenir). Sıralı id → künye (Marten,
    sıra korunur). REST `/products/search` + MCP `search_books` AYNI yol (mode YOK).
    **018: semantik/embedding/RRF/pgvector SÖKÜLDÜ — BM25 tek motor; semantik ileride yeni spec.**
    Yayın filtresi yok — her ürün keşfedilebilir.
@@ -106,24 +96,23 @@ giriş yolu Excel import olacak (spec yazılmadı, bugün ürün doğuran yol yo
 8d. 🟦 Benzer kitap bul (019) — similar_books MCP tool'u (yalnız Kâşif): hedef kitabın konu+ton
    değerleri BM25 örtüşmesiyle aranır + objektif boost (aynı yazar/çevirmen/tür) + hard filtre
    (dil, çocuk/yetişkin seviye grubu) + WorkKey tekilleştirme (kendi baskıları hariç, eser başına
-   1 sonuç) + stok-önce sıralama. Hedefin enrichment'ı boş/belirsizse fallback: aynı yazar+tür.
-   V1 kaba iskelet — gerçek ayrım V2 embedding (ayrı spec). _(planned)_
+   1 sonuç `DISTINCT ON`) + stok-önce sıralama. Hedefin enrichment'ı boş/belirsizse fallback: aynı
+   yazar+tür. V1 kaba iskelet — gerçek ayrım V2 embedding (ayrı spec).
 
-🟥 Hotspot (open): 019 — ImportJob `Tagged` sayacının kaderi (öneri: `Enriched`), similar_books
-   sonuç sayısı/boost katsayıları, "stoktaki ürünler" REST filtresi bu dilime girer mi.
+🟥 Hotspot (closed: 021): `Tagged`→`Enriched` oldu; similar_books varsayılan 5/üst 20 + boost
+   katsayıları `SimilarBooksOptions` (config); "stokta" REST+MCP filtresi (`OnlyInStock`) bu dilime girdi.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **ISBN = kimlik (095).** Ürün Gtin'iyle doğar ve bulunur (`Gtin` unique-index — DB-seviyesi guard); Sku yok.
-- **Tek leaf kategori zorunlu.** Ürün TEK leaf'e bağlanır `(Product.SetCategory)`; üst kategori ürüne denormalize edilmez — "üst kategorideki tüm kitaplar" ağaçtan cevaplanır. Kategorisiz giriş satırı "Genel"e düşer.
-- **İlgili kategoriler editoryal (095).** `RelatedCategoryIds` yalnız "bu kategoriyle DE ilgili" ilişkisi; primary/ata zinciriyle karışmaz, event zincirine girmez `(Product.SetRelatedCategories)`.
-- **Kategori ağacı kapalı + doğumda sabit (095).** Ağaç yalnız toplu girişle kurulur (≤2 seviye; 091 seed'i söküldü, 098 Excel import devralacak); ebeveyn doğumda sabit, taşı/yeniden adlandır davranışı yok; ad ağaç-global unique — ihlalde kuruluş deterministik hata verir.
+- **Keşif ekseni = kapalı-sözlük taksonomi (021 — kategori ekseni SÖKÜLDÜ).** `Genre`/`Moods`/`AudienceLevel`/`Themes` değerleri `BookTaxonomy` sözlüğünden; yazma anında kanonikleşir (`Product.SetEnrichment` — geçersiz düşer/"belirsiz"), okuma anında facet. Serbest string üretimi imkansız.
+- **Eser kimliği (021).** `WorkKey` = normalize(sıralı yazarlar)+parantezsiz başlık `(WorkKeyNormalizer.Derive)`; aynı eserin baskıları TEK anahtara iner. İç alan — kullanıcı/LLM yüzeyine çıkmaz; benzerlik tekilleştirmesinin temeli.
 - **Fiyat opsiyonel, atanırsa >0 (001 — 097 revizesi).** Ürün fiyatsız doğabilir; fiyat sonradan atanır ve serbest değişir, her değer >0 `(Product.Create, Product.SetPrice)`. Fiyatı geri "fiyatsız"a çeviren yol yok; fiyat geçmişi (058) sökük kalır.
 - **Satışa-uygunluk TEK tanım (001).** Satılabilir = fiyat>0 ∧ stok>0 ∧ ≥1 yazar `(Product.IsSalable)`; stok ayağı Stock dönene dek değerlendirme dışı. Kural hiçbir yüzeye kopyalanmaz.
 - **Ürün var = keşfedilebilir (091 + 001 nüansı).** Taslak/yayın/gizleme yok; her ürün doğduğu an katalogda görünür — görünür ≠ satın alınabilir (IsSalable ayrı).
 - **Silme yok (016 sürer).** `ProductChangedEvent.IsDeleted` kontratta durur, hep `false` gider.
 - **Toplu giriş var olana dokunmaz (091 ilkesi sürer).** Yalnız EKSİK ISBN eklenir; admin düzenlemesi ezilmez (upsert bilinçli reddedildi).
-- **Dış dünyaya iki yol = event.** `ProductChangedEvent` (her değişim; ad+id zinciri yayın anında `CategoryNaming.ResolveChain` ile — tüketicisi ŞU AN yok, 097), `ProductAdded` (yalnız doğumda → File kapak kayıt hattı).
+- **Dış dünyaya iki yol = event.** `ProductChangedEvent` (her değişim; 021: kategori alanları sökük, tüketicisi ŞU AN yok, 097), `ProductAdded` (yalnız doğumda → File kapak + Stock seed; `InStock` ikili sinyali taşır).
 
 ## Sınır (bu BC'nin dokunmadığı)
 
