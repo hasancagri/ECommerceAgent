@@ -10,6 +10,10 @@ namespace Catalog.Api.Search;
 // id'ye çözülüp verilir (builder saf kalır — ad→id DB işi burada YOK).
 public static class SearchPredicateBuilder
 {
+    // Marten/Newtonsoft List<T>'i `{"$type":...,"$values":[...]}` olarak saklar — liste alanının gerçek
+    // dizisine inmek için `$values` alt-yolu. BM25 (`data.X.$values`) + jsonb (`data->'X'->'$values'`).
+    public const string JsonValues = "$values";
+
     public static SearchPredicate Build(
         SearchRequest request,
         IReadOnlyList<Guid>? publisherIds = null,
@@ -20,9 +24,11 @@ public static class SearchPredicateBuilder
         // 1. Text — her terim bir OR-grubu (Name/Description + taksonomi alanları); gürültü Bm25Terms'te
         // elenir. 021: taksonomi değerleri serbest metin aramasına girer (Tags.Value yerine) — "mizahi"
         // yazan kullanıcı ton'u mizahi kitaplara da ulaşır (açıklamada kelime olmasa bile).
+        // TUZAK: Marten/Newtonsoft List<string>'i `{$type,$values:[...]}` olarak saklar → liste alanı
+        // BM25 yolu `data.Moods.$values` (düz `data.Moods` sarmalayıcı objesine çarpar, 0 döner).
         foreach (var t in Bm25Terms.Extract(request.Text))
             clauses.Add($"(data.Name:{t} OR data.Description:{t} OR data.Genre:{t} " +
-                        $"OR data.Moods:{t} OR data.Themes:{t})");
+                        $"OR data.Moods.{JsonValues}:{t} OR data.Themes.{JsonValues}:{t})");
 
         // 2. Publisher — ad handler'da Marten ile id SET'ine çözülür (Contains → çok yayınevi mümkün).
         // Quoted phrase (term() uuid'de tokenize edip 0 döner); çok id → OR-grubu.
@@ -62,10 +68,12 @@ public static class SearchPredicateBuilder
 
         // 021: taksonomi facet'leri jsonb operatörüyle (@@@ DIŞI — çok-kelimeli sözlük değerinde token
         // çarpışması false-positive üretir). Tekil alan `= ANY(text[])`; liste alan `?| text[]` (OR hazır).
+        // TUZAK: liste alanı `data->'Moods'->'$values'` (Marten/Newtonsoft `{$type,$values}` sarmalar;
+        // düz `data->'Moods'` obje → `?|` anahtarlara bakar, hiç eşleşmez).
         AddAnyFilter(sqlFilters, "data->>'Genre'", request.Genres);
         AddAnyFilter(sqlFilters, "data->>'AudienceLevel'", request.AudienceLevels);
-        AddExistsFilter(sqlFilters, "data->'Moods'", request.Moods);
-        AddExistsFilter(sqlFilters, "data->'Themes'", request.Themes);
+        AddExistsFilter(sqlFilters, $"data->'Moods'->'{JsonValues}'", request.Moods);
+        AddExistsFilter(sqlFilters, $"data->'Themes'->'{JsonValues}'", request.Themes);
 
         // OnlyInStock — Product.InStock HESAPLANAN (saklanmaz); stok kopyası StockCount>0 süzgeci.
         if (request.OnlyInStock)

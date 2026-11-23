@@ -27,11 +27,13 @@ public static class SimilarBooks
     {
         public static string? BuildBm25Query(IEnumerable<string> themes, IEnumerable<string> moods)
         {
+            // TUZAK: liste alanı `data.Themes.$values` (Marten/Newtonsoft `{$type,$values}` sarmalar;
+            // düz `data.Themes` sarmalayıcı objeye çarpar, 0 eşleşir).
             var terms = new List<string>();
             foreach (var t in themes)
-                if (!string.IsNullOrWhiteSpace(t)) terms.Add($"data.Themes:\"{Escape(t)}\"");
+                if (!string.IsNullOrWhiteSpace(t)) terms.Add($"data.Themes.$values:\"{Escape(t)}\"");
             foreach (var m in moods)
-                if (!string.IsNullOrWhiteSpace(m)) terms.Add($"data.Moods:\"{Escape(m)}\"");
+                if (!string.IsNullOrWhiteSpace(m)) terms.Add($"data.Moods.$values:\"{Escape(m)}\"");
             return terms.Count == 0 ? null : string.Join(" OR ", terms);
         }
 

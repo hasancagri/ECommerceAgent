@@ -6,6 +6,7 @@ namespace Catalog.Api.Tests;
 // fallback kararı. SQL yürütümü (SimilarBooksQueries) host-gerekli → canlı doğrulanır (quickstart).
 public class SimilarBooksQueryTests
 {
+    // Liste alanları `.$values` ($type/$values sarmalayıcı tuzağı — canlı doğrulandı).
     [Fact]
     public void BuildOverlapQuery_ThemesAndMoods_BuildsOrTerms()
     {
@@ -13,21 +14,21 @@ public class SimilarBooksQueryTests
             themes: new[] { "distopya/ütopya", "güç/iktidar" },
             moods: new[] { "karanlık" });
 
-        q.ShouldBe("data.Themes:\"distopya/ütopya\" OR data.Themes:\"güç/iktidar\" OR data.Moods:\"karanlık\"");
+        q.ShouldBe("data.Themes.$values:\"distopya/ütopya\" OR data.Themes.$values:\"güç/iktidar\" OR data.Moods.$values:\"karanlık\"");
     }
 
     [Fact]
     public void BuildOverlapQuery_OnlyThemes_BuildsThemeTerms()
     {
         var q = SimilarBooks.Overlap.BuildBm25Query(new[] { "aşk/romantizm" }, Array.Empty<string>());
-        q.ShouldBe("data.Themes:\"aşk/romantizm\"");
+        q.ShouldBe("data.Themes.$values:\"aşk/romantizm\"");
     }
 
     [Fact]
     public void BuildOverlapQuery_OnlyMoods_BuildsMoodTerms()
     {
         var q = SimilarBooks.Overlap.BuildBm25Query(Array.Empty<string>(), new[] { "mizahi/absürt" });
-        q.ShouldBe("data.Moods:\"mizahi/absürt\"");
+        q.ShouldBe("data.Moods.$values:\"mizahi/absürt\"");
     }
 
     [Fact]
@@ -41,7 +42,7 @@ public class SimilarBooksQueryTests
     public void BuildOverlapQuery_IgnoresBlankValues()
     {
         var q = SimilarBooks.Overlap.BuildBm25Query(new[] { "aile", "  ", "" }, new[] { "" });
-        q.ShouldBe("data.Themes:\"aile\"");
+        q.ShouldBe("data.Themes.$values:\"aile\"");
     }
 
     [Fact]
@@ -49,6 +50,6 @@ public class SimilarBooksQueryTests
     {
         // Sözlük değerleri tırnak taşımaz ama savunma: gömülü " kaçırılır (sorgu kırılmaz).
         var q = SimilarBooks.Overlap.BuildBm25Query(new[] { "a\"b" }, Array.Empty<string>());
-        q.ShouldBe("data.Themes:\"a\\\"b\"");
+        q.ShouldBe("data.Themes.$values:\"a\\\"b\"");
     }
 }

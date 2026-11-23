@@ -22,8 +22,9 @@ public class SearchPredicateBuilderTests
     }
 
     // 021: text OR-grubu taksonomi alanlarını da tarar (Genre/Moods/Themes — Tags.Value yerine).
+    // Liste alanları `.$values` ($type/$values sarmalayıcı tuzağı — canlı doğrulandı).
     private static string TextGroup(string t) =>
-        $"(data.Name:{t} OR data.Description:{t} OR data.Genre:{t} OR data.Moods:{t} OR data.Themes:{t})";
+        $"(data.Name:{t} OR data.Description:{t} OR data.Genre:{t} OR data.Moods.$values:{t} OR data.Themes.$values:{t})";
 
     [Fact]
     public void Build_TextSingleTerm_BuildsOrGroup()
@@ -191,7 +192,7 @@ public class SearchPredicateBuilderTests
     {
         var p = SearchPredicateBuilder.Build(new SearchRequest(Moods: ["karanlık", "gizemli"]));
         var f = p.SqlFilters.ShouldHaveSingleItem();
-        f.Column.ShouldBe("data->'Moods'");
+        f.Column.ShouldBe("data->'Moods'->'$values'"); // $values sarmalayıcı tuzağı (canlı doğrulandı)
         f.Op.ShouldBe("?|"); // jsonb ?| text[] = herhangi biri (OR bedava)
         f.Value.ShouldBe(new[] { "karanlık", "gizemli" });
     }
@@ -201,7 +202,7 @@ public class SearchPredicateBuilderTests
     {
         var p = SearchPredicateBuilder.Build(new SearchRequest(Themes: ["aşk/romantizm"]));
         var f = p.SqlFilters.ShouldHaveSingleItem();
-        f.Column.ShouldBe("data->'Themes'");
+        f.Column.ShouldBe("data->'Themes'->'$values'");
         f.Op.ShouldBe("?|");
     }
 

@@ -65,7 +65,7 @@ public sealed class SimilarBooksQueries(
         AppendBoosts(score, target, authorArr, genreIsKnown, args);
 
         var sim = new List<string>();
-        if (authorArr.Length > 0) sim.Add($"p.data->'AuthorIds' ?| {Param(args, authorArr)}");
+        if (authorArr.Length > 0) sim.Add($"p.data->'AuthorIds'->'$values' ?| {Param(args, authorArr)}");
         if (genreIsKnown) sim.Add($"p.data->>'Genre' = {Param(args, target.Genre)}");
         var where = new StringBuilder("(" + string.Join(" OR ", sim) + ")");
         AppendHardFilters(where, target, levels, args);
@@ -76,10 +76,11 @@ public sealed class SimilarBooksQueries(
     private void AppendBoosts(StringBuilder score, Product target, string[] authorArr, bool genreIsKnown,
         List<object> args)
     {
+        // TUZAK: liste alanı `->'$values'` (Marten/Newtonsoft `{$type,$values}` sarmalar).
         if (authorArr.Length > 0)
-            score.Append($" + CASE WHEN p.data->'AuthorIds' ?| {Param(args, authorArr)} THEN {Lit(options.AuthorBoost)} ELSE 0 END");
+            score.Append($" + CASE WHEN p.data->'AuthorIds'->'$values' ?| {Param(args, authorArr)} THEN {Lit(options.AuthorBoost)} ELSE 0 END");
         if (target.Translators.Count > 0)
-            score.Append($" + CASE WHEN p.data->'Translators' ?| {Param(args, target.Translators.ToArray())} THEN {Lit(options.TranslatorBoost)} ELSE 0 END");
+            score.Append($" + CASE WHEN p.data->'Translators'->'$values' ?| {Param(args, target.Translators.ToArray())} THEN {Lit(options.TranslatorBoost)} ELSE 0 END");
         if (genreIsKnown)
             score.Append($" + CASE WHEN p.data->>'Genre' = {Param(args, target.Genre)} THEN {Lit(options.GenreBoost)} ELSE 0 END");
     }
