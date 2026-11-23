@@ -68,4 +68,38 @@ public class ProductSearchValidationTests
     {
         SearchParameters.NormalizeOffset(40).ShouldBe(40);
     }
+
+    // --- 021 (FR-014): taksonomi facet değerleri kapalı sözlüğe karşı doğrulanır ---
+
+    [Fact]
+    public void FirstInvalid_AllCanonical_ReturnsNull()
+    {
+        var invalid = TaxonomyFacetValidator.FirstInvalid(
+            genres: ["roman"], moods: ["karanlık"],
+            audienceLevels: ["yetişkin-orta"], themes: ["aşk/romantizm", "kimlik"]);
+        invalid.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FirstInvalid_UnknownGenre_ReturnsThatValue()
+    {
+        var invalid = TaxonomyFacetValidator.FirstInvalid(
+            genres: ["roman", "şarkı sözü"], moods: null, audienceLevels: null, themes: null);
+        invalid.ShouldBe("şarkı sözü");
+    }
+
+    [Fact]
+    public void FirstInvalid_UnknownTheme_ReturnsThatValue()
+    {
+        // "tarih" ham değer kanonik DEĞİL (kanonik "tarih/bellek") — facet TAM değer ister.
+        var invalid = TaxonomyFacetValidator.FirstInvalid(
+            genres: null, moods: null, audienceLevels: null, themes: ["tarih"]);
+        invalid.ShouldBe("tarih");
+    }
+
+    [Fact]
+    public void FirstInvalid_NullAndEmpty_ReturnsNull()
+    {
+        TaxonomyFacetValidator.FirstInvalid(null, [], null, []).ShouldBeNull();
+    }
 }

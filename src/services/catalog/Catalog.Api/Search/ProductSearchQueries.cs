@@ -41,10 +41,11 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
             where.Append($"id @@@ ${args.Count}");
         }
         else where.Append("id @@@ paradedb.all()");
+        // 021: `(${n})` sarması — `= ANY (…)` ve `?| (…)` parantez ister; skaler op'larda zararsız.
         foreach (var f in predicate.SqlFilters)
         {
             args.Add(f.Value);
-            where.Append($" AND {f.Column} {f.Op} ${args.Count}");
+            where.Append($" AND {f.Column} {f.Op} (${args.Count})");
         }
 
         // 4. Total (süzülmüş; sayfalama/sıralama öncesi).

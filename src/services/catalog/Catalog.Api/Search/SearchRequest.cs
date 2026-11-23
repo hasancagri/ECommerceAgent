@@ -14,6 +14,14 @@ public sealed record SearchRequest(
     BindingType? Binding = null,
     bool OnlySalable = false,
     bool OnlyDiscounted = false,
+    // 021: taksonomi facet'leri — çoklu değer (alan içi OR, alanlar arası AND); exact-match
+    // (metin-içi tesadüf değil). Sözlük-dışı değer handler/validation'da reddedilir.
+    IReadOnlyList<string>? Genres = null,
+    IReadOnlyList<string>? Moods = null,
+    IReadOnlyList<string>? AudienceLevels = null,
+    IReadOnlyList<string>? Themes = null,
+    // 021: StockCount>0 süzgeci (IsSalable'dan ayrı — fiyat/yazar da istemez).
+    bool OnlyInStock = false,
     SortOption? Sort = null,
     int Page = 1,
     int PageSize = SearchParameters.DefaultLimit);

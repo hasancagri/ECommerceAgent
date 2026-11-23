@@ -32,14 +32,23 @@ public static class ProductEndpointExtension
             [FromQuery] decimal? maxPrice,
             [FromQuery] int? minPageCount,
             [FromQuery] int? maxPageCount,
+            [FromQuery] string[]? genre,
+            [FromQuery] string[]? mood,
+            [FromQuery] string[]? audienceLevel,
+            [FromQuery] string[]? theme,
             [FromQuery] bool? onlySalable,
             [FromQuery] bool? onlyDiscounted,
+            [FromQuery] bool? onlyInStock,
             [FromQuery] string? sort,
             [FromQuery] int? page,
             [FromQuery] int? pageSize,
             IMessageBus bus,
             CancellationToken ct) =>
         {
+            // 021: sözlük-dışı facet değeri reddedilir (FR-014) — anlaşılır 400 (filtre sessizce boş değil).
+            if (TaxonomyFacetValidator.FirstInvalid(genre, mood, audienceLevel, theme) is { } invalid)
+                return Results.BadRequest(new { error = "CATALOG_TAXONOMY_VALUE_INVALID", value = invalid });
+
             // 014 US4 (F1): UserSearched yayını burada DEĞİL → tek kaynak ScoutAgent search_books. Saf okuma.
             var request = new SearchRequest(
                 Text: q,
@@ -52,6 +61,11 @@ public static class ProductEndpointExtension
                 Binding: binding is { } b ? (BindingType)b : null,
                 OnlySalable: onlySalable ?? false,
                 OnlyDiscounted: onlyDiscounted ?? false,
+                Genres: genre,
+                Moods: mood,
+                AudienceLevels: audienceLevel,
+                Themes: theme,
+                OnlyInStock: onlyInStock ?? false,
                 Sort: ParseSort(sort),
                 Page: page is { } p && p > 0 ? p : 1,
                 PageSize: SearchParameters.NormalizeLimit(pageSize));

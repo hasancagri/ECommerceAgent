@@ -17,10 +17,12 @@ public static class SearchPredicateBuilder
     {
         var clauses = new List<string>();
 
-        // 1. Text — her terim bir OR-grubu (Name/Description); gürültü Bm25Terms'te elenir.
-        // (021: Tags.Value çıktı; Faz 6'da taksonomi alanları bu gruba girer.)
+        // 1. Text — her terim bir OR-grubu (Name/Description + taksonomi alanları); gürültü Bm25Terms'te
+        // elenir. 021: taksonomi değerleri serbest metin aramasına girer (Tags.Value yerine) — "mizahi"
+        // yazan kullanıcı ton'u mizahi kitaplara da ulaşır (açıklamada kelime olmasa bile).
         foreach (var t in Bm25Terms.Extract(request.Text))
-            clauses.Add($"(data.Name:{t} OR data.Description:{t})");
+            clauses.Add($"(data.Name:{t} OR data.Description:{t} OR data.Genre:{t} " +
+                        $"OR data.Moods:{t} OR data.Themes:{t})");
 
         // 2. Publisher — ad handler'da Marten ile id SET'ine çözülür (Contains → çok yayınevi mümkün).
         // Quoted phrase (term() uuid'de tokenize edip 0 döner); çok id → OR-grubu.
@@ -50,13 +52,40 @@ public static class SearchPredicateBuilder
 
         var pdbClause = clauses.Count > 0 ? string.Join(" AND ", clauses) : null;
 
-        // ExcludePublisher → SQL predicate (NOT string query'de bozuk). Her id bir `<> $n` (hepsi AND).
+        // @@@ DIŞI SQL predicate'ler (parametreli; research R1). Executor `{Column} {Op} (${n})` kurar.
         var sqlFilters = new List<SqlFilter>();
+
+        // ExcludePublisher → SQL predicate (NOT string query'de bozuk). Her id bir `<> $n` (hepsi AND).
         if (excludePublisherIds is { Count: > 0 })
             foreach (var ex in excludePublisherIds)
                 sqlFilters.Add(new SqlFilter("data->>'PublisherId'", "<>", ex.ToString()));
 
+        // 021: taksonomi facet'leri jsonb operatörüyle (@@@ DIŞI — çok-kelimeli sözlük değerinde token
+        // çarpışması false-positive üretir). Tekil alan `= ANY(text[])`; liste alan `?| text[]` (OR hazır).
+        AddAnyFilter(sqlFilters, "data->>'Genre'", request.Genres);
+        AddAnyFilter(sqlFilters, "data->>'AudienceLevel'", request.AudienceLevels);
+        AddExistsFilter(sqlFilters, "data->'Moods'", request.Moods);
+        AddExistsFilter(sqlFilters, "data->'Themes'", request.Themes);
+
+        // OnlyInStock — Product.InStock HESAPLANAN (saklanmaz); stok kopyası StockCount>0 süzgeci.
+        if (request.OnlyInStock)
+            sqlFilters.Add(new SqlFilter("(data->>'StockCount')::int", ">", 0));
+
         return new SearchPredicate(pdbClause, sqlFilters);
+    }
+
+    // Tekil string alan çoklu değer: `data->>'X' = ANY($n)` (değer dizisi text[]).
+    private static void AddAnyFilter(List<SqlFilter> filters, string column, IReadOnlyList<string>? values)
+    {
+        if (values is { Count: > 0 })
+            filters.Add(new SqlFilter(column, "= ANY", values.ToArray()));
+    }
+
+    // JSON dizi alan çoklu değer: `data->'X' ?| $n` (herhangi biri eleman olarak var mı; text[]).
+    private static void AddExistsFilter(List<SqlFilter> filters, string column, IReadOnlyList<string>? values)
+    {
+        if (values is { Count: > 0 })
+            filters.Add(new SqlFilter(column, "?|", values.ToArray()));
     }
 
     private static void AddRange(List<string> clauses, string field, string? min, string? max)

@@ -32,6 +32,13 @@ public sealed class CatalogSubAgent(
         "'İş Bankası','Can Yayınları','Yapı Kredi/YKY','İletişim','Everest') adı `publisher`'a GİT — query'ye " +
         "KOYMA; 'X hariç/dışında/X olmayan/X dışı' → excludePublisher. Yazar+yayınevi BİRLİKTE gelirse " +
         "(ör. 'Tolstoy'un İş Kültür kitapları') yazarı `query`'ye, yayınevini `publisher`'a AYIR. " +
+        "TAKSONOMİYİ EŞLE (kullanıcının ruh hali/tür/konu/yaş niyetini TAM sözlük değerine çevir, " +
+        "query'ye KOYMA): 'mizahi/komik/eğlenceli' → moods=['mizahi/absürt']; 'karanlık/kasvetli' → " +
+        "moods=['karanlık']; 'hüzünlü/dokunaklı' → moods=['hüzünlü/melankolik']; 'gerilim/sürükleyici' → " +
+        "moods=['gerilimli/sürükleyici']. 'roman/öykü/şiir/deneme' → genres. 'çocuk/7 yaş' → " +
+        "audienceLevels (yaşa en yakın aralık). 'aşk/savaş/tarih/distopya/kimlik' konu → themes. " +
+        "'stokta/mevcut' → onlyInStock. Birden çok uyarsa diziye hepsini koy. Tam karşılık YOKSA uydurma — " +
+        "query serbest metnine bırak. 'ne anlatıyor/özetle' → ÖZET ANLATMA, kartı göster + detay sayfasına yönlendir. " +
         "Belirli bir kitabın detayı → `search_books` tam adıyla (en-iyi " +
         "eşleşme kartı; derin künye kartın detay sayfasında). 'devamını getir/sonraki' = SON aramanın " +
         "page+1'i. Sonuç GERÇEKTEN boşsa dürüstçe 'bulunamadı'. Sonuçlar kullanıcıya KART olarak gösterilir " +
@@ -56,6 +63,7 @@ public sealed class CatalogSubAgent(
             async (string? query, int page, int pageSize, string? publisher, string? excludePublisher,
                    string? binding, decimal? minPrice, decimal? maxPrice, string? sort, bool onlySalable,
                    bool onlyDiscounted, int? minPageCount, int? maxPageCount,
+                   string[]? genres, string[]? moods, string[]? audienceLevels, string[]? themes, bool onlyInStock,
                    CancellationToken ct) =>
             {
                 var client = await mcp.GetClientAsync("catalog", ct);
@@ -65,14 +73,19 @@ public sealed class CatalogSubAgent(
                     ["excludePublisher"] = excludePublisher, ["binding"] = binding, ["minPrice"] = minPrice,
                     ["maxPrice"] = maxPrice, ["sort"] = sort, ["onlySalable"] = onlySalable,
                     ["onlyDiscounted"] = onlyDiscounted, ["minPageCount"] = minPageCount,
-                    ["maxPageCount"] = maxPageCount,
+                    ["maxPageCount"] = maxPageCount, ["genres"] = genres, ["moods"] = moods,
+                    ["audienceLevels"] = audienceLevels, ["themes"] = themes, ["onlyInStock"] = onlyInStock,
                 }, cancellationToken: ct);
                 var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
                 collector.Add("search_books", typed);
                 return typed;
             },
             name: "search_books",
-            description: "Kitap adı/yazar + filtre/sıralama ile kitap arar; sayfalı liste döner. " +
+            description: "Kitap adı/yazar + filtre/sıralama/taksonomi ile kitap arar; sayfalı liste döner. " +
                 "publisher: YALNIZ bu yayınevi (kısmi ad, ör. 'İş Kültür'). excludePublisher: bu yayınevini hariç tut. " +
-                "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. Sayfalama: page/pageSize.");
+                "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. onlyInStock: yalnız stokta. " +
+                "TAKSONOMİ (TAM sözlük değeri — çoklu): genres (roman/öykü/şiir/deneme/biyografi/çocuk resimli kitap...), " +
+                "moods (karanlık/mizahi-absürt/hüzünlü-melankolik/gerilimli/romantik/ağır-düşündürücü...), " +
+                "audienceLevels (çocuk (4-6)/çocuk (7-10)/genç yetişkin/yetişkin-orta...), " +
+                "themes (aşk-romantizm/distopya-ütopya/savaş-barış/güç-iktidar/tarih-bellek/kimlik...). Sayfalama: page/pageSize.");
 }

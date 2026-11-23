@@ -6,10 +6,12 @@ namespace ScoutAgent.Api.Agents;
 // tipli (sniff + LLM uydurması YOK, FR-005 korunur). React tool adına göre render eder.
 
 // catalog (018: get_book SÖKÜLDÜ — tekil kitap da search_books; derin künye React detay sayfasında)
+// 021: + Genre/Moods/InStock (taksonomi facet'leri + stok sinyali).
 public sealed record SearchBooksResult(IReadOnlyList<SearchBookItem> Items, long Total, int Page);
 public sealed record SearchBookItem(
     Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
-    string? CoverUrl, string? Publisher, string? Isbn);
+    string? CoverUrl, string? Publisher, string? Isbn,
+    string Genre, IReadOnlyList<string> Moods, bool InStock);
 
 // reviews
 public sealed record GetBookReviewsResult(

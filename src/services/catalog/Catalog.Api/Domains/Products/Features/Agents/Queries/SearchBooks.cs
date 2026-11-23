@@ -13,9 +13,13 @@ public static class SearchBooks
     public record Query(string? Search, int Page, int PageSize, string? Publisher = null, string? ExcludePublisher = null,
         int? Binding = null, decimal? MinPrice = null, decimal? MaxPrice = null, string? Sort = null,
         bool OnlySalable = false, bool OnlyDiscounted = false,
-        int? MinPageCount = null, int? MaxPageCount = null);
+        int? MinPageCount = null, int? MaxPageCount = null,
+        IReadOnlyList<string>? Genres = null, IReadOnlyList<string>? Moods = null,
+        IReadOnlyList<string>? AudienceLevels = null, IReadOnlyList<string>? Themes = null,
+        bool OnlyInStock = false);
 
-    public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl, string? Publisher, string? Isbn);
+    public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl,
+        string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods, bool InStock);
 
     public class Response
     {
@@ -42,6 +46,11 @@ public static class SearchBooks
                 Binding: query.Binding is { } b ? (BindingType)b : null,
                 OnlySalable: query.OnlySalable,
                 OnlyDiscounted: query.OnlyDiscounted,
+                Genres: query.Genres,
+                Moods: query.Moods,
+                AudienceLevels: query.AudienceLevels,
+                Themes: query.Themes,
+                OnlyInStock: query.OnlyInStock,
                 Sort: ParseSort(query.Sort),
                 Page: page,
                 PageSize: size);
@@ -70,7 +79,10 @@ public static class SearchBooks
                 p.IsSalable,
                 p.ImageUrl,
                 publisherNameById.GetValueOrDefault(p.PublisherId),
-                p.Gtin)).ToList();   // 015: ISBN → kart SEO-link'i /kitap/{slug}-{isbn} kurar
+                p.Gtin,               // 015: ISBN → kart SEO-link'i /kitap/{slug}-{isbn} kurar
+                p.Genre,
+                p.Moods.ToList(),
+                p.StockCount > 0)).ToList(); // InStock = stok kopyası > 0
 
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = result.Total, Page = page });
         }
@@ -108,6 +120,15 @@ public static class SearchBooks
             [Description("true → yalnız indirimdeki kitaplar")] bool onlyDiscounted = false,
             [Description("En az sayfa sayısı (kalın/uzun kitap)")] int? minPageCount = null,
             [Description("En fazla sayfa sayısı (az sayfa/kısa kitap)")] int? maxPageCount = null,
+            [Description("Tür facet'i (çoklu, TAM sözlük değeri): roman, öykü, şiir, deneme, " +
+                         "biyografi, çocuk resimli kitap, inceleme/araştırma, tarih anlatısı...")] string[]? genres = null,
+            [Description("Ton/ruh hali facet'i (çoklu, TAM değer): karanlık, mizahi/absürt, " +
+                         "hüzünlü/melankolik, gerilimli/sürükleyici, romantik, ağır/düşündürücü, sıcak/samimi...")] string[]? moods = null,
+            [Description("Seviye/kitle facet'i (çoklu, TAM değer): çocuk (0-3), çocuk (4-6), " +
+                         "çocuk (7-10), çocuk (10-12), genç yetişkin, yetişkin-giriş/orta/ileri")] string[]? audienceLevels = null,
+            [Description("Konu/tema facet'i (çoklu, TAM değer): aşk/romantizm, distopya/ütopya, " +
+                         "savaş/barış, güç/iktidar, suç/adalet, tarih/bellek, kimlik, doğa/çevre...")] string[]? themes = null,
+            [Description("true → yalnız stokta olanlar (StockCount>0; satılabilirlikten ayrı)")] bool onlyInStock = false,
             CancellationToken cancellationToken = default)
         {
             // Cilt tipi serbest metni enum int'ine çevrilir (içerir, büyük/küçük harf duyarsız); eşleşmezse null.
@@ -120,7 +141,8 @@ public static class SearchBooks
 
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
                 new Query(query, page, pageSize, publisher, excludePublisher, bindingValue, minPrice, maxPrice, sort,
-                    onlySalable, onlyDiscounted, minPageCount, maxPageCount), cancellationToken);
+                    onlySalable, onlyDiscounted, minPageCount, maxPageCount,
+                    genres, moods, audienceLevels, themes, onlyInStock), cancellationToken);
 
             // 014 US4: login + dolu-sorguda UserSearched yayınla (fanout → Personalization 013). Arama
             // sonucunu ETKİLEMEZ — ayrık + hata-yutar. Anonim (Id boş) ya da boş sorgu → yayınlanmaz.
