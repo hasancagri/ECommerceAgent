@@ -453,6 +453,19 @@ public class ProductTests
         product.EnrichmentConfidence.ShouldBe(expected);
     }
 
+    [Fact]
+    public void InStock_DerivedFromStockCount_TrueWhenPositive()
+    {
+        var product = NewProduct();
+        product.InStock.ShouldBeFalse();     // stok 0 (varsayılan)
+
+        product.SetStockCount(5);
+        product.InStock.ShouldBeTrue();
+
+        product.SetStockCount(0);
+        product.InStock.ShouldBeFalse();     // tükenmiş
+    }
+
     // --- SetWorkKey ---
 
     [Fact]

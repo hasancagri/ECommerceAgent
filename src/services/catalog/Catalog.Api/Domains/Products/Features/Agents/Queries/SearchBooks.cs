@@ -82,7 +82,7 @@ public static class SearchBooks
                 p.Gtin,               // 015: ISBN → kart SEO-link'i /kitap/{slug}-{isbn} kurar
                 p.Genre,
                 p.Moods.ToList(),
-                p.StockCount > 0)).ToList(); // InStock = stok kopyası > 0
+                p.InStock)).ToList(); // 021: türetilmiş (StockCount>0)
 
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = result.Total, Page = page });
         }

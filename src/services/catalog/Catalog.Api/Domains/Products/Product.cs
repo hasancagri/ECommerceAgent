@@ -71,6 +71,10 @@ public class Product : AggregateRoot
     /// saf getter, hiçbir yere kopyalanmaz; stok bacağı StockChanged-fed kopyadan okunur.</summary>
     public bool IsSalable => Price is { Amount: > 0 } && StockCount > 0 && _authorIds.Count > 0;
 
+    /// <summary>Stokta mı (021) — türetilmiş saf getter (StockCount>0; saklanmaz, çelişemez).
+    /// "Stoktaki ürünler" sorgusunun TEK tanımı; IsSalable'dan ayrı (fiyat/yazar istemez).</summary>
+    public bool InStock => StockCount > 0;
+
     /// <summary>Stok adet kopyasını yazar (002). Çağıranı YALNIZ StockChanged tüketici kablosu —
     /// kullanıcı/admin yolu değildir; otorite Stock BC. Negatif reddedilir; idempotent (mutlak değer).</summary>
     public ResultDomain SetStockCount(int stockCount)

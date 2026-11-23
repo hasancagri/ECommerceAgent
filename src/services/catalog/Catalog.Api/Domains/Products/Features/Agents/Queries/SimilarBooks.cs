@@ -67,7 +67,7 @@ public static class SimilarBooks
             var items = similar.Select(p => new BookItem(
                 p.Id, p.Name,
                 string.Join(", ", p.AuthorIds.Select(id => authorNameById.GetValueOrDefault(id)).Where(n => n is not null)),
-                p.Price?.Amount, p.IsSalable, p.StockCount > 0, p.ImageUrl,
+                p.Price?.Amount, p.IsSalable, p.InStock, p.ImageUrl,
                 publisherNameById.GetValueOrDefault(p.PublisherId), p.Gtin,
                 p.Genre, p.Moods.ToList())).ToList();
 
