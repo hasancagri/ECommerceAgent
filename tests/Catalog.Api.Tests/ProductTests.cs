@@ -349,4 +349,118 @@ public class ProductTests
         product.SetImage(null).IsSuccess.ShouldBeTrue();
         product.ImageUrl.ShouldBeNull();
     }
+
+    // --- SetEnrichment (021: kapalı-sözlük taksonomi; geçersiz değer düşer/"belirsiz"e iner, iş durmaz) ---
+
+    [Fact]
+    public void SetEnrichment_ValidCanonicalValues_AssignsAll()
+    {
+        var product = NewProduct();
+
+        var result = product.SetEnrichment(
+            "roman", new[] { "karanlık", "ağır/düşündürücü" }, "yetişkin-orta",
+            new[] { "distopya/ütopya", "güç/iktidar" }, 0.95m);
+
+        result.IsSuccess.ShouldBeTrue();
+        product.Genre.ShouldBe("roman");
+        product.Moods.ShouldBe(new[] { "karanlık", "ağır/düşündürücü" });
+        product.AudienceLevel.ShouldBe("yetişkin-orta");
+        product.Themes.ShouldBe(new[] { "distopya/ütopya", "güç/iktidar" });
+        product.EnrichmentConfidence.ShouldBe(0.95m);
+    }
+
+    [Fact]
+    public void SetEnrichment_AliasValues_Canonicalizes()
+    {
+        var product = NewProduct();
+
+        product.SetEnrichment("roman", new[] { "mizahi" }, "yetişkin-orta", new[] { "tarih" }, 0.8m);
+
+        product.Moods.ShouldBe(new[] { "mizahi/absürt" }); // takma-ad → kanonik
+        product.Themes.ShouldBe(new[] { "tarih/bellek" });
+    }
+
+    [Fact]
+    public void SetEnrichment_UnmappableValues_Dropped()
+    {
+        var product = NewProduct();
+
+        product.SetEnrichment("roman", new[] { "karanlık", "uydurma-ton" }, "yetişkin-orta",
+            new[] { "distopya/ütopya", "kent/İstanbul" }, 0.7m);
+
+        product.Moods.ShouldBe(new[] { "karanlık" });           // uydurma düştü
+        product.Themes.ShouldBe(new[] { "distopya/ütopya" });   // yer adı düştü
+    }
+
+    [Fact]
+    public void SetEnrichment_InvalidGenre_FallsBackToUnknown()
+    {
+        var product = NewProduct();
+
+        product.SetEnrichment("şarkı sözü", Array.Empty<string>(), "", Array.Empty<string>(), 0.3m);
+
+        product.Genre.ShouldBe(BookTaxonomy.Unknown);
+        product.AudienceLevel.ShouldBe(BookTaxonomy.Unknown);   // boş seviye → belirsiz
+    }
+
+    [Fact]
+    public void SetEnrichment_MoodsOverThree_TrimsToFirstThree()
+    {
+        var product = NewProduct();
+
+        product.SetEnrichment("roman",
+            new[] { "karanlık", "ağır/düşündürücü", "gizemli", "nostaljik" }, // 4 geçerli
+            "yetişkin-orta", Array.Empty<string>(), 0.9m);
+
+        product.Moods.Count.ShouldBe(3);
+        product.Moods.ShouldBe(new[] { "karanlık", "ağır/düşündürücü", "gizemli" });
+    }
+
+    [Fact]
+    public void SetEnrichment_ThemesOverFour_TrimsToFirstFour()
+    {
+        var product = NewProduct();
+
+        product.SetEnrichment("roman", Array.Empty<string>(), "yetişkin-orta",
+            new[] { "aşk/romantizm", "aile", "kimlik", "siyaset", "özgürlük" }, 0.9m); // 5 geçerli
+
+        product.Themes.Count.ShouldBe(4);
+        product.Themes.ShouldBe(new[] { "aşk/romantizm", "aile", "kimlik", "siyaset" });
+    }
+
+    [Fact]
+    public void SetEnrichment_DuplicateValues_Deduped()
+    {
+        var product = NewProduct();
+
+        product.SetEnrichment("roman", new[] { "karanlık", "karanlık" }, "yetişkin-orta",
+            new[] { "aile", "aile" }, 0.9m);
+
+        product.Moods.ShouldBe(new[] { "karanlık" });
+        product.Themes.ShouldBe(new[] { "aile" });
+    }
+
+    [Theory]
+    [InlineData(-0.5, 0.0)]
+    [InlineData(1.5, 1.0)]
+    [InlineData(0.42, 0.42)]
+    public void SetEnrichment_Confidence_ClampedToUnitInterval(decimal input, decimal expected)
+    {
+        var product = NewProduct();
+
+        product.SetEnrichment("roman", Array.Empty<string>(), "belirsiz", Array.Empty<string>(), input);
+
+        product.EnrichmentConfidence.ShouldBe(expected);
+    }
+
+    // --- SetWorkKey ---
+
+    [Fact]
+    public void SetWorkKey_AssignsValue()
+    {
+        var product = NewProduct();
+
+        product.SetWorkKey("dostoyevski|suc ve ceza").IsSuccess.ShouldBeTrue();
+        product.WorkKey.ShouldBe("dostoyevski|suc ve ceza");
+    }
 }

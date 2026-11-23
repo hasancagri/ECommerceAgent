@@ -50,6 +50,23 @@ public class Product : AggregateRoot
     private readonly List<string> _translators = new();
     public IReadOnlyList<string> Translators => _translators;
 
+    // 021: kapalı-sözlük taksonomi (enrichment pipeline çıktısı — yazma-anı sınıflandırma, okuma-anı
+    // facet). Değerler BookTaxonomy sözlüğünden; geçersiz olan SetEnrichment'ta düşer/"belirsiz"e iner.
+    public string Genre { get; private set; } = BookTaxonomy.Unknown;      // tur (tek)
+    private readonly List<string> _moods = new();                          // ton (0-3)
+    public IReadOnlyList<string> Moods => _moods;
+    public string AudienceLevel { get; private set; } = BookTaxonomy.Unknown; // seviye (tek)
+    private readonly List<string> _themes = new();                         // konu (0-4)
+    public IReadOnlyList<string> Themes => _themes;
+    public decimal EnrichmentConfidence { get; private set; }              // güven [0,1]
+
+    // 021: eser kimliği — normalize(yazar)+parantezsiz başlık; benzerlik eser-tekilleştirmesi bundan.
+    // İç alan (kullanıcıya/LLM'e çıkmaz). Import'ta WorkKeyNormalizer.Derive ile türetilir.
+    public string WorkKey { get; private set; } = string.Empty;
+
+    private const int MaxMoods = 3;
+    private const int MaxThemes = 4;
+
     /// <summary>Satışa-uygunluk — TEK tanım (001+002): fiyat>0 VE stok>0 VE ≥1 yazar. Türetilmiş
     /// saf getter, hiçbir yere kopyalanmaz; stok bacağı StockChanged-fed kopyadan okunur.</summary>
     public bool IsSalable => Price is { Amount: > 0 } && StockCount > 0 && _authorIds.Count > 0;
@@ -205,6 +222,44 @@ public class Product : AggregateRoot
             .ToList();
         _translators.Clear();
         _translators.AddRange(cleaned);
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>Kapalı-sözlük taksonomiyi TAM-DEĞİŞTİRME ile yazar (021). Her değer BookTaxonomy ile
+    /// kanonikleştirilir (takma-ad eşlenir, karşılıksız DÜŞER — iş durmaz, FR-005); tur/seviye geçersizse
+    /// "belirsiz"e iner. Liste alanlar dedupe + kardinalite kırpılır (ton≤3, konu≤4). Güven [0,1] clamp.
+    /// Hep Ok (geçersiz değer hata değil, düşürme).</summary>
+    public ResultDomain SetEnrichment(string? genre, IEnumerable<string> moods, string? audienceLevel,
+        IEnumerable<string> themes, decimal confidence)
+    {
+        Genre = BookTaxonomy.CanonicalGenre(genre ?? string.Empty) ?? BookTaxonomy.Unknown;
+        AudienceLevel = BookTaxonomy.CanonicalAudienceLevel(audienceLevel ?? string.Empty) ?? BookTaxonomy.Unknown;
+
+        _moods.Clear();
+        _moods.AddRange(moods
+            .Select(BookTaxonomy.CanonicalMood)
+            .Where(m => m is not null)
+            .Select(m => m!)
+            .Distinct()
+            .Take(MaxMoods));
+
+        _themes.Clear();
+        _themes.AddRange(themes
+            .Select(BookTaxonomy.CanonicalTheme)
+            .Where(t => t is not null)
+            .Select(t => t!)
+            .Distinct()
+            .Take(MaxThemes));
+
+        EnrichmentConfidence = Math.Clamp(confidence, 0m, 1m);
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>Eser kimliğini yazar (021). Çağıranı import — WorkKeyNormalizer.Derive çıktısını alır.
+    /// Boş değer geçerli (yazarsız/başlıksız kenar). Hep Ok.</summary>
+    public ResultDomain SetWorkKey(string workKey)
+    {
+        WorkKey = workKey ?? string.Empty;
         return ResultDomain.Ok();
     }
 }
