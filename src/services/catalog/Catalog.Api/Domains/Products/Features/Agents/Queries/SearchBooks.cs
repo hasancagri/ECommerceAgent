@@ -10,13 +10,12 @@ namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 // sorgusuyla çözer. Agent query slice — MCP tool sarmalayıcısı aynı dosyada (conventions VSA).
 public static class SearchBooks
 {
+    // 021: facet array param'ları KALDIRILDI — taksonomi SUNUCUDA query metninden çıkarılır
+    // (BookTaxonomy.ExtractFromText). LLM yalnız query + temel filtre yollar (basit tool → mini güvenilir çağırır).
     public record Query(string? Search, int Page, int PageSize, string? Publisher = null, string? ExcludePublisher = null,
         int? Binding = null, decimal? MinPrice = null, decimal? MaxPrice = null, string? Sort = null,
         bool OnlySalable = false, bool OnlyDiscounted = false,
-        int? MinPageCount = null, int? MaxPageCount = null,
-        IReadOnlyList<string>? Genres = null, IReadOnlyList<string>? Moods = null,
-        IReadOnlyList<string>? AudienceLevels = null, IReadOnlyList<string>? Themes = null,
-        bool OnlyInStock = false);
+        int? MinPageCount = null, int? MaxPageCount = null, bool OnlyInStock = false);
 
     public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl,
         string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods, bool InStock);
@@ -35,12 +34,9 @@ public static class SearchBooks
             var page = query.Page < 1 ? 1 : query.Page;
             var size = query.PageSize is < 1 or > 20 ? 10 : query.PageSize;
 
-            // 021 "net karşılık, zorlama yok" — İKİ KAYNAK birleşir:
-            // (1) LLM'in gönderdiği facet'ler kanonikleştirilir (sinonim eşle, karşılıksız düşür).
-            // (2) Sunucu, query METNİNİ tarar (BookTaxonomy.ExtractFromText) — LLM mood'u kaçırsa bile
-            //     "mizahi" kelimesi metinde kalmışsa facet'e lift eder; taksonomi kelimeleri metinden
-            //     çıkar (BM25 over-constrain olmasın). Deterministik, ek maliyet yok (mini yeter).
-            //     REST yüzeyi strict kalır (FR-014, TaxonomyFacetValidator); agent yüzeyi hoşgörülü.
+            // 021 "net karşılık": SUNUCU query metnini tarar (BookTaxonomy.ExtractFromText) — taksonomi
+            // kelimelerini facet'e lift eder (mizahi→mood, distopya→theme, çoğul fan-out, Türkçe stem),
+            // kalanı BM25'e bırakır. LLM facet göndermez — sadece query. Deterministik, mini yeter.
             var fromText = BookTaxonomy.ExtractFromText(query.Search);
             var request = new SearchRequest(
                 Text: string.IsNullOrWhiteSpace(fromText.RemainingText) ? null : fromText.RemainingText,
@@ -53,10 +49,10 @@ public static class SearchBooks
                 Binding: query.Binding is { } b ? (BindingType)b : null,
                 OnlySalable: query.OnlySalable,
                 OnlyDiscounted: query.OnlyDiscounted,
-                Genres: Merge(Canonicalize(query.Genres, BookTaxonomy.ResolveGenre), fromText.Genres),
-                Moods: Merge(Canonicalize(query.Moods, BookTaxonomy.ResolveMood), fromText.Moods),
-                AudienceLevels: Merge(Canonicalize(query.AudienceLevels, BookTaxonomy.ResolveAudienceLevel), fromText.AudienceLevels),
-                Themes: Merge(Canonicalize(query.Themes, BookTaxonomy.ResolveTheme), fromText.Themes),
+                Genres: Nullable(fromText.Genres),
+                Moods: Nullable(fromText.Moods),
+                AudienceLevels: Nullable(fromText.AudienceLevels),
+                Themes: Nullable(fromText.Themes),
                 OnlyInStock: query.OnlyInStock,
                 Sort: ParseSort(query.Sort),
                 Page: page,
@@ -94,20 +90,7 @@ public static class SearchBooks
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = result.Total, Page = page });
         }
 
-        // Facet değerlerini sözlüğe çöz (ÇOĞUL: net=tek, zorlama=çoklu fan-out), karşılıksızı düşür; boş → null.
-        private static IReadOnlyList<string>? Canonicalize(IReadOnlyList<string>? values, Func<string, IReadOnlyList<string>> resolve)
-        {
-            if (values is null || values.Count == 0) return null;
-            var mapped = values.SelectMany(resolve).Distinct().ToList();
-            return mapped.Count > 0 ? mapped : null;
-        }
-
-        // İki kaynağı (LLM facet'i + metinden lift) birleştir, tekilleştir; boş → null.
-        private static IReadOnlyList<string>? Merge(IReadOnlyList<string>? llm, IReadOnlyList<string> fromText)
-        {
-            var merged = (llm ?? []).Concat(fromText).Distinct().ToList();
-            return merged.Count > 0 ? merged : null;
-        }
+        private static IReadOnlyList<string>? Nullable(IReadOnlyList<string> values) => values.Count > 0 ? values : null;
 
         // Serbest sort metni → SortOption (REST ucuyla aynı sözlük; bilinçli tekrar — agent slice izole).
         private static SortOption? ParseSort(string? sort) => sort?.Trim().ToLowerInvariant() switch
@@ -124,12 +107,13 @@ public static class SearchBooks
     public static class Tool
     {
         [McpServerTool(Name = "search_books")]
-        [Description("Katalogda kitap adı veya yazar adıyla arama yapar; eşleşen kitapları " +
-                     "(ad, yazar, fiyat, satılabilirlik, kapak) döner. Anonim erişilebilir. " +
-                     "(Tür/ton/seviye/konu facet'leri Faz 6'da eklenir.)")]
+        [Description("Katalogda kitap arar. `query`'ye kullanıcının isteğini OLDUĞU GİBİ yaz — kitap adı, " +
+                     "yazar VE tür/ruh-hali/konu/yaş kelimeleri (mizahi, karanlık, distopya, öykü, roman, " +
+                     "çocuk, aşk, savaş...). Sistem bu kelimeleri otomatik facet'e çevirir. Sayfalı liste döner.")]
         public static async Task<Response> SearchBooks(
             IMessageBus bus, ICurrentUser currentUser, IHttpContextAccessor http,
-            [Description("Aranacak kitap adı veya yazar adı (serbest metin)")] string? query = null,
+            [Description("Kullanıcının isteği OLDUĞU GİBİ: kitap adı/yazar + tür/ruh-hali/konu kelimeleri " +
+                         "(ör. 'mizahi öykü', 'karanlık distopya roman', 'Dostoyevski')")] string? query = null,
             [Description("Sayfa numarası (1'den başlar)")] int page = 1,
             [Description("Sayfa boyutu (en fazla 20)")] int pageSize = 10,
             [Description("YALNIZ bu yayınevinden; kısmi ad eşleşir, ör. 'İş Kültür'")] string? publisher = null,
@@ -142,15 +126,7 @@ public static class SearchBooks
             [Description("true → yalnız indirimdeki kitaplar")] bool onlyDiscounted = false,
             [Description("En az sayfa sayısı (kalın/uzun kitap)")] int? minPageCount = null,
             [Description("En fazla sayfa sayısı (az sayfa/kısa kitap)")] int? maxPageCount = null,
-            [Description("Tür facet'i (çoklu, TAM sözlük değeri): roman, öykü, şiir, deneme, " +
-                         "biyografi, çocuk resimli kitap, inceleme/araştırma, tarih anlatısı...")] string[]? genres = null,
-            [Description("Ton/ruh hali facet'i (çoklu, TAM değer): karanlık, mizahi/absürt, " +
-                         "hüzünlü/melankolik, gerilimli/sürükleyici, romantik, ağır/düşündürücü, sıcak/samimi...")] string[]? moods = null,
-            [Description("Seviye/kitle facet'i (çoklu, TAM değer): çocuk (0-3), çocuk (4-6), " +
-                         "çocuk (7-10), çocuk (10-12), genç yetişkin, yetişkin-giriş/orta/ileri")] string[]? audienceLevels = null,
-            [Description("Konu/tema facet'i (çoklu, TAM değer): aşk/romantizm, distopya/ütopya, " +
-                         "savaş/barış, güç/iktidar, suç/adalet, tarih/bellek, kimlik, doğa/çevre...")] string[]? themes = null,
-            [Description("true → yalnız stokta olanlar (StockCount>0; satılabilirlikten ayrı)")] bool onlyInStock = false,
+            [Description("true → yalnız stokta olanlar")] bool onlyInStock = false,
             CancellationToken cancellationToken = default)
         {
             // Cilt tipi serbest metni enum int'ine çevrilir (içerir, büyük/küçük harf duyarsız); eşleşmezse null.
@@ -163,8 +139,7 @@ public static class SearchBooks
 
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
                 new Query(query, page, pageSize, publisher, excludePublisher, bindingValue, minPrice, maxPrice, sort,
-                    onlySalable, onlyDiscounted, minPageCount, maxPageCount,
-                    genres, moods, audienceLevels, themes, onlyInStock), cancellationToken);
+                    onlySalable, onlyDiscounted, minPageCount, maxPageCount, onlyInStock), cancellationToken);
 
             // 014 US4: login + dolu-sorguda UserSearched yayınla (fanout → Personalization 013). Arama
             // sonucunu ETKİLEMEZ — ayrık + hata-yutar. Anonim (Id boş) ya da boş sorgu → yayınlanmaz.

@@ -23,12 +23,12 @@ public sealed class CatalogSubAgent(
     private const string Instructions =
         "Sen katalog uzmanısın. HER kitap-keşfi isteğinde SORMADAN `search_books` çağır — ad/yazar OLMASA " +
         "da (gezinme/öneri/popülerlik de arama): mesaj kitapla ilgiliyse tool'u MUTLAKA çağır, boş-elle " +
-        "'bulamadım' DEME. ⚠️ EN ÖNEMLİ KURAL — `query`'ye kullanıcının TARİF KELİMELERİNİ (tür/ruh-hali/konu/" +
-        "yaş: mizahi, komik, karanlık, hüzünlü, gerilim, aşk, savaş, distopya, öykü, roman, çocuk...) OLDUĞU " +
-        "GİBİ KOY — SİSTEM bunları otomatik facet'e çevirir ve metinden çıkarır (sen silme, atlama). Özel isim " +
-        "(kitap adı/yazar) de query'ye. Ayrıca EMİNSEN facet paramı (genres/moods/themes/audienceLevels) da " +
-        "gönder (çift güvence) ama ASIL kelimeyi query'den SİLME. Ör. 'kısa hikayelerden oluşan mizah kitabı' → " +
-        "query='mizah kısa hikaye öykü' (sistem mizah→mood, öykü→genre çevirir). SIRALAMAYI ZORUNLU EŞLE (fiyat/sıra ima eden her istekte `sort` MUTLAKA " +
+        "'bulamadım' DEME. ⚠️ EN ÖNEMLİ KURAL — kitapla ilgili HER istekte `search_books`'u MUTLAKA çağır ve " +
+        "`query`'ye kullanıcının isteğini NEREDEYSE OLDUĞU GİBİ yaz: kitap adı/yazar + tür/ruh-hali/konu/yaş " +
+        "kelimeleri (mizahi, karanlık, distopya, öykü, roman, çocuk, aşk, savaş...). SİSTEM bu kelimeleri " +
+        "otomatik facet'e çevirir — sen facet/sözlük düşünme, sadece kelimeleri query'ye koy. Yalnız nezaket/" +
+        "dolgu sözcüklerini (lütfen, acaba, misin, istiyorum) atabilirsin. Ör. 'kısa hikayelerden oluşan mizah " +
+        "kitabı arıyorum' → query='mizah kısa hikaye'. SIRALAMAYI ZORUNLU EŞLE (fiyat/sıra ima eden her istekte `sort` MUTLAKA " +
         "gönder): 'ucuz/en ucuz/ucuzdan pahalıya/artan fiyat/ucuzdan' → sort=price_asc; 'pahalı/en pahalı/" +
         "pahalıdan ucuza/azalan fiyat' → sort=price_desc; 'en çok satan/popüler/gözde/çok satan' → " +
         "sort=popular; 'yeni/yeni çıkan/son çıkan' → sort=newest. 'indirimli' → onlyDiscounted; 'satışta/" +
@@ -36,13 +36,8 @@ public sealed class CatalogSubAgent(
         "'İş Bankası','Can Yayınları','Yapı Kredi/YKY','İletişim','Everest') adı `publisher`'a GİT — query'ye " +
         "KOYMA; 'X hariç/dışında/X olmayan/X dışı' → excludePublisher. Yazar+yayınevi BİRLİKTE gelirse " +
         "(ör. 'Tolstoy'un İş Kültür kitapları') yazarı `query`'ye, yayınevini `publisher`'a AYIR. " +
-        "TAKSONOMİYİ EŞLE (kullanıcının ruh hali/tür/konu/yaş niyetini TAM sözlük değerine çevir, " +
-        "query'ye KOYMA): 'mizahi/komik/eğlenceli' → moods=['mizahi/absürt']; 'karanlık/kasvetli' → " +
-        "moods=['karanlık']; 'hüzünlü/dokunaklı' → moods=['hüzünlü/melankolik']; 'gerilim/sürükleyici' → " +
-        "moods=['gerilimli/sürükleyici']. 'roman/öykü/şiir/deneme' → genres. 'çocuk/7 yaş' → " +
-        "audienceLevels (yaşa en yakın aralık). 'aşk/savaş/tarih/distopya/kimlik' konu → themes. " +
-        "'stokta/mevcut' → onlyInStock. Birden çok uyarsa diziye hepsini koy. Tam karşılık YOKSA uydurma — " +
-        "query serbest metnine bırak. BENZER KİTAP: 'şuna benzer/buna benzeyen/gibi başka/tarzında' isteğinde " +
+        "'stokta/mevcut' → onlyInStock. (Tür/ruh-hali/konu/yaş kelimelerini facet'e ÇEVİRME — query'ye " +
+        "koy, sistem çevirir.) BENZER KİTAP: 'şuna benzer/buna benzeyen/gibi başka/tarzında' isteğinde " +
         "ÖNCE `search_books` ile o kitabı bul (productId al), SONRA `similar_books(productId)` çağır — " +
         "sonuçta aynı eserin başka baskıları gelmez, her eser bir kez. " +
         "'ne anlatıyor/özetle' → ÖZET ANLATMA, kartı göster + detay sayfasına yönlendir. " +
@@ -69,8 +64,7 @@ public sealed class CatalogSubAgent(
         AIFunctionFactory.Create(
             async (string? query, int page, int pageSize, string? publisher, string? excludePublisher,
                    string? binding, decimal? minPrice, decimal? maxPrice, string? sort, bool onlySalable,
-                   bool onlyDiscounted, int? minPageCount, int? maxPageCount,
-                   string[]? genres, string[]? moods, string[]? audienceLevels, string[]? themes, bool onlyInStock,
+                   bool onlyDiscounted, int? minPageCount, int? maxPageCount, bool onlyInStock,
                    CancellationToken ct) =>
             {
                 var client = await mcp.GetClientAsync("catalog", ct);
@@ -80,21 +74,17 @@ public sealed class CatalogSubAgent(
                     ["excludePublisher"] = excludePublisher, ["binding"] = binding, ["minPrice"] = minPrice,
                     ["maxPrice"] = maxPrice, ["sort"] = sort, ["onlySalable"] = onlySalable,
                     ["onlyDiscounted"] = onlyDiscounted, ["minPageCount"] = minPageCount,
-                    ["maxPageCount"] = maxPageCount, ["genres"] = genres, ["moods"] = moods,
-                    ["audienceLevels"] = audienceLevels, ["themes"] = themes, ["onlyInStock"] = onlyInStock,
+                    ["maxPageCount"] = maxPageCount, ["onlyInStock"] = onlyInStock,
                 }, cancellationToken: ct);
                 var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
                 collector.Add("search_books", typed);
                 return typed;
             },
             name: "search_books",
-            description: "Kitap adı/yazar + filtre/sıralama/taksonomi ile kitap arar; sayfalı liste döner. " +
-                "publisher: YALNIZ bu yayınevi (kısmi ad, ör. 'İş Kültür'). excludePublisher: bu yayınevini hariç tut. " +
-                "sort: price_asc/price_desc/newest/popular. binding: karton/ciltli. onlyInStock: yalnız stokta. " +
-                "TAKSONOMİ (TAM sözlük değeri — çoklu): genres (roman/öykü/şiir/deneme/biyografi/çocuk resimli kitap...), " +
-                "moods (karanlık/mizahi-absürt/hüzünlü-melankolik/gerilimli/romantik/ağır-düşündürücü...), " +
-                "audienceLevels (çocuk (4-6)/çocuk (7-10)/genç yetişkin/yetişkin-orta...), " +
-                "themes (aşk-romantizm/distopya-ütopya/savaş-barış/güç-iktidar/tarih-bellek/kimlik...). Sayfalama: page/pageSize.");
+            description: "Kitap arar. `query`'ye kullanıcının isteğini olduğu gibi yaz: kitap adı/yazar + " +
+                "tür/ruh-hali/konu/yaş kelimeleri (mizahi, karanlık, distopya, öykü, roman, çocuk, aşk...) — " +
+                "sistem facet'e çevirir. publisher: yayınevi. sort: price_asc/price_desc/newest/popular. " +
+                "binding: karton/ciltli. onlyInStock: stokta. Sayfalama: page/pageSize.");
 
     // similar_books — girdi productId + count, çıktı SimilarBooksResult (LİSTE; eser tekilleştirilmiş).
     private AITool SimilarBooks(ToolResultCollector collector) =>
