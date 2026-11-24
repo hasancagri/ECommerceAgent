@@ -93,11 +93,10 @@ INSERT-ONLY, iki-faz dry-run/confirm). Keşif ekseni kapalı-sözlük taksonomi 
 8c. 🟦 Facet'le ara (019) — tür/ton/seviye/konu filtreleri aramaya girer (çoklu değer OR; sözlük-dışı
    değer reddedilir); serbest metin BM25 grubu tur/ton/konu değerlerini de tarar (Etiketler'in
    yerine). categoryId filtresi ölür. REST + MCP aynı yol. _(planned)_
-8d. 🟦 Benzer kitap bul (019) — similar_books MCP tool'u (yalnız Kâşif): hedef kitabın konu+ton
-   değerleri BM25 örtüşmesiyle aranır + objektif boost (aynı yazar/çevirmen/tür) + hard filtre
-   (dil, çocuk/yetişkin seviye grubu) + WorkKey tekilleştirme (kendi baskıları hariç, eser başına
-   1 sonuç `DISTINCT ON`) + stok-önce sıralama. Hedefin enrichment'ı boş/belirsizse fallback: aynı
-   yazar+tür. V1 kaba iskelet — gerçek ayrım V2 embedding (ayrı spec).
+8d. 🟦 Benzer kitap bul (027 V2 — vektör) — similar_books MCP tool'u (yalnız Kâşif): çapa kitabın
+   embedding'ine kNN (`<=>` kosinüs; anlam, ortak etiket şart değil) + hard filtre (dil, çocuk/yetişkin
+   seviye grubu, kendi WorkKey baskıları hariç) + WorkKey tekilleştirme (eser başına 1 `DISTINCT ON`) +
+   stok-önce sıralama. Çapa embed'i yoksa boş. 021 etiket-BM25 örtüşmesi + boost + fallback SÖKÜLDÜ (027).
 
 🟥 Hotspot (closed: 021): `Tagged`→`Enriched` oldu; similar_books varsayılan 5/üst 20 + boost
    katsayıları `SimilarBooksOptions` (config); "stokta" REST+MCP filtresi (`OnlyInStock`) bu dilime girdi.
@@ -153,6 +152,22 @@ SS4. 🟧 **Kullanıcı aradı** ⇨ Personalization — login + dolu-sorguda `U
    Routing = **ScoutAgent `/extract`** betimleyici → `SemanticQuery` (LLM); demir yoksa semantik
    (`SemanticIntent` guard; Text.Query sızıntısı katlanır). Sıra = **yapısal pre-filter → kNN** (067).
    Eşik = **0.68** (Options, canlı kalibre). Sorgu-embed cache = **sonra** (backlog; her arama 1 OpenAI çağrısı).
+
+## similar_books V2 (027 Dilim-3 — as-built)
+
+> V1 (021) benzerliği etiket-BM25 örtüşmesiyle kuruyordu (ortak token şart → etiket paylaşmayan anlam-
+> yakınlarını kaçırır). Embedding omurgası (025) üstüne V2: benzerlik ÇAPA KİTABIN VEKTÖRÜNE kNN (anlam;
+> ortak etiket şart değil). Etiket-BM25 + boost SÖKÜLDÜ; hard filtre + WorkKey tekilleştirme + stok-önce korunur.
+
+SV1. 🟦 **Benzer bul V2** ⇦ ScoutAgent — çapa productId → `product_embedding` vektörü (anchor CTE) →          `(SimilarBooks.Tool,`
+   kNN (`e.embedding <=> a.embedding` kosinüs); kendi WorkKey baskıları hariç + seviye uyum grubu +         ` SimilarBooksQueries)`
+   (varsa) dil hard filtre → `DISTINCT ON WorkKey` (çapaya en yakın baskı) → stok-önce→yakınlık→popülerlik
+   → LIMIT. Çapa embed'i yoksa anchor CTE boş → boş sonuç. Eşik YOK (çapa-temelli hep anlamlı komşu).
+
+🟥 Hotspot (closed: 027): saf **vektör kNN** (boost YOK — vektör tür/ton/konuyu kodluyor; aynı-yazar hafif
+   boost gerekirse sonra, ölçümle). Eşik **yok** (top-K + stok-önce yeter). V1 etiket-BM25 (`Overlap`/
+   fallback/boost) + `SimilarBooksOptions` boost katsayıları **söküldü** (tüm ürün embed'li; embed'siz-çapa
+   boş döner). Çapasız-fallback bilinçli kaldırıldı.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

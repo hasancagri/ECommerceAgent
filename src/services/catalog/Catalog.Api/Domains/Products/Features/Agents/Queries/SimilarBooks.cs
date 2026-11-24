@@ -4,11 +4,10 @@ using ModelContextProtocol.Server;
 
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 
-// 021 US3: "şuna benzer kitap" — query-only MCP tool (yalnız ScoutAgent). Hedef kitabın konu+ton
-// örtüşmesi (BM25 IDF) + objektif boost (yazar/çevirmen/tür) + hard filtre (dil, seviye uyum grubu,
-// kendi baskıları hariç) + WorkKey tekilleştirme (eser başına 1) + stok-önce sıralama. V1 kaba iskelet
-// (gerçek ayrım V2 embedding, ayrı spec). SQL yürütümü SimilarBooksQueries'te; buradaki Overlap SAF
-// (test-first). Agent slice — [McpServerToolType] aynı dosyada (conventions VSA).
+// 027 Dilim-3 (V2 — vektör): "şuna benzer kitap" — query-only MCP tool (yalnız ScoutAgent). Çapa kitabın
+// embedding'ine kNN (anlam; 021 etiket-BM25 örtüşmesi + boost SÖKÜLDÜ) + hard filtre (dil, seviye uyum
+// grubu, kendi WorkKey baskıları hariç) + WorkKey tekilleştirme (eser başına 1) + stok-önce sıralama.
+// SQL yürütümü SimilarBooksQueries'te (saf vektör, eşik yok). Agent slice — [McpServerToolType] aynı dosyada.
 public static class SimilarBooks
 {
     public record Query(Guid ProductId, int Count);
@@ -20,25 +19,6 @@ public static class SimilarBooks
     {
         public IReadOnlyList<BookItem> Items { get; set; } = [];
         public long Total { get; set; }
-    }
-
-    // SAF birim (test-first): hedefin konu+ton değerlerinden BM25 OR örtüşme sorgusu. Boş → null (fallback).
-    public static class Overlap
-    {
-        public static string? BuildBm25Query(IEnumerable<string> themes, IEnumerable<string> moods)
-        {
-            // TUZAK: liste alanı `data.Themes.$values` (Marten/Newtonsoft `{$type,$values}` sarmalar;
-            // düz `data.Themes` sarmalayıcı objeye çarpar, 0 eşleşir).
-            var terms = new List<string>();
-            foreach (var t in themes)
-                if (!string.IsNullOrWhiteSpace(t)) terms.Add($"data.Themes.$values:\"{Escape(t)}\"");
-            foreach (var m in moods)
-                if (!string.IsNullOrWhiteSpace(m)) terms.Add($"data.Moods.$values:\"{Escape(m)}\"");
-            return terms.Count == 0 ? null : string.Join(" OR ", terms);
-        }
-
-        // Savunma: sözlük değerleri tırnak taşımaz ama gömülü " kaçırılır (sorgu kırılmaz).
-        private static string Escape(string value) => value.Trim().Replace("\"", "\\\"");
     }
 
     public class SimilarBooksHandler(SimilarBooksQueries queries, SimilarBooksOptions options, IQuerySession session)
@@ -81,9 +61,9 @@ public static class SimilarBooks
     public static class Tool
     {
         [McpServerTool(Name = "similar_books")]
-        [Description("Verilen bir kitaba (productId) BENZER kitapları döner: konu+ton örtüşmesi + " +
-                     "aynı yazar/tür yakınlığı. Aynı eserin diğer baskıları GELMEZ, her eser bir kez, " +
-                     "stokta olanlar önce. Önce search_books ile kitabı bulup productId'sini al. Anonim.")]
+        [Description("Verilen bir kitaba (productId) ANLAMCA BENZER kitapları döner (içerik/tema/ton " +
+                     "yakınlığı — ortak etiket şart değil). Aynı eserin diğer baskıları GELMEZ, her eser " +
+                     "bir kez, stokta olanlar önce. Önce search_books ile kitabı bulup productId'sini al. Anonim.")]
         public static async Task<Response> SimilarBooks(
             IMessageBus bus,
             [Description("Benzerleri istenen kitabın productId'si (GUID; search_books sonucundan)")] Guid productId,
