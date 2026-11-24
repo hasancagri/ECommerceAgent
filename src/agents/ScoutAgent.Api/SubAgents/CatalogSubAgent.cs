@@ -11,7 +11,8 @@ namespace ScoutAgent.Api.SubAgents;
 // bilinen tip (sniff/reflection yok). get_book (tekil) 018'de SÖKÜLDÜ — tekil kitap da search_books
 // (tam ad → en-iyi eşleşme kartı); derin künye React detay sayfasında (kart tıkla), sohbette değil.
 public sealed class CatalogSubAgent(
-    McpToolSource mcp, ChatClientFactory clients, ScoutOptions options)
+    McpToolSource mcp, ChatClientFactory clients, ScoutOptions options,
+    ILogger<CatalogSubAgent> logger)
     : ISubAgent, ISingletonDependency
 {
     public string ToolName => "catalog_agent";
@@ -24,9 +25,11 @@ public sealed class CatalogSubAgent(
         "Sen katalog uzmanısın. HER kitap-keşfi isteğinde SORMADAN `search_books` çağır — ad/yazar OLMASA " +
         "da (gezinme/öneri/popülerlik de arama): mesaj kitapla ilgiliyse tool'u MUTLAKA çağır, boş-elle " +
         "'bulamadım' DEME. ⚠️ EN ÖNEMLİ KURAL — kitapla ilgili HER istekte `search_books`'u MUTLAKA çağır ve " +
-        "`query`'ye kullanıcının isteğini NEREDEYSE OLDUĞU GİBİ yaz: kitap adı/yazar + tür/ruh-hali/konu/yaş " +
+        "`query`'ye kullanıcının isteğini NEREDEYSE OLDUĞU GİBİ yaz: kitap adı + tür/ruh-hali/konu/yaş " +
         "kelimeleri (mizahi, karanlık, distopya, öykü, roman, çocuk, aşk, savaş...). SİSTEM bu kelimeleri " +
-        "otomatik facet'e çevirir — sen facet/sözlük düşünme, sadece kelimeleri query'ye koy. Yalnız nezaket/" +
+        "otomatik facet'e çevirir — sen facet/sözlük düşünme, sadece kelimeleri query'ye koy. " +
+        "⚠️ İSTİSNA — YAZAR ADI ve YAYINEVİ query'ye GİRMEZ, kendi alanlarına gider (author/publisher, " +
+        "aşağıdaki kurallar): yazarın eserleri istenince adı `query`'ye KOYMA, `author`'a yaz. Yalnız nezaket/" +
         "dolgu sözcüklerini (lütfen, acaba, misin, istiyorum) atabilirsin. Ör. 'kısa hikayelerden oluşan mizah " +
         "kitabı arıyorum' → query='mizah kısa hikaye'. SIRALAMAYI ZORUNLU EŞLE (fiyat/sıra ima eden her istekte `sort` MUTLAKA " +
         "gönder): 'ucuz/en ucuz/ucuzdan pahalıya/artan fiyat/ucuzdan' → sort=price_asc; 'pahalı/en pahalı/" +
@@ -34,8 +37,13 @@ public sealed class CatalogSubAgent(
         "sort=popular; 'yeni/yeni çıkan/son çıkan' → sort=newest. 'indirimli' → onlyDiscounted; 'satışta/" +
         "stokta' → onlySalable. YAYINEVİNİ ZORUNLU EŞLE: kullanıcı yayınevi söylerse (ör. 'İş Kültür'," +
         "'İş Bankası','Can Yayınları','Yapı Kredi/YKY','İletişim','Everest') adı `publisher`'a GİT — query'ye " +
-        "KOYMA; 'X hariç/dışında/X olmayan/X dışı' → excludePublisher. Yazar+yayınevi BİRLİKTE gelirse " +
-        "(ör. 'Tolstoy'un İş Kültür kitapları') yazarı `query`'ye, yayınevini `publisher`'a AYIR. " +
+        "KOYMA; 'X hariç/dışında/X olmayan/X dışı' → excludePublisher. " +
+        "YAZARLIK vs HAKKINDA — ÖNEMLİ: kullanıcı bir yazarın ESERLERİNİ istiyorsa ('X'in kitapları/" +
+        "eserleri/romanları', 'yazar X', 'X yazmış') yazar adını `author`'a GİT — query'ye KOYMA (yoksa BM25 " +
+        "yazar adını token'layıp alakasız kitap getirir: 'Mo Yan' → 'Yan Yana'). AMA 'X hakkında/üzerine/ile " +
+        "ilgili' (yazar KONU) ise `author` DEĞİL `query`'ye yaz (X'le ilgili biyografi/inceleme de gelsin). " +
+        "Yazar+yayınevi BİRLİKTE gelirse (ör. 'Tolstoy'un İş Kültür kitapları') yazarı `author`'a, " +
+        "yayınevini `publisher`'a AYIR. " +
         "'stokta/mevcut' → onlyInStock. (Tür/ruh-hali/konu/yaş kelimelerini facet'e ÇEVİRME — query'ye " +
         "koy, sistem çevirir.) BENZER KİTAP: 'şuna benzer/buna benzeyen/gibi başka/tarzında' isteğinde " +
         "ÖNCE `search_books` ile o kitabı bul (productId al), SONRA `similar_books(productId)` çağır — " +
@@ -55,7 +63,23 @@ public sealed class CatalogSubAgent(
                     instructions: Instructions, name: ToolName,
                     tools: [SearchBooks(collector), SimilarBooks(collector)]);
                 var response = await agent.RunAsync(request, cancellationToken: ct);
-                return response.Text ?? string.Empty;
+                var text = response.Text ?? string.Empty;
+
+                // Flaky-apology koruması: router buraya YALNIZ kitap niyetinde yönlendirir → arama beklenir.
+                // İç LLM (gpt-4o-mini) ara sıra search_books'u HİÇ çağırmayıp "sorun oluştu" uydurur (model
+                // tool-calling kararsızlığı; prompt garanti etmiyor). Hiç arama yapılmadıysa ham request'i
+                // query yapıp sunucu ZORLA arar → kullanıcı özür değil kart (ya da dürüst-boş) görür.
+                var searched = collector.Results.Any(r => r.Tool == "search_books");
+                if (!searched)
+                {
+                    logger.LogWarning("catalog_agent search_books'u atladı; fallback zorladı. request={Request}", request);
+                    var forced = await ExecuteSearchAsync(request, collector, ct);
+                    var total = forced?.Total ?? 0;
+                    return total > 0
+                        ? $"'{request}' için {total} sonuç bulundu; sonuçlar kartlarda."
+                        : $"'{request}' için sonuç bulunamadı.";
+                }
+                return text;
             },
             name: ToolName, description: Description);
 
@@ -65,24 +89,33 @@ public sealed class CatalogSubAgent(
     // SUNUCUDA defansif parse ediyoruz (bozuk/çıplak metin → query fallback). query-only zaten çalışıyordu.
     private AITool SearchBooks(ToolResultCollector collector) =>
         AIFunctionFactory.Create(
-            async (string filters, CancellationToken ct) =>
-            {
-                var args = ParseSearchFilters(filters);
-                var client = await mcp.GetClientAsync("catalog", ct);
-                var result = await client.CallToolAsync("search_books", args, cancellationToken: ct);
-                var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
-                collector.Add("search_books", typed, args); // args echo → React sayfalama için saklar
-                return typed;
-            },
+            async (string filters, CancellationToken ct) => await ExecuteSearchAsync(filters, collector, ct),
             name: "search_books",
             description: "Kitap arar. Tek argüman `filters`: JSON nesnesi (string). Alanlar (hepsi opsiyonel): " +
                 "query (kullanıcının isteği OLDUĞU GİBİ — kitap adı/yazar + tür/ruh-hali/konu/yaş kelimeleri: " +
                 "mizahi, karanlık, distopya, öykü, roman, çocuk, aşk — sistem facet'e çevirir), " +
-                "publisher (yalnız bu yayınevi), excludePublisher (hariç), binding ('karton'/'ciltli'), " +
+                "publisher (yalnız bu yayınevi), excludePublisher (hariç), " +
+                "author (YAZARLIK filtresi: 'X'in kitapları/eserleri' ya da 'yazar X' → yazar adını buraya, " +
+                "query'ye KOYMA, yalnız o yazarın yazdıkları döner; 'X hakkında/üzerine' ise query'ye), " +
+                "binding ('karton'/'ciltli'), " +
                 "minPrice, maxPrice (TL sayı), sort ('price_asc'/'price_desc'/'newest'/'popular'), " +
                 "onlySalable, onlyDiscounted, onlyInStock (bool), minPageCount, maxPageCount (sayı), " +
                 "page, pageSize. Örn: {\"query\":\"roman\",\"publisher\":\"Can Yayınları\",\"sort\":\"price_asc\"} " +
                 "ya da sadece {\"query\":\"mizahi öykü\"}.");
+
+    // search_books'un gerçek çağrısı — İKİ yol buradan geçer: (1) leaf tool (iç LLM çağırınca),
+    // (2) AsRouterTool fallback'i (iç LLM search_books'u atlayınca sunucu zorlar). Parse → MCP →
+    // tipli sonuç → collector (args echo React sayfalama için). Tek yer: iki yol drift etmesin.
+    private async Task<SearchBooksResult?> ExecuteSearchAsync(
+        string? filters, ToolResultCollector collector, CancellationToken ct)
+    {
+        var args = ParseSearchFilters(filters);
+        var client = await mcp.GetClientAsync("catalog", ct);
+        var result = await client.CallToolAsync("search_books", args, cancellationToken: ct);
+        var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
+        collector.Add("search_books", typed, args);
+        return typed;
+    }
 
     // Model'in yolladığı JSON string'i gevşek parse eder (``` çiti temizle, tip toleranslı, bozuksa
     // tüm metni query say). Dönen dict doğrudan MCP search_books argümanları.
