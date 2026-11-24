@@ -1,15 +1,10 @@
 namespace Catalog.Api.Domains.Products;
 
-// 021: similar_books boost katsayıları + sonuç sayısı sınırları. Program.cs'e inline veri yasak →
-// Options pattern (BindConfiguration opsiyonel; section yoksa bu default'lar geçerli). Tüketici düz T
-// enjekte eder. Katsayı ayarı canlı kalibrasyonla yapılır (yeniden derleme değil, config).
+// 027 (V2 vektör): similar_books sonuç sayısı sınırları. 021 boost katsayıları (AuthorBoost/GenreBoost/
+// TranslatorBoost) SÖKÜLDÜ — V2 saf vektör kNN, objektif boost yok (vektör tür/ton/konuyu kodluyor).
+// Options pattern (BindConfiguration opsiyonel; section yoksa default). Tüketici düz T.
 public class SimilarBooksOptions
 {
-    // Objektif yakınlık katkıları (BM25 konu/ton skoruna EKLENİR): aynı yazar > aynı tür > aynı çevirmen.
-    public double AuthorBoost { get; set; } = 2.0;
-    public double GenreBoost { get; set; } = 1.0;
-    public double TranslatorBoost { get; set; } = 0.5;
-
     // Sonuç sayısı: istenmezse Default; üst sınır Max (agent 100 isteyemez).
     public int DefaultCount { get; set; } = 5;
     public int MaxCount { get; set; } = 20;
