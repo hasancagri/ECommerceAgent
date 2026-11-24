@@ -13,6 +13,7 @@ public static class SearchBooks
     // 021: facet array param'ları KALDIRILDI — taksonomi SUNUCUDA query metninden çıkarılır
     // (BookTaxonomy.ExtractFromText). LLM yalnız query + temel filtre yollar (basit tool → mini güvenilir çağırır).
     public record Query(string? Search, int Page, int PageSize, string? Publisher = null, string? ExcludePublisher = null,
+        string? Author = null,
         int? Binding = null, decimal? MinPrice = null, decimal? MaxPrice = null, string? Sort = null,
         bool OnlySalable = false, bool OnlyDiscounted = false,
         int? MinPageCount = null, int? MaxPageCount = null, bool OnlyInStock = false);
@@ -42,6 +43,7 @@ public static class SearchBooks
                 Text: string.IsNullOrWhiteSpace(fromText.RemainingText) ? null : fromText.RemainingText,
                 Publisher: query.Publisher,
                 ExcludePublisher: query.ExcludePublisher,
+                Author: query.Author,
                 PriceMin: query.MinPrice,
                 PriceMax: query.MaxPrice,
                 PageMin: query.MinPageCount,
@@ -118,6 +120,9 @@ public static class SearchBooks
             [Description("Sayfa boyutu (en fazla 20)")] int pageSize = 10,
             [Description("YALNIZ bu yayınevinden; kısmi ad eşleşir, ör. 'İş Kültür'")] string? publisher = null,
             [Description("Bu yayınevini HARİÇ tut")] string? excludePublisher = null,
+            [Description("YAZARLIK filtresi: kullanıcı 'X'in kitapları/eserleri' ya da 'yazar X' derse yazar " +
+                         "adını buraya yaz (ör. 'Mo Yan') — yalnız o yazarın yazdıkları döner, query'ye KOYMA. " +
+                         "'X hakkında/üzerine' (konu) ise buraya DEĞİL, query'ye yaz.")] string? author = null,
             [Description("Cilt tipi süzme: 'karton' (Karton Kapak) ya da 'ciltli'")] string? binding = null,
             [Description("En düşük fiyat (TL)")] decimal? minPrice = null,
             [Description("En yüksek fiyat (TL)")] decimal? maxPrice = null,
@@ -138,7 +143,7 @@ public static class SearchBooks
             };
 
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
-                new Query(query, page, pageSize, publisher, excludePublisher, bindingValue, minPrice, maxPrice, sort,
+                new Query(query, page, pageSize, publisher, excludePublisher, author, bindingValue, minPrice, maxPrice, sort,
                     onlySalable, onlyDiscounted, minPageCount, maxPageCount, onlyInStock), cancellationToken);
 
             // 014 US4: login + dolu-sorguda UserSearched yayınla (fanout → Personalization 013). Arama

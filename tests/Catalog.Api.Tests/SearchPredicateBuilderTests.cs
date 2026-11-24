@@ -138,6 +138,30 @@ public class SearchPredicateBuilderTests
         f.Value.ShouldBe(Pub.ToString());
     }
 
+    // 021-author: yazar adı handler'da Author id SET'ine çözülür → AuthorIds LİSTE alanında jsonb `?|`
+    // (moods/themes deseni; `?|` OR bedava, token çarpışması yok). query'ye KOYULMAZ (BM25 kirliliği biter).
+    static readonly Guid Auth = Guid.Parse("3f2c9a11-5d44-4b8e-9a01-77c2e6b1a9d0");
+    static readonly Guid Auth2 = Guid.Parse("a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b");
+
+    [Fact]
+    public void Build_Author_AddsExistsFilterOnAuthorIds()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(Author: "Mo Yan"), authorIds: [Auth]);
+        p.PdbClause.ShouldBeNull(); // yazar @@@ clause'a GİRMEZ (SQL predicate)
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Column.ShouldBe("data->'AuthorIds'->'$values'"); // $values sarmalayıcı tuzağı
+        f.Op.ShouldBe("?|"); // jsonb ?| text[] = herhangi biri (OR bedava)
+        f.Value.ShouldBe(new[] { Auth.ToString() });
+    }
+
+    [Fact]
+    public void Build_AuthorMultipleIds_AllInOneExistsFilter()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(Author: "Orhan"), authorIds: [Auth, Auth2]);
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Value.ShouldBe(new[] { Auth.ToString(), Auth2.ToString() });
+    }
+
     [Fact]
     public void Build_MultipleFilters_JoinWithAndInDeterministicOrder()
     {

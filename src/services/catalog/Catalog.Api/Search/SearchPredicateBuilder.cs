@@ -17,7 +17,8 @@ public static class SearchPredicateBuilder
     public static SearchPredicate Build(
         SearchRequest request,
         IReadOnlyList<Guid>? publisherIds = null,
-        IReadOnlyList<Guid>? excludePublisherIds = null)
+        IReadOnlyList<Guid>? excludePublisherIds = null,
+        IReadOnlyList<Guid>? authorIds = null)
     {
         var clauses = new List<string>();
 
@@ -70,6 +71,12 @@ public static class SearchPredicateBuilder
         // çarpışması false-positive üretir). Tekil alan `= ANY(text[])`; liste alan `?| text[]` (OR hazır).
         // TUZAK: liste alanı `data->'Moods'->'$values'` (Marten/Newtonsoft `{$type,$values}` sarmalar;
         // düz `data->'Moods'` obje → `?|` anahtarlara bakar, hiç eşleşmez).
+        // 021-author: YAZARLIK filtresi — Author id'leri (handler'da ad→id). AuthorIds LİSTE alan → `?|`
+        // (publisher tekil BM25 phrase; liste alanda jsonb exists doğrusu, token kirliliği olmaz).
+        if (authorIds is { Count: > 0 })
+            AddExistsFilter(sqlFilters, $"data->'AuthorIds'->'{JsonValues}'",
+                authorIds.Select(id => id.ToString()).ToArray());
+
         AddAnyFilter(sqlFilters, "data->>'Genre'", request.Genres);
         AddAnyFilter(sqlFilters, "data->>'AudienceLevel'", request.AudienceLevels);
         AddExistsFilter(sqlFilters, $"data->'Moods'->'{JsonValues}'", request.Moods);

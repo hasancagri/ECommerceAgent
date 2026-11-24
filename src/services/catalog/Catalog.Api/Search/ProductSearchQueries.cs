@@ -27,8 +27,16 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
         if (!string.IsNullOrWhiteSpace(request.ExcludePublisher))
             excludePub = await ResolvePublisherIdsAsync(request.ExcludePublisher.Trim(), ct);
 
+        // 1b. Author ad→id SET (Marten). Ad verilip hiç eşleşme yoksa sonuç boş (yazar katalogda yok).
+        IReadOnlyList<Guid>? authorIds = null;
+        if (!string.IsNullOrWhiteSpace(request.Author))
+        {
+            authorIds = await ResolveAuthorIdsAsync(request.Author.Trim(), ct);
+            if (authorIds.Count == 0) return SearchPage.Empty;
+        }
+
         // 2. Predicate + mod.
-        var predicate = SearchPredicateBuilder.Build(request, includePub, excludePub);
+        var predicate = SearchPredicateBuilder.Build(request, includePub, excludePub, authorIds);
         var hasText = Bm25Terms.Extract(request.Text).Count > 0;
         var mode = SearchModeResolver.Resolve(hasText, request.Sort);
 
@@ -79,6 +87,24 @@ public sealed class ProductSearchQueries(NpgsqlDataSource dataSource, IQuerySess
         foreach (var token in tokens)
             q = q.Where(p => p.NormalizedName.Contains(token)); // Marten → ILIKE %token%; AND = hepsi şart.
         return await q.Select(p => p.Id).ToListAsync(ct);
+    }
+
+    // Yazar adı → eşleşen Author id'leri. Token ILIKE (DB kaba daraltma) + KELİME-SINIRI son süzme:
+    // her token adın bir KELİMESİ olmalı (substring DEĞİL). Yoksa kısa token sızar — "Mo Yan" → "MO"
+    // "mattiMOre"de + "YAN" "brYANda" ILIKE eşleşir (yanlış yazar). Kelime eşi bunu keser. Çok eşleşme OK.
+    private async Task<IReadOnlyList<Guid>> ResolveAuthorIdsAsync(string name, CancellationToken ct)
+    {
+        var tokens = NameNormalization.Normalize(name).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) return [];
+        IQueryable<Author> q = session.Query<Author>();
+        foreach (var token in tokens)
+            q = q.Where(a => a.NormalizedName.Contains(token)); // DB kaba daraltma (ILIKE %token%).
+        var candidates = await q.Select(a => new { a.Id, a.NormalizedName }).ToListAsync(ct);
+        // Kelime-sınırı: her token adın TAM bir kelimesine eşit olmalı (substring çarpışmasını önler).
+        return candidates
+            .Where(a => tokens.All(t =>
+                a.NormalizedName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(t)))
+            .Select(a => a.Id).ToList();
     }
 
     // Mod → ORDER BY. Relevance = BM25 skoru (Top-K pushdown); FieldSort/DefaultBrowse = jsonb fast-field

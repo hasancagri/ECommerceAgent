@@ -7,6 +7,9 @@ public sealed record SearchRequest(
     string? Text = null,
     string? Publisher = null,
     string? ExcludePublisher = null,
+    // 021-author: YAZARLIK filtresi ("X'in kitapları" → yalnız X'in eserleri). Ad handler'da Author id
+    // SET'ine çözülür → AuthorIds jsonb `?|`. "X hakkında/üzerine" (konu) buraya GİRMEZ, Text'te kalır.
+    string? Author = null,
     decimal? PriceMin = null,
     decimal? PriceMax = null,
     int? PageMin = null,
