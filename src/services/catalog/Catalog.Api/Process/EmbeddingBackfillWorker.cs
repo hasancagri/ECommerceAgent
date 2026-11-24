@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text;
 using Catalog.Api.Search;
 using Marten;
 using Microsoft.Extensions.AI;
@@ -113,19 +111,8 @@ public sealed class EmbeddingBackfillWorker(
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.Add(new NpgsqlParameter { Value = productId });
-        cmd.Parameters.Add(new NpgsqlParameter { Value = ToVectorLiteral(vector.Span) });
+        cmd.Parameters.Add(new NpgsqlParameter { Value = VectorLiteral.From(vector.Span) });
         cmd.Parameters.Add(new NpgsqlParameter { Value = hash });
         await cmd.ExecuteNonQueryAsync(ct);
-    }
-
-    private static string ToVectorLiteral(ReadOnlySpan<float> vector)
-    {
-        var sb = new StringBuilder(vector.Length * 8).Append('[');
-        for (var i = 0; i < vector.Length; i++)
-        {
-            if (i > 0) sb.Append(',');
-            sb.Append(vector[i].ToString(CultureInfo.InvariantCulture));
-        }
-        return sb.Append(']').ToString();
     }
 }

@@ -26,6 +26,10 @@ public sealed record BookSearchFilters(
     [property: Description("BENZERLİK: 'şuna benzer/buna benzeyen/gibi başka/X tarzında' ise ÇAPA kitabın adı " +
         "(ek'siz, yalın: 'Anna Karenina'). Dolduysa diğer alanları boş bırak. Yoksa null.")]
     string? SimilarToTitle = null,
+    [property: Description("SEMANTİK/BETİMLEYİCİ: başlık/yazar DEĞİL, kitabın RUHUNU/konusunu tarif eden " +
+        "serbest sorgu ('umut veren hafif bir yaz romanı', 'kayıp üstüne sakin bir kitap'). Buraya koyarsan " +
+        "Text/yazar/yayınevi BOŞ olsun. Somut başlık/yazar varsa BURAYA koyma (Text'e). Yoksa null.")]
+    string? SemanticQuery = null,
     [property: Description("Sayfa numarası (1'den).")]
     int Page = 1,
     [property: Description("Sayfa boyutu (en fazla 20).")]

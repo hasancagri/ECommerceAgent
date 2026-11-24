@@ -76,6 +76,12 @@ builder.Services.AddOptions<Catalog.Api.Domains.Products.SimilarBooksOptions>()
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Domains.Products.SimilarBooksOptions>>().Value);
 
+// 026 semantik arama eşiği/sayısı (opsiyonel section — yoksa Options default'ları). Tüketici düz T.
+builder.Services.AddOptions<Catalog.Api.Search.SemanticSearchOptions>()
+    .BindConfiguration(nameof(Catalog.Api.Search.SemanticSearchOptions));
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Search.SemanticSearchOptions>>().Value);
+
 // 025: embedding omurgası config (ApiKey zorunlu — AppHost scout-openai-key env'inden). Tüketici düz T.
 builder.Services.AddOptions<Catalog.Api.Search.CatalogEmbeddingOptions>()
     .BindConfiguration(nameof(Catalog.Api.Search.CatalogEmbeddingOptions))
