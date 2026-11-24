@@ -11,7 +11,7 @@ public sealed class ProductSearchSchemaInitializer(
 {
     private const string Schema = SchemaConstants.CatalogSchemaName; // catalogManagement
     private const string ProductTable = $"{Schema}.mt_doc_product";
-    private const string EmbeddingTable = $"{Schema}.product_embedding"; // 018 söküm: yalnız DROP için
+    private const string EmbeddingTable = $"{Schema}.product_embedding"; // 025: embedding omurgası (revive)
     private const string Bm25Index = "product_bm25_idx";
 
     // BM25 index — mt_doc_product'ın TÜM `data` JSONB'si, json_fields fast+expand_dots ile (018, ParadeDB
@@ -26,14 +26,29 @@ public sealed class ProductSearchSchemaInitializer(
         $"CREATE INDEX IF NOT EXISTS {Bm25Index} ON {ProductTable} " +
         "USING bm25 (id, data) WITH (json_fields='{\"data\": {\"fast\": true, \"expand_dots\": true}}');";
 
+    // 025 Dilim-1 embedding omurgası: pgvector eklenti + ayrı tablo (native vector(1536) kolon) + HNSW.
+    // Marten `data` jsonb'ye DOKUNMAZ (ayrı tablo; kNN ham-SQL, mevcut BM25 gibi). Vektör yazımı text
+    // literal + `::vector` CAST ile (Npgsql vector plugin gerekmez). HNSW opsiyonel/ileri-dönük — 22k'da
+    // exact-scan ms-ölçekli; ifade-bağımsızlığı sayesinde sürüm-uyumsuzsa tablo yine kurulur. Boyut 1536
+    // = text-embedding-3-small (CatalogEmbeddingOptions.Dimensions ile hizalı; DDL sabit).
+    private const string EmbeddingDim = "1536";
+    private static readonly string CreateEmbeddingTable =
+        $"CREATE TABLE IF NOT EXISTS {EmbeddingTable} (" +
+        "product_id uuid PRIMARY KEY, " +
+        $"embedding vector({EmbeddingDim}) NOT NULL, " +
+        "input_hash text NOT NULL, " +
+        "updated_at timestamptz NOT NULL DEFAULT now());";
+    private static readonly string CreateEmbeddingHnsw =
+        "CREATE INDEX IF NOT EXISTS product_embedding_hnsw " +
+        $"ON {EmbeddingTable} USING hnsw (embedding vector_cosine_ops);";
+
     private static readonly string[] Statements =
     [
         "CREATE EXTENSION IF NOT EXISTS pg_search;",
         CreateBm25,
-        // 018 söküm: semantik ayak kaldırıldı — eski embedding tablosu + HNSW index idempotent düşer
-        // (mevcut DB'de kalıntı bırakma). `vector` extension başka tüketicisi yok; tablo CASCADE ile
-        // index'iyle gider. Yeni DB'de IF EXISTS → no-op.
-        $"DROP TABLE IF EXISTS {EmbeddingTable} CASCADE;",
+        "CREATE EXTENSION IF NOT EXISTS vector;",
+        CreateEmbeddingTable,
+        CreateEmbeddingHnsw,
     ];
 
     public async Task StartAsync(CancellationToken cancellationToken)

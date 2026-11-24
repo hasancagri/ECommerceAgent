@@ -76,9 +76,22 @@ builder.Services.AddOptions<Catalog.Api.Domains.Products.SimilarBooksOptions>()
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Domains.Products.SimilarBooksOptions>>().Value);
 
+// 025: embedding omurgası config (ApiKey zorunlu — AppHost scout-openai-key env'inden). Tüketici düz T.
+builder.Services.AddOptions<Catalog.Api.Search.CatalogEmbeddingOptions>()
+    .BindConfiguration(nameof(Catalog.Api.Search.CatalogEmbeddingOptions))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Search.CatalogEmbeddingOptions>>().Value);
+
 // 004 (durum-güdümlü import): worker ImportJob tablosunu yoklar — Queued=dry-run, Confirmed=yazım.
 // Mesaj/kuyruk tetiği YOK (kullanıcı kararı); Wolverine keşfiyle ilgisiz, düz hosted service.
 builder.Services.AddHostedService<Catalog.Api.Process.ImportJobWorker>();
+
+// 025: embedding backfill worker — embedding'i olmayan ürünü yoklar → batch embed → upsert (Process/,
+// mesaj tetiği YOK). Backfill + artımlı tek mekanizma. ProductSearchSchemaInitializer'dan ÖNCE/SONRA
+// fark etmez (kendi tablosunu DDL kurar; worker ilk tick'te tablo hazır olana dek boş döner, sonra dolar).
+builder.Services.AddHostedService<Catalog.Api.Process.EmbeddingBackfillWorker>();
 
 // 018: arama şema nesneleri (ParadeDB pg_search eklenti + BM25 index; 018 söküm: embedding tablo/HNSW
 // idempotent DROP). AddCatalogMarten'DEN SONRA kaydedilir → Marten'in şema-apply hosted service'inden
