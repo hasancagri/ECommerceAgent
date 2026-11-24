@@ -11,7 +11,6 @@ namespace Catalog.Api.Tests;
 // BOZUK → SQL predicate. publisherId/excludePublisherId handler'da Marten ile ad→id çözülüp verilir (saf).
 public class SearchPredicateBuilderTests
 {
-    static readonly Guid Cat = Guid.Parse("af0fbbf8-27c8-47cf-81b1-458b2bed7d72");
     static readonly Guid Pub = Guid.Parse("8d841f29-7ed7-4eb0-80d9-0fea9bc9d8e2");
 
     [Fact]
@@ -22,20 +21,23 @@ public class SearchPredicateBuilderTests
         p.SqlFilters.ShouldBeEmpty();
     }
 
+    // 021: text OR-grubu taksonomi alanlarını da tarar (Genre/Moods/Themes — Tags.Value yerine).
+    // Liste alanları `.$values` ($type/$values sarmalayıcı tuzağı — canlı doğrulandı).
+    private static string TextGroup(string t) =>
+        $"(data.Name:{t} OR data.Description:{t} OR data.Genre:{t} OR data.Moods.$values:{t} OR data.Themes.$values:{t})";
+
     [Fact]
     public void Build_TextSingleTerm_BuildsOrGroup()
     {
         var p = SearchPredicateBuilder.Build(new SearchRequest(Text: "Orwell"));
-        p.PdbClause.ShouldBe("(data.Name:Orwell OR data.Description:Orwell OR data.Tags.Value:Orwell)");
+        p.PdbClause.ShouldBe(TextGroup("Orwell"));
     }
 
     [Fact]
     public void Build_TextMultipleTerms_JoinsWithAnd()
     {
         var p = SearchPredicateBuilder.Build(new SearchRequest(Text: "George Orwell"));
-        p.PdbClause.ShouldBe(
-            "(data.Name:George OR data.Description:George OR data.Tags.Value:George) AND " +
-            "(data.Name:Orwell OR data.Description:Orwell OR data.Tags.Value:Orwell)");
+        p.PdbClause.ShouldBe(TextGroup("George") + " AND " + TextGroup("Orwell"));
     }
 
     [Fact]
@@ -44,13 +46,6 @@ public class SearchPredicateBuilderTests
         // Bm25Terms tüm terimleri eler (dolgu/soru) → yapısal filtre de yoksa match-all.
         var p = SearchPredicateBuilder.Build(new SearchRequest(Text: "bana bir kitap misin"));
         p.PdbClause.ShouldBeNull();
-    }
-
-    [Fact]
-    public void Build_CategoryId_AddsQuotedTerm()
-    {
-        var p = SearchPredicateBuilder.Build(new SearchRequest(CategoryId: Cat));
-        p.PdbClause.ShouldBe($"data.CategoryId:\"{Cat}\"");
     }
 
     static readonly Guid Pub2 = Guid.Parse("11111111-2222-3333-4444-555555555555");
@@ -143,18 +138,41 @@ public class SearchPredicateBuilderTests
         f.Value.ShouldBe(Pub.ToString());
     }
 
+    // 021-author: yazar adı handler'da Author id SET'ine çözülür → AuthorIds LİSTE alanında jsonb `?|`
+    // (moods/themes deseni; `?|` OR bedava, token çarpışması yok). query'ye KOYULMAZ (BM25 kirliliği biter).
+    static readonly Guid Auth = Guid.Parse("3f2c9a11-5d44-4b8e-9a01-77c2e6b1a9d0");
+    static readonly Guid Auth2 = Guid.Parse("a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b");
+
+    [Fact]
+    public void Build_Author_AddsExistsFilterOnAuthorIds()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(Author: "Mo Yan"), authorIds: [Auth]);
+        p.PdbClause.ShouldBeNull(); // yazar @@@ clause'a GİRMEZ (SQL predicate)
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Column.ShouldBe("data->'AuthorIds'->'$values'"); // $values sarmalayıcı tuzağı
+        f.Op.ShouldBe("?|"); // jsonb ?| text[] = herhangi biri (OR bedava)
+        f.Value.ShouldBe(new[] { Auth.ToString() });
+    }
+
+    [Fact]
+    public void Build_AuthorMultipleIds_AllInOneExistsFilter()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(Author: "Orhan"), authorIds: [Auth, Auth2]);
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Value.ShouldBe(new[] { Auth.ToString(), Auth2.ToString() });
+    }
+
     [Fact]
     public void Build_MultipleFilters_JoinWithAndInDeterministicOrder()
     {
-        // Sıra: text → publisher → category → binding → price → page → salable → discounted.
+        // Sıra: text → publisher → binding → price → page → salable → discounted (021: kategori çıktı).
         var p = SearchPredicateBuilder.Build(
-            new SearchRequest(Text: "Orwell", CategoryId: Cat, Binding: BindingType.Ciltli,
+            new SearchRequest(Text: "Orwell", Binding: BindingType.Ciltli,
                 PriceMin: 100m, PriceMax: 300m, OnlySalable: true, OnlyDiscounted: true),
             publisherIds: [Pub]);
         p.PdbClause.ShouldBe(
-            "(data.Name:Orwell OR data.Description:Orwell OR data.Tags.Value:Orwell) AND " +
+            TextGroup("Orwell") + " AND " +
             $"data.PublisherId:\"{Pub}\" AND " +
-            $"data.CategoryId:\"{Cat}\" AND " +
             "data.Binding:2 AND " +
             "data.Price.Amount:[100 TO 300] AND " +
             "data.IsSalable:true AND " +
@@ -169,5 +187,76 @@ public class SearchPredicateBuilderTests
         p.PdbClause.ShouldBe("data.IsSalable:true");
         p.SqlFilters.Count.ShouldBe(1);
         p.SqlFilters[0].Value.ShouldBe(Pub.ToString());
+    }
+
+    // --- 021: taksonomi facet'leri jsonb SQL predicate (@@@ DIŞI — token çarpışmasını önler) ---
+
+    [Fact]
+    public void Build_GenreFacet_AddsAnyFilterNotInClause()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(Genres: ["roman", "öykü"]));
+        p.PdbClause.ShouldBeNull(); // facet @@@ clause'a GİRMEZ
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Column.ShouldBe("data->>'Genre'");
+        f.Op.ShouldBe("= ANY");
+        f.Value.ShouldBe(new[] { "roman", "öykü" });
+    }
+
+    [Fact]
+    public void Build_AudienceLevelFacet_AddsAnyFilter()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(AudienceLevels: ["çocuk (7-10)"]));
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Column.ShouldBe("data->>'AudienceLevel'");
+        f.Op.ShouldBe("= ANY");
+    }
+
+    [Fact]
+    public void Build_MoodsFacet_AddsExistsFilterWithOrSemantics()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(Moods: ["karanlık", "gizemli"]));
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Column.ShouldBe("data->'Moods'->'$values'"); // $values sarmalayıcı tuzağı (canlı doğrulandı)
+        f.Op.ShouldBe("?|"); // jsonb ?| text[] = herhangi biri (OR bedava)
+        f.Value.ShouldBe(new[] { "karanlık", "gizemli" });
+    }
+
+    [Fact]
+    public void Build_ThemesFacet_AddsExistsFilter()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(Themes: ["aşk/romantizm"]));
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Column.ShouldBe("data->'Themes'->'$values'");
+        f.Op.ShouldBe("?|");
+    }
+
+    [Fact]
+    public void Build_OnlyInStock_AddsStockCountFilter()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(OnlyInStock: true));
+        var f = p.SqlFilters.ShouldHaveSingleItem();
+        f.Column.ShouldBe("(data->>'StockCount')::int");
+        f.Op.ShouldBe(">");
+        f.Value.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Build_EmptyFacetLists_NoFilters()
+    {
+        var p = SearchPredicateBuilder.Build(new SearchRequest(
+            Genres: [], Moods: [], AudienceLevels: [], Themes: []));
+        p.SqlFilters.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Build_MultipleFacetsAndExclude_CoexistInSqlFilters()
+    {
+        var p = SearchPredicateBuilder.Build(
+            new SearchRequest(Genres: ["roman"], Themes: ["kimlik"], OnlyInStock: true,
+                ExcludePublisher: "X"),
+            excludePublisherIds: [Pub]);
+        // ExcludePublisher + Genre(ANY) + Themes(?|) + InStock(>) = 4 SQL predicate; @@@ clause boş.
+        p.PdbClause.ShouldBeNull();
+        p.SqlFilters.Count.ShouldBe(4);
     }
 }

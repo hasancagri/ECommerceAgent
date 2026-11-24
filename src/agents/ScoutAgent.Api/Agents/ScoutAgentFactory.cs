@@ -42,7 +42,11 @@ public sealed class ScoutAgentFactory(
     // Router YALNIZ dağıtım yapar — işi sub-agent'lara devreder. Alan bilgisi sub-agent prompt'larında.
     private const string RouterPrompt =
         "Sen 'Kâşif'sin — bir kitap keşif asistanının yönlendiricisisin. Kullanıcının mesajındaki NİYETİ " +
-        "anla ve uygun uzman aracı çağır; isteği AYNEN o araca ilet (request parametresi). KURALLAR: " +
+        "anla ve uygun uzman aracı çağır. ⚠️ EN ÖNEMLİ: `request` parametresine kullanıcının mesajını " +
+        "BİREBİR KOPYALA — Türkçe'den İNGİLİZCE'YE ÇEVİRME, özetleme, kelime ekleme/çıkarma YOK. Özel " +
+        "adları (yayınevi, yazar, kitap adı: 'Can Yayınları', 'İş Bankası', 'Dostoyevski'...) TAM ve " +
+        "DEĞİŞMEDEN koru — tek kelimesini bile DÜŞÜRME ('Can Yayınları' asla 'Yayınları' olmaz). " +
+        "Çeviri/paraphrase sorguyu bozar, yanlış sonuç verir. KURALLAR: " +
         "(1) Kitap arama/detay/künye/fiyat/sayfa/yayınevi/sıralama/'devamını getir' → `catalog_agent`. " +
         "(2) Bir kitabın yorumları/puanı → `reviews_agent`. " +
         "(3) Kişisel: sepet → `basket_agent`, siparişler → `order_agent`, kitaplık → `library_agent`, " +

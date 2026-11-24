@@ -70,6 +70,12 @@ builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AdminApiKeyOptions>>().Value);
 builder.Services.AddScoped<AdminApiKeyEndpointFilter>();
 
+// 021 similar_books boost katsayıları (opsiyonel section — yoksa Options default'ları). Tüketici düz T.
+builder.Services.AddOptions<Catalog.Api.Domains.Products.SimilarBooksOptions>()
+    .BindConfiguration(nameof(Catalog.Api.Domains.Products.SimilarBooksOptions));
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Catalog.Api.Domains.Products.SimilarBooksOptions>>().Value);
+
 // 004 (durum-güdümlü import): worker ImportJob tablosunu yoklar — Queued=dry-run, Confirmed=yazım.
 // Mesaj/kuyruk tetiği YOK (kullanıcı kararı); Wolverine keşfiyle ilgisiz, düz hosted service.
 builder.Services.AddHostedService<Catalog.Api.Process.ImportJobWorker>();

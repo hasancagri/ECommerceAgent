@@ -12,7 +12,7 @@ public sealed class ProductSearchSchemaInitializer(
     private const string Schema = SchemaConstants.CatalogSchemaName; // catalogManagement
     private const string ProductTable = $"{Schema}.mt_doc_product";
     private const string EmbeddingTable = $"{Schema}.product_embedding"; // 018 söküm: yalnız DROP için
-    public const string Bm25Index = "product_bm25_idx";
+    private const string Bm25Index = "product_bm25_idx";
 
     // BM25 index — mt_doc_product'ın TÜM `data` JSONB'si, json_fields fast+expand_dots ile (018, ParadeDB
     // 0.26.6). `fast` → numeric alt-alanlar range + fast; `expand_dots` → nested yollar (Price.Amount).

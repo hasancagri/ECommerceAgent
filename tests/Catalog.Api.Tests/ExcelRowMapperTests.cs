@@ -14,8 +14,6 @@ public class ExcelRowMapperTests
             ["Yazar"] = "George Orwell",
             ["ISBN"] = "9789750718533",
             ["Çevirmen"] = "Celâl Üster",
-            ["Kategori"] = "Kitap > Edebiyat > Roman (Çeviri)",
-            ["İlgili Kategoriler"] = "Kitap > Edebiyat > Roman (Çeviri)",
             ["Sayfa Sayısı"] = 352,
             ["Dil"] = "TÜRKÇE",
             ["Yayın Tarihi"] = "25.04.2019",
@@ -33,6 +31,12 @@ public class ExcelRowMapperTests
             ["Kapak URL"] = "https://img.kitapyurdu.com/v1/getImage/fn:1",
             ["Açıklama"] = "Distopya klasiği.",
             ["Yazar Açıklaması"] = "George Orwell: 1903 doğumlu.",
+            ["tur"] = "roman",
+            ["ton"] = "karanlık;tedirgin edici",
+            ["seviye"] = "yetişkin-orta",
+            ["konu"] = "distopya/ütopya;güç/iktidar",
+            ["guven"] = 0.95,
+            ["Stok Durumu"] = "24 Saatte Kargoda",
         };
         mutate?.Invoke(cells);
         return cells;
@@ -49,8 +53,6 @@ public class ExcelRowMapperTests
         row.Isbn.ShouldBe("9789750718533");
         row.AuthorNames.ShouldBe(new[] { "George Orwell" });
         row.Translators.ShouldBe(new[] { "Celâl Üster" });
-        row.ParentCategoryName.ShouldBe("Edebiyat");
-        row.LeafCategoryName.ShouldBe("Roman (Çeviri)");
         row.PageCount.ShouldBe(352);
         row.Language.ShouldBe("TÜRKÇE");
         row.PublishedOn.ShouldBe(new DateOnly(2019, 4, 25));
@@ -62,39 +64,67 @@ public class ExcelRowMapperTests
         row.Description.ShouldBe("Distopya klasiği.");
         row.AuthorBio.ShouldBe("George Orwell: 1903 doğumlu.");
         row.PublisherName.ShouldBe("Can Yayınları"); // sayfa adı = yayınevi (R1)
+        row.Genre.ShouldBe("roman");
+        row.MoodsRaw.ShouldBe(new[] { "karanlık", "tedirgin edici" });
+        row.AudienceLevelRaw.ShouldBe("yetişkin-orta");
+        row.ThemesRaw.ShouldBe(new[] { "distopya/ütopya", "güç/iktidar" });
+        row.Confidence.ShouldBe(0.95m);
+        row.InStock.ShouldBeTrue(); // "24 Saatte Kargoda" = satışta
     }
 
-    // --- 009: Etiketler sütunu ---
+    // --- 021: v11 taksonomi + stok sinyali ---
 
     [Fact]
-    public void Map_TagsCell_SplitsTrimsDistinct()
+    public void Map_MultiValueTaxonomy_SplitsOnSemicolonOnly()
     {
+        // Değerlerin kendisinde '/' ve ',' var ("sanat/yaratıcılık") — yalnız ';' ayırmalı.
         var result = ExcelRowMapper.Map("Can Yayınları", 2,
-            ValidCells(c => c["Etiketler"] = "distopya, gözetim , distopya"));
+            ValidCells(c => c["konu"] = "sanat/yaratıcılık;dil/edebiyat"));
 
-        result.Row!.Tags.ShouldBe(new[] { "distopya", "gözetim" }); // trim + Distinct (ham)
+        result.Row!.ThemesRaw.ShouldBe(new[] { "sanat/yaratıcılık", "dil/edebiyat" });
     }
 
     [Fact]
-    public void Map_NoTagsColumn_EmptyList()
+    public void Map_NoTaxonomyColumns_EmptyAndNull()
     {
         var cells = ValidCells();
-        cells.Remove("Etiketler"); // eski formatlı Excel — sütun yok (geriye-uyum)
+        cells.Remove("tur"); cells.Remove("ton"); cells.Remove("seviye");
+        cells.Remove("konu"); cells.Remove("guven");
 
         var result = ExcelRowMapper.Map("Can Yayınları", 2, cells);
 
         result.Error.ShouldBeNull();
-        result.Row!.Tags.ShouldBeEmpty();
+        result.Row!.Genre.ShouldBeNull();
+        result.Row.MoodsRaw.ShouldBeEmpty();
+        result.Row.ThemesRaw.ShouldBeEmpty();
+        result.Row.Confidence.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("SATIŞ YOK (TÜKENMİŞ)", false)]
+    [InlineData("SATIŞ YOK (kitapyurdu.com'da Satışta Değil)", false)]
+    [InlineData("24 Saatte Kargoda", true)]
+    [InlineData("Genellikle 3-5 gün içinde kargoda", true)]
+    public void Map_StockStatus_MapsSatisYokToOutOfStock(string status, bool expectedInStock)
+    {
+        var result = ExcelRowMapper.Map("Can Yayınları", 2, ValidCells(c => c["Stok Durumu"] = status));
+
+        result.Row!.InStock.ShouldBe(expectedInStock);
     }
 
     [Fact]
-    public void Map_DoubleComma_SkipsEmpty()
+    public void Map_NoStockStatusColumn_DefaultsInStock()
     {
-        var result = ExcelRowMapper.Map("Can Yayınları", 2,
-            ValidCells(c => c["Etiketler"] = "a,, b,"));
+        var cells = ValidCells();
+        cells.Remove("Stok Durumu");
 
-        result.Row!.Tags.ShouldBe(new[] { "a", "b" });
+        var result = ExcelRowMapper.Map("Can Yayınları", 2, cells);
+
+        result.Row!.InStock.ShouldBeTrue(); // boş = satışta (iyimser default)
     }
+
+    // 021: Etiketler sütunu testleri SÖKÜLDÜ (kolon v11'de yok; taksonomi Faz 4).
+    // SplitNames (trim/boş-ele/dedup) Map_MultipleAuthors'ta kapsanır.
 
     [Fact]
     public void Map_DiscountCell_ReadsFraction()
@@ -173,23 +203,6 @@ public class ExcelRowMapperTests
             ValidCells(c => c["Yazar"] = "George Orwell, Aldous Huxley, George Orwell"));
 
         result.Row!.AuthorNames.ShouldBe(new[] { "George Orwell", "Aldous Huxley" });
-    }
-
-    [Fact]
-    public void Map_SingleLevelCategory_LeafWithoutParent()
-    {
-        var result = ExcelRowMapper.Map("Can Yayınları", 2, ValidCells(c => c["Kategori"] = "Kitap > Edebiyat"));
-
-        result.Row!.ParentCategoryName.ShouldBeNull();
-        result.Row.LeafCategoryName.ShouldBe("Edebiyat");
-    }
-
-    [Fact]
-    public void Map_EmptyCategory_LeafNull()
-    {
-        var result = ExcelRowMapper.Map("Can Yayınları", 2, ValidCells(c => c["Kategori"] = null));
-
-        result.Row!.LeafCategoryName.ShouldBeNull(); // süreç "Genel" fallback'ine düşürür
     }
 
     [Fact]

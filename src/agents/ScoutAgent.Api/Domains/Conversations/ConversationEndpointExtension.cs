@@ -1,5 +1,6 @@
 using ScoutAgent.Api.Domains.Conversations.Features.Commands;
 using ScoutAgent.Api.Domains.Conversations.Features.Queries;
+using ScoutAgent.Api.Search;
 
 namespace ScoutAgent.Api.Domains.Conversations;
 
@@ -8,8 +9,10 @@ namespace ScoutAgent.Api.Domains.Conversations;
 public static class ConversationEndpointExtension
 {
     // history: anon istemci-transkript (devamlılık/sayfalama). Login'de yok sayılır.
+    // lastSearch: React'in sakladığı son aramanın filtre+page'i — "devamını getir"de page+1 taşır.
     public record SendMessageRequest(
-        Guid? ConversationId, string Message, IReadOnlyList<SendMessage.HistoryTurn>? History = null);
+        Guid? ConversationId, string Message, IReadOnlyList<SendMessage.HistoryTurn>? History = null,
+        SendMessage.LastSearch? LastSearch = null);
 
     public static void MapConversationEndpoints(this IEndpointRouteBuilder app)
     {
@@ -39,7 +42,8 @@ public static class ConversationEndpointExtension
             try
             {
                 var result = await bus.InvokeAsync<FeatureObjectResultModel<SendMessage.Response>>(
-                    new SendMessage.Command(request.ConversationId, request.Message, userId, request.History), ct);
+                    new SendMessage.Command(request.ConversationId, request.Message, userId, request.History,
+                        request.LastSearch), ct);
 
                 return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
             }
@@ -52,6 +56,59 @@ public static class ConversationEndpointExtension
                     "SendMessage patladı — msg='{Msg}' userId={UserId}", request.Message, userId);
                 return Results.Problem(statusCode: 503, title: "Kâşif şu an hizmet veremiyor, biraz sonra tekrar dene.");
             }
+        }).RequireRateLimiting("chat");
+
+        // 022 Tur-1: POST /extract — ham sorgu → TİPLİ niyet (BookSearchFilters). LLM structured output
+        // (gün-kotası sayılır). Opsiyonel bearer (anonim serbest). React bunu alıp /search'e relay eder.
+        group.MapPost("/extract", async (
+            ExtractRequest request, ICurrentUser currentUser, HttpContext http,
+            IMessageBus bus, ScoutAgent.Api.Options.ScoutOptions options,
+            DailyUsageGuard usageGuard, ILoggerFactory loggerFactory, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Query))
+                return Results.BadRequest(new { message = "Sorgu boş olamaz." });
+            if (request.Query.Length > options.MaxMessageLength)
+                return Results.BadRequest(new { message = $"Sorgu çok uzun (en fazla {options.MaxMessageLength})." });
+
+            currentUser.Load(http.User);
+            Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
+            var partition = ScoutUsageKey.Partition(userId, http.Connection.RemoteIpAddress?.ToString());
+            var dailyCap = userId is null ? options.AnonPerDay : options.UserPerDay;
+            if (!await usageGuard.TryConsumeAsync(partition, dailyCap, ct))
+                return Results.Json(new { message = ScoutResourceConstants.TOO_MANY_REQUESTS }, statusCode: 429);
+
+            try
+            {
+                var filters = await bus.InvokeAsync<BookSearchFilters>(
+                    new ExtractIntent.Query(request.Query, request.Previous), ct);
+                return Results.Ok(filters);
+            }
+            catch (Exception ex)
+            {
+                await usageGuard.ReleaseAsync(partition, ct);
+                loggerFactory.CreateLogger("ScoutExtract").LogError(ex,
+                    "Extract patladı — q='{Q}' userId={UserId}", request.Query, userId);
+                return Results.Problem(statusCode: 503, title: "Kâşif şu an hizmet veremiyor, biraz sonra tekrar dene.");
+            }
+        }).RequireRateLimiting("chat");
+
+        // 022 Tur-2: POST /search — TİPLİ niyet → kartlar. DETERMİNİSTİK (LLM YOK → kota sayılmaz).
+        // Opsiyonel bearer; login → Conversation'a yazar (017). Message = kullanıcının ham sorgusu.
+        group.MapPost("/search", async (
+            SearchRequest request, ICurrentUser currentUser, HttpContext http,
+            IMessageBus bus, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Message))
+                return Results.BadRequest(new { message = "Mesaj boş olamaz." });
+            if (request.Filters is null)
+                return Results.BadRequest(new { message = "Filtre boş olamaz." });
+
+            currentUser.Load(http.User);
+            Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
+
+            var result = await bus.InvokeAsync<FeatureObjectResultModel<SendMessage.Response>>(
+                new SearchTyped.Command(request.ConversationId, request.Message, request.Filters, userId), ct);
+            return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
         }).RequireRateLimiting("chat");
 
         // 020-voice: POST /transcribe — ses → metin. Opsiyonel bearer (anonim serbest, FR-012). Çevirme
@@ -135,6 +192,10 @@ public static class ConversationEndpointExtension
     }
 
     public record RenameConversationRequest(string? Title);
+
+    // 022 iki-faz: Tur-1 ham sorgu; Tur-2 tipli niyet + ham sorgu (Conversation'a insan-metni).
+    public record ExtractRequest(string Query, BookSearchFilters? Previous = null);
+    public record SearchRequest(Guid? ConversationId, string Message, BookSearchFilters Filters);
 
     // Sahiplik/yokluk hatası (NotFound) ile doğrulama hatasını (başlık boş/uzun) ayır → 404 vs 400.
     private static bool IsNotFound(FeatureResultModel result) =>

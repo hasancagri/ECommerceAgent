@@ -15,6 +15,8 @@ public static class IntegrationEvents
 
     // kırıcı evrim (tek tüketici Storefront, aynı PR, DB sıfırdan seed). BrandId/Brand çıktı;
     // çok-yazar (Authors) + tek yayınevi (PublisherId+Publisher, fat: tüketici lookup yapmaz) geldi.
+    // 021: kategori alanları (CategoryId/Category/Categories/CategoryIds) SÖKÜLDÜ — kategori ekseni
+    // Catalog'dan kalktı. Tüketicisi YOK (097); taksonomi alanları tüketici doğduğunda additive eklenir.
     public record ProductChangedEvent(
         Guid ProductId,
         string Name,
@@ -23,20 +25,10 @@ public static class IntegrationEvents
         List<AuthorRef> Authors,
         Guid PublisherId,
         string Publisher,
-        Guid CategoryId,
-        string Category,
         string? ImageUrl,
         bool IsDeleted,
         // varyant ailesi kodu (opsiyonel; null = ailesiz).
-        string? FamilyCode = null,
-        // OldPrice SÖKÜLDÜ (097): fiyat doğumda sabit — "eski fiyat" kavramı kontrattan çıktı.
-        // 095: kategori AD zinciri = leaf + ata adları (yayın anında ağaçtan çözülür; related GİRMEZ).
-        // null/boş = yalnız tekil Category kullan (eski tüketici kırılmaz; CategoryId hâlâ primary leaf).
-        List<string>? Categories = null,
-        // 095 additive: kategori ID zinciri = leaf + ata id'leri (Categories ile aynı sıra/semantik).
-        // Üst-kategori eşleşmesi gereken tüketiciler bundan beslenir (ör. 096 keşif); null görürse
-        // tüketici [CategoryId] fallback'ine düşer (eski event kırılmaz).
-        List<Guid>? CategoryIds = null);
+        string? FamilyCode = null);
 
     // Catalog → File (dijital pivot: Stock BC söküldü). Yeni ürün yayınlanınca yayılır; File kapak
     // çözümünü (ISBN/Barcode) tetikler. InitialStock SÖKÜLDÜ (stok yok — Stock BC kaldırıldı).
@@ -45,7 +37,10 @@ public static class IntegrationEvents
         Guid ProductId,
         // 004 additive (default'lu — eski tüketici kırılmaz): Excel "Kapak URL" kaynağı. File doluysa
         // ve R2'de ISBN yoksa bu adresten indirir; null = eski davranış (staging/R2 yoklama).
-        string? CoverSourceUrl = null);
+        string? CoverSourceUrl = null,
+        // 021 additive: Kitapyurdu "Stok Durumu" ikili sinyali. false = "SATIŞ YOK*" (tükenmiş) →
+        // Stock kaydı 0 adetle açar; true (default) → rastgele 20-50. Gerçek adet İTHAL edilmez.
+        bool InStock = true);
 
     // File.Api → Catalog. Kapak R2'de hazır + registry upsert sonrası yayılır. Url = r2.dev public
     // (CoverUrlResolver çıktısı; r2.dev base Catalog'a sızmaz — İLKE I). Tüketicisi YOK (097 serisi:

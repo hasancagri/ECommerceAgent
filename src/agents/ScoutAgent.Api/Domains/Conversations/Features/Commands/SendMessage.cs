@@ -13,13 +13,18 @@ namespace ScoutAgent.Api.Domains.Conversations.Features.Commands;
 public static class SendMessage
 {
     public record Command(Guid? ConversationId, string Message, Guid? UserId,
-        IReadOnlyList<HistoryTurn>? History = null);
+        IReadOnlyList<HistoryTurn>? History = null, LastSearch? LastSearch = null);
 
     // Anon istemci-transkript turu (role: "user"/"assistant"). Login'de yok sayılır — sunucu kaydı otoriter.
     public record HistoryTurn(string Role, string Text);
 
+    // React'in sakladığı son search_books args'ı + o anki page. "devamını getir"de page+1 ile yeniden
+    // çağrılır (LLM-atla). Filters değerleri STJ bind'inden JsonElement gelir — MCP'ye aynen geçer.
+    public record LastSearch(Dictionary<string, object?> Filters, int Page);
+
     // 019 (B): Result TİPLİ — ToolResults ayna-tipi (JsonElement yalnız bilinmeyen tool fallback).
-    public record ReplyItem(string Tool, object Result);
+    // Filters: yalnız search_books'ta dolu (kullanılan arama args'ı; React sayfalama için saklar+taşır).
+    public record ReplyItem(string Tool, object Result, object? Filters = null);
 
     public class Reply
     {
@@ -38,7 +43,8 @@ public static class SendMessage
     public class SendMessageHandler(
         ScoutAgentFactory agentFactory,
         IDocumentSession session,
-        ScoutOptions options)
+        ScoutOptions options,
+        McpToolSource mcp)
     {
         // 017: saklanan kart JSON'u canlı endpoint dönüşüyle AYNI şekilde (camelCase) olmalı — React
         // reload'da aynı ReplyItem[] parse'ını kullanır.
@@ -50,9 +56,7 @@ public static class SendMessage
             var isAuthenticated = command.UserId is Guid uid && uid != Guid.Empty;
 
             // Tur boyunca tool çıktılarını yakala (MAF yanıtta surface etmiyor → reply.items buradan).
-            // 019: router agent — sub-agent tool'ları lazy; niyete göre yalnız ilgili MCP ucu bağlanır.
             var collector = new ToolResultCollector();
-            var agent = agentFactory.CreateRouter(collector);
 
             // Girişli: kayıt yükle/oluştur (sahiplik kontrolü) + kullanıcı mesajını ekle.
             Conversation? conversation = null;
@@ -84,16 +88,28 @@ public static class SendMessage
                 }
             }
 
-            // Bağlam: girişli → son N kayıttan (FR-012); anonim → istemci-transkript + son mesaj.
-            var contextMessages = BuildContext(conversation, command.Message, command.History,
-                options.MaxContextMessages, options.MaxMessageLength);
-            var runResponse = await agent.RunAsync(contextMessages, cancellationToken: ct);
-
-            var reply = new Reply
+            // "devamını getir" + React'in taşıdığı son-arama → LLM'i ATLA: son filtrelerle page+1'i
+            // doğrudan search_books'tan çek (filtre drift'i biter). Aksi halde normal router/LLM akışı.
+            Reply reply;
+            if (command.LastSearch is { } last && PaginationIntent.IsMore(command.Message))
             {
-                Text = runResponse.Text ?? string.Empty,
-                Items = BuildItems(collector),
-            };
+                reply = await PaginateAsync(last, collector, ct);
+            }
+            else
+            {
+                // 019: router agent — sub-agent tool'ları lazy; niyete göre yalnız ilgili MCP ucu bağlanır.
+                // Yalnız bu dalda kurulur: pagination bypass router+tool inşasına hiç girmez.
+                var agent = agentFactory.CreateRouter(collector);
+                // Bağlam: girişli → son N kayıttan (FR-012); anonim → istemci-transkript + son mesaj.
+                var contextMessages = BuildContext(conversation, command.Message, command.History,
+                    options.MaxContextMessages, options.MaxMessageLength);
+                var runResponse = await agent.RunAsync(contextMessages, cancellationToken: ct);
+                reply = new Reply
+                {
+                    Text = runResponse.Text ?? string.Empty,
+                    Items = BuildItems(collector),
+                };
+            }
 
             // 014: ilk turda AKILLI başlık üret (Claude-tarzı sidebar). Login → Conversation.Title;
             // anon → Response.Title (istemci sessionStorage'a yazar). Üretilemezse başlık boş (React ilk
@@ -131,6 +147,40 @@ public static class SendMessage
                 Reply = reply,
             });
         }
+
+        // "devamını getir": son aramanın filtreleriyle page+1'i doğrudan search_books'tan çeker — LLM yok,
+        // filtre yeniden-türetilmez → drift biter. page anahtarı her hâlükârda ezilir (filtre'deki eski page).
+        private async Task<Reply> PaginateAsync(LastSearch last, ToolResultCollector collector, CancellationToken ct)
+        {
+            var args = new Dictionary<string, object?>(last.Filters) { ["page"] = last.Page + 1 };
+            var pageSize = CoerceInt(args.GetValueOrDefault("pageSize"), 10);
+
+            var client = await mcp.GetClientAsync("catalog", ct);
+            var result = await client.CallToolAsync("search_books", args, cancellationToken: ct);
+            var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
+            collector.Add("search_books", typed, args);
+
+            string text;
+            if (typed is null || typed.Items.Count == 0)
+                text = "Başka sonuç kalmadı.";
+            else
+            {
+                var start = (typed.Page - 1) * pageSize + 1;
+                var end = start + typed.Items.Count - 1;
+                text = $"Sonraki sayfa — {start}–{end}, toplam {typed.Total}.";
+            }
+            return new Reply { Text = text, Items = BuildItems(collector) };
+        }
+
+        // Filtre değeri STJ bind'inden JsonElement gelebilir (React JSON'u); int'e güvenli çevir.
+        private static int CoerceInt(object? v, int fallback) => v switch
+        {
+            int i => i,
+            long l => (int)l,
+            System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Number
+                && je.TryGetInt32(out var n) => n,
+            _ => fallback,
+        };
 
         private static List<MeaiChatMessage> BuildContext(
             Conversation? conversation, string latestMessage, IReadOnlyList<HistoryTurn>? history,
@@ -172,7 +222,7 @@ public static class SendMessage
         private static IReadOnlyList<ReplyItem> BuildItems(ToolResultCollector collector) =>
             collector.Results
                 .Where(r => r.Result is not null)
-                .Select(r => new ReplyItem(r.Tool, r.Result!))
+                .Select(r => new ReplyItem(r.Tool, r.Result!, r.Filters))
                 .ToList();
     }
 }

@@ -10,16 +10,26 @@ namespace Catalog.Api.Search;
 // id'ye çözülüp verilir (builder saf kalır — ad→id DB işi burada YOK).
 public static class SearchPredicateBuilder
 {
+    // Marten/Newtonsoft List<T>'i `{"$type":...,"$values":[...]}` olarak saklar — liste alanının gerçek
+    // dizisine inmek için `$values` alt-yolu. BM25 (`data.X.$values`) + jsonb (`data->'X'->'$values'`).
+    public const string JsonValues = "$values";
+
     public static SearchPredicate Build(
         SearchRequest request,
         IReadOnlyList<Guid>? publisherIds = null,
-        IReadOnlyList<Guid>? excludePublisherIds = null)
+        IReadOnlyList<Guid>? excludePublisherIds = null,
+        IReadOnlyList<Guid>? authorIds = null)
     {
         var clauses = new List<string>();
 
-        // 1. Text — her terim bir OR-grubu (Name/Description/Tags.Value); gürültü Bm25Terms'te elenir.
+        // 1. Text — her terim bir OR-grubu (Name/Description + taksonomi alanları); gürültü Bm25Terms'te
+        // elenir. 021: taksonomi değerleri serbest metin aramasına girer (Tags.Value yerine) — "mizahi"
+        // yazan kullanıcı ton'u mizahi kitaplara da ulaşır (açıklamada kelime olmasa bile).
+        // TUZAK: Marten/Newtonsoft List<string>'i `{$type,$values:[...]}` olarak saklar → liste alanı
+        // BM25 yolu `data.Moods.$values` (düz `data.Moods` sarmalayıcı objesine çarpar, 0 döner).
         foreach (var t in Bm25Terms.Extract(request.Text))
-            clauses.Add($"(data.Name:{t} OR data.Description:{t} OR data.Tags.Value:{t})");
+            clauses.Add($"(data.Name:{t} OR data.Description:{t} OR data.Genre:{t} " +
+                        $"OR data.Moods.{JsonValues}:{t} OR data.Themes.{JsonValues}:{t})");
 
         // 2. Publisher — ad handler'da Marten ile id SET'ine çözülür (Contains → çok yayınevi mümkün).
         // Quoted phrase (term() uuid'de tokenize edip 0 döner); çok id → OR-grubu.
@@ -29,11 +39,7 @@ public static class SearchPredicateBuilder
             clauses.Add(publisherIds.Count == 1 ? terms.First() : "(" + string.Join(" OR ", terms) + ")");
         }
 
-        // 3. Category — tek leaf CategoryId, quoted.
-        if (request.CategoryId is { } cat)
-            clauses.Add($"data.CategoryId:\"{cat}\"");
-
-        // 4. Binding — int enum term.
+        // 3. Binding — int enum term. (021: kategori filtresi SÖKÜLDÜ; taksonomi facet'leri Faz 6.)
         if (request.Binding is { } binding)
             clauses.Add($"data.Binding:{(int)binding}");
 
@@ -53,13 +59,48 @@ public static class SearchPredicateBuilder
 
         var pdbClause = clauses.Count > 0 ? string.Join(" AND ", clauses) : null;
 
-        // ExcludePublisher → SQL predicate (NOT string query'de bozuk). Her id bir `<> $n` (hepsi AND).
+        // @@@ DIŞI SQL predicate'ler (parametreli; research R1). Executor `{Column} {Op} (${n})` kurar.
         var sqlFilters = new List<SqlFilter>();
+
+        // ExcludePublisher → SQL predicate (NOT string query'de bozuk). Her id bir `<> $n` (hepsi AND).
         if (excludePublisherIds is { Count: > 0 })
             foreach (var ex in excludePublisherIds)
                 sqlFilters.Add(new SqlFilter("data->>'PublisherId'", "<>", ex.ToString()));
 
+        // 021: taksonomi facet'leri jsonb operatörüyle (@@@ DIŞI — çok-kelimeli sözlük değerinde token
+        // çarpışması false-positive üretir). Tekil alan `= ANY(text[])`; liste alan `?| text[]` (OR hazır).
+        // TUZAK: liste alanı `data->'Moods'->'$values'` (Marten/Newtonsoft `{$type,$values}` sarmalar;
+        // düz `data->'Moods'` obje → `?|` anahtarlara bakar, hiç eşleşmez).
+        // 021-author: YAZARLIK filtresi — Author id'leri (handler'da ad→id). AuthorIds LİSTE alan → `?|`
+        // (publisher tekil BM25 phrase; liste alanda jsonb exists doğrusu, token kirliliği olmaz).
+        if (authorIds is { Count: > 0 })
+            AddExistsFilter(sqlFilters, $"data->'AuthorIds'->'{JsonValues}'",
+                authorIds.Select(id => id.ToString()).ToArray());
+
+        AddAnyFilter(sqlFilters, "data->>'Genre'", request.Genres);
+        AddAnyFilter(sqlFilters, "data->>'AudienceLevel'", request.AudienceLevels);
+        AddExistsFilter(sqlFilters, $"data->'Moods'->'{JsonValues}'", request.Moods);
+        AddExistsFilter(sqlFilters, $"data->'Themes'->'{JsonValues}'", request.Themes);
+
+        // OnlyInStock — Product.InStock HESAPLANAN (saklanmaz); stok kopyası StockCount>0 süzgeci.
+        if (request.OnlyInStock)
+            sqlFilters.Add(new SqlFilter("(data->>'StockCount')::int", ">", 0));
+
         return new SearchPredicate(pdbClause, sqlFilters);
+    }
+
+    // Tekil string alan çoklu değer: `data->>'X' = ANY($n)` (değer dizisi text[]).
+    private static void AddAnyFilter(List<SqlFilter> filters, string column, IReadOnlyList<string>? values)
+    {
+        if (values is { Count: > 0 })
+            filters.Add(new SqlFilter(column, "= ANY", values.ToArray()));
+    }
+
+    // JSON dizi alan çoklu değer: `data->'X' ?| $n` (herhangi biri eleman olarak var mı; text[]).
+    private static void AddExistsFilter(List<SqlFilter> filters, string column, IReadOnlyList<string>? values)
+    {
+        if (values is { Count: > 0 })
+            filters.Add(new SqlFilter(column, "?|", values.ToArray()));
     }
 
     private static void AddRange(List<string> clauses, string field, string? min, string? max)

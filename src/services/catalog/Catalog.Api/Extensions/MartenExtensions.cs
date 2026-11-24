@@ -31,10 +31,9 @@ public static class MartenExtensions
                 // 097: ProductPriceChange şeması SÖKÜLDÜ (fiyat doğumda sabit — 058 geçmişi öldü).
                 // Eski tablo dev full-reset'le gider (ApplyAllDatabaseChangesOnStartup tablo düşürmez).
 
-                // NormalizedName teklik anahtarıdır (R4) — computed unique index son güvence.
-                // Legacy Brand migrasyonu YOK (kullanıcı kararı): DB sıfırlanarak başlatılır, katalog feed'den dolar.
-                opts.Schema.For<Category>().UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.NormalizedName);
-                // Brand→Author rename + yeni Publisher — ikisi de NormalizedName teklik anahtarı (get-or-create güvencesi).
+                // 021: Category aggregate + şeması SÖKÜLDÜ (kategori ekseni → taksonomi). Eski tablo
+                // dev full-reset'le gider (ApplyAllDatabaseChangesOnStartup tablo düşürmez; DB sıfır).
+                // Author/Publisher NormalizedName teklik anahtarı (get-or-create güvencesi).
                 opts.Schema.For<Catalog.Api.Domains.Authors.Author>()
                     .UniqueIndex(Marten.Schema.UniqueIndexType.Computed, x => x.NormalizedName);
                 opts.Schema.For<Catalog.Api.Domains.Publishers.Publisher>()

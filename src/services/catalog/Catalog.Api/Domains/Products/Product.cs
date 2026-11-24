@@ -2,11 +2,11 @@ namespace Catalog.Api.Domains.Products;
 
 /// <summary>
 /// Ürün — Catalog BC'nin kök aggregate'i. 095: sade Kitapyurdu künye modeli. Kimlik Gtin (ISBN,
-/// unique-index); TEK leaf kategori (üst kategori ürüne DENORMALIZE EDİLMEZ — ağaçtan çözülür)
-/// + editoryal RelatedCategoryIds (ata zinciriyle karışmaz). 001: kitap fiyatsız/yazarsız doğabilir —
-/// katalogda görünür ama satışa uygun değildir (IsSalable); fiyat sonradan atanır ve serbest değişir
-/// (>0 guard). Silme-yok kararı (IsDeleted kontratta hep false) sürer. Koleksiyonlar private,
-/// mutasyon yalnız davranış metotlarından.
+/// unique-index). 021: kategori ekseni SÖKÜLDÜ (Category aggregate + CategoryId/RelatedCategoryIds +
+/// ağaç) — yerine kapalı-sözlük taksonomi (Genre/Moods/AudienceLevel/Themes, Faz 3) keşif ekseni olur;
+/// 009 BookTag etiketleri de SÖKÜLDÜ. 001: kitap fiyatsız/yazarsız doğabilir — katalogda görünür ama
+/// satışa uygun değildir (IsSalable); fiyat sonradan atanır ve serbest değişir (>0 guard). Silme-yok
+/// kararı (IsDeleted kontratta hep false) sürer. Koleksiyonlar private, mutasyon yalnız davranış metotlarından.
 /// </summary>
 public class Product : AggregateRoot
 {
@@ -26,13 +26,6 @@ public class Product : AggregateRoot
     // 003: ProductDiscountChanged-fed ETKİN ORAN kopyası — otorite Discount BC; null = indirim yok.
     // İndirimli fiyat SAKLANMAZ: okuyan Price*(1-DiscountRate) hesaplar (liste fiyatı ezilmez).
     public decimal? DiscountRate { get; private set; }
-
-    // Tek leaf kategori (zorunlu — seed "Genel" fallback'iyle garanti eder).
-    public Guid CategoryId { get; private set; }
-
-    // Editoryal "bu kategoriyle DE ilgili" listesi — primary leaf'i ve ata zincirini İÇERMEZ.
-    private readonly List<Guid> _relatedCategoryIds = new();
-    public IReadOnlyList<Guid> RelatedCategoryIds => _relatedCategoryIds;
 
     // Kitap künyesi — çok-yazar (Id listesi) + tek yayınevi (çok-bir); Id ile referans (İLKE II).
     private readonly List<Guid> _authorIds = new();
@@ -57,14 +50,30 @@ public class Product : AggregateRoot
     private readonly List<string> _translators = new();
     public IReadOnlyList<string> Translators => _translators;
 
-    // 009: kitaba-ait etiketler (tema/ruh/alt-tür). Ortak Tag kaydı YOK — her ürün kendi listesini
-    // tutar; BookTag değer-eşitliği kitaplar-arası gruplamayı verir. Normalize BookTag.Create'te.
-    private readonly List<BookTag> _tags = new();
-    public IReadOnlyList<BookTag> Tags => _tags;
+    // 021: kapalı-sözlük taksonomi (enrichment pipeline çıktısı — yazma-anı sınıflandırma, okuma-anı
+    // facet). Değerler BookTaxonomy sözlüğünden; geçersiz olan SetEnrichment'ta düşer/"belirsiz"e iner.
+    public string Genre { get; private set; } = BookTaxonomy.Unknown;      // tur (tek)
+    private readonly List<string> _moods = new();                          // ton (0-3)
+    public IReadOnlyList<string> Moods => _moods;
+    public string AudienceLevel { get; private set; } = BookTaxonomy.Unknown; // seviye (tek)
+    private readonly List<string> _themes = new();                         // konu (0-4)
+    public IReadOnlyList<string> Themes => _themes;
+    public decimal EnrichmentConfidence { get; private set; }              // güven [0,1]
+
+    // 021: eser kimliği — normalize(yazar)+parantezsiz başlık; benzerlik eser-tekilleştirmesi bundan.
+    // İç alan (kullanıcıya/LLM'e çıkmaz). Import'ta WorkKeyNormalizer.Derive ile türetilir.
+    public string WorkKey { get; private set; } = string.Empty;
+
+    private const int MaxMoods = 3;
+    private const int MaxThemes = 4;
 
     /// <summary>Satışa-uygunluk — TEK tanım (001+002): fiyat>0 VE stok>0 VE ≥1 yazar. Türetilmiş
     /// saf getter, hiçbir yere kopyalanmaz; stok bacağı StockChanged-fed kopyadan okunur.</summary>
     public bool IsSalable => Price is { Amount: > 0 } && StockCount > 0 && _authorIds.Count > 0;
+
+    /// <summary>Stokta mı (021) — türetilmiş saf getter (StockCount>0; saklanmaz, çelişemez).
+    /// "Stoktaki ürünler" sorgusunun TEK tanımı; IsSalable'dan ayrı (fiyat/yazar istemez).</summary>
+    public bool InStock => StockCount > 0;
 
     /// <summary>Stok adet kopyasını yazar (002). Çağıranı YALNIZ StockChanged tüketici kablosu —
     /// kullanıcı/admin yolu değildir; otorite Stock BC. Negatif reddedilir; idempotent (mutlak değer).</summary>
@@ -126,30 +135,6 @@ public class Product : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Ürünü TEK leaf kategoriye bağlar (tam-değiştirme). Boş Id reddedilir; üst kategori
-    /// bilgisi ürüne yazılmaz, yayın anında ağaçtan çözülür (FR-004).</summary>
-    public ResultDomain SetCategory(Guid leafCategoryId)
-    {
-        if (leafCategoryId == Guid.Empty)
-            return ResultDomain.Error(new MessageItem
-            { Property = nameof(CategoryId), Code = CatalogResourceConstants.PRODUCT_CATEGORY_REQUIRED });
-        CategoryId = leafCategoryId;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Editoryal ilgili kategorileri TAM-DEĞİŞTİRME ile yazar. Boş Id'ler ve primary leaf
-    /// elenir (ilgili liste ata zinciri/leaf ile karışmaz — FR-005), dedupe; boş liste geçerli. Hep Ok.</summary>
-    public ResultDomain SetRelatedCategories(IEnumerable<Guid> categoryIds)
-    {
-        var cleaned = categoryIds
-            .Where(id => id != Guid.Empty && id != CategoryId)
-            .Distinct()
-            .ToList();
-        _relatedCategoryIds.Clear();
-        _relatedCategoryIds.AddRange(cleaned);
-        return ResultDomain.Ok();
-    }
-
     /// <summary>Kitabın yazar(lar)ını TAM-DEĞİŞTİRME ile atar (çok-çok, Id ile referans). Boş liste
     /// GEÇERLİ (001 — yazarsız kitap katalogda yaşar, satışa uygun sayılmaz); Id'ler tekilleştirilir.</summary>
     public ResultDomain SetAuthors(IEnumerable<Guid> authorIds)
@@ -157,23 +142,6 @@ public class Product : AggregateRoot
         var deduped = authorIds.Distinct().ToList();
         _authorIds.Clear();
         _authorIds.AddRange(deduped);
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Etiketleri TAM-DEĞİŞTİRME ile yazar (009). Her ham parça BookTag.Create edilir;
-    /// başarısız (boş) parça ATLANIR (import satırını durdurmaz); başarılılar Value'ya göre
-    /// tekilleştirilir (SetAuthors deseni). Boş/tümü-geçersiz liste geçerli (etiketsiz ürün). Hep Ok.</summary>
-    public ResultDomain SetTags(IEnumerable<string> rawTags)
-    {
-        var tags = rawTags
-            .Select(BookTag.Create)
-            .Where(r => r.IsSuccess)
-            .Select(r => r.Data!)
-            .SelectMany(t => t.AsciiVariant() is { } ascii ? new[] { t, ascii } : new[] { t })
-            .Distinct()
-            .ToList();
-        _tags.Clear();
-        _tags.AddRange(tags);
         return ResultDomain.Ok();
     }
 
@@ -258,6 +226,44 @@ public class Product : AggregateRoot
             .ToList();
         _translators.Clear();
         _translators.AddRange(cleaned);
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>Kapalı-sözlük taksonomiyi TAM-DEĞİŞTİRME ile yazar (021). Her değer BookTaxonomy ile
+    /// kanonikleştirilir (takma-ad eşlenir, karşılıksız DÜŞER — iş durmaz, FR-005); tur/seviye geçersizse
+    /// "belirsiz"e iner. Liste alanlar dedupe + kardinalite kırpılır (ton≤3, konu≤4). Güven [0,1] clamp.
+    /// Hep Ok (geçersiz değer hata değil, düşürme).</summary>
+    public ResultDomain SetEnrichment(string? genre, IEnumerable<string> moods, string? audienceLevel,
+        IEnumerable<string> themes, decimal confidence)
+    {
+        Genre = BookTaxonomy.CanonicalGenre(genre ?? string.Empty) ?? BookTaxonomy.Unknown;
+        AudienceLevel = BookTaxonomy.CanonicalAudienceLevel(audienceLevel ?? string.Empty) ?? BookTaxonomy.Unknown;
+
+        _moods.Clear();
+        _moods.AddRange(moods
+            .Select(BookTaxonomy.CanonicalMood)
+            .Where(m => m is not null)
+            .Select(m => m!)
+            .Distinct()
+            .Take(MaxMoods));
+
+        _themes.Clear();
+        _themes.AddRange(themes
+            .Select(BookTaxonomy.CanonicalTheme)
+            .Where(t => t is not null)
+            .Select(t => t!)
+            .Distinct()
+            .Take(MaxThemes));
+
+        EnrichmentConfidence = Math.Clamp(confidence, 0m, 1m);
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>Eser kimliğini yazar (021). Çağıranı import — WorkKeyNormalizer.Derive çıktısını alır.
+    /// Boş değer geçerli (yazarsız/başlıksız kenar). Hep Ok.</summary>
+    public ResultDomain SetWorkKey(string workKey)
+    {
+        WorkKey = workKey ?? string.Empty;
         return ResultDomain.Ok();
     }
 }
