@@ -102,6 +102,37 @@ INSERT-ONLY, iki-faz dry-run/confirm). Keşif ekseni kapalı-sözlük taksonomi 
 🟥 Hotspot (closed: 021): `Tagged`→`Enriched` oldu; similar_books varsayılan 5/üst 20 + boost
    katsayıları `SimilarBooksOptions` (config); "stokta" REST+MCP filtresi (`OnlyInStock`) bu dilime girdi.
 
+## Embedding omurgası (025 Dilim-1 — as-built)
+
+> Semantik ayak BİLİNÇLİ döndü (096 "ezber oldu" diye söküldü; bu sefer dilimli/kanıtlı). Dilim-1
+> YALNIZ omurga: kitapları vektörleştir + sakla. Tüketici (semantik arama/benzer V2/taste) sonraki
+> dilimler. Sorgu mimarisi KİLİTLİ: katmanlı rol-ayrımı (filtre=jsonb · lexical=BM25 · semantik=vektör ·
+> kişisel=taste) — RRF füzyon YOK. Model: OpenAI `text-embedding-3-small` (1536-d, çok-dilli).
+
+E1. 🟦 **Embedding şemasını kur** — açılışta `vector` eklenti + ayrı `product_embedding` tablosu       `(ProductSearchSchemaInitializer)`
+   (native `vector(1536)` + input_hash) + HNSW index; idempotent (ParadeDB BM25 ile aynı dizi,
+   mevcut DB'de 018 DROP izi kaldırıldı). Marten `data` jsonb'ye DOKUNMAZ (ham-SQL dünyası).
+E2. 🟦 **Embed metnini kur** — SAF (İlke VI test-first): `Name` + `Description` (008 zengin) +           `(EmbeddingText.Build)`
+   `Genre`/`Moods`/`Themes` → hafif-etiketli blob. Fiyat/stok/dil/sayfa/yayınevi/`AudienceLevel`/
+   yazar GİRMEZ (değişken ya da filtre). "belirsiz" tür + boş çok-değerli satırlar atlanır.
+E3. 🟪 **Girdi değişmediyse atla** — blob SHA256 hash'i `input_hash`'e; aynıysa yeniden-embed YOK        `(EmbeddingText.Hash,`
+   (idempotent + maliyet). v1 worker yalnız "eksik"i yazar; hash ileride değişim-algılama için hazır.   ` EmbeddingDecision.ShouldGenerate)`
+E4. 🟦⭐ **Eksik embedding'leri doldur** — worker her tick embedding'i OLMAYAN ürünü yoklar              `(EmbeddingBackfillWorker,`
+   (`LEFT JOIN product_embedding IS NULL`) → ürünleri Marten'den yükle → batch OpenAI embed            ` EmbeddingClientFactory)`
+   → upsert (vektör text-literal + `::vector` CAST; Npgsql vector plugin gerekmez). Resumable
+   (durum izlemez, eksik-sorgusu kaldığı yerden sürer); hepsi embed → boşta bekler.
+E5. 🟪 **Yeni ürün kendiliğinden yakalanır** ⇦ kendi `ProductAdded`'i — doğan ürün embedding'siz;        `(EmbeddingBackfillWorker)`
+   sonraki tick "eksik" sorgusunda bulur. **Ayrı consumer YOK** (backfill + artımlı tek mekanizma).
+E6. 🟧 **Embedding üretildi** — vektör `product_embedding`'e + HNSW'e girer (BC-içi; entegrasyon           `(EmbeddingBackfillWorker)`
+   event'i YOK — dışarıdan tüketen yok). Okuma/kNN sonraki dilim (semantik arama / benzer V2 / taste).
+
+🟥 Hotspot (closed: 025): backfill = **in-process resumable worker** (ImportJobWorker deseni, offline
+   script değil — embedding süreklilik ister, yeni import'larda da). Depolama = **ayrı `product_embedding`
+   tablosu** (Marten jsonb'ye dokunma; kNN zaten ham-SQL). Tekrar-embed tetiği = **yalnız "eksik"
+   (worker)**; `ProductChangedEvent` sonraya (import INSERT-ONLY → değişim nadir; hash hazır). Boyut =
+   **1536 sabit** (MRL kapalı, sonra ölç). Zayıf-açıklama 422 = **yine embed** (başlık+etiketten; hiç
+   komşusuzdan iyi — blob boş-açıklamada Başlık+taksonomiden kurulur).
+
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **ISBN = kimlik (095).** Ürün Gtin'iyle doğar ve bulunur (`Gtin` unique-index — DB-seviyesi guard); Sku yok.

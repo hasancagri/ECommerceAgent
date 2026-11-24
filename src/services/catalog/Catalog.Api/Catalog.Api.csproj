@@ -25,6 +25,9 @@
         <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
         <PackageReference Include="Duende.IdentityModel" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+        <!-- 025: embedding omurgası — OpenAI text-embedding-3-small (IEmbeddingGenerator). -->
+        <PackageReference Include="Microsoft.Extensions.AI" />
+        <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
         <!-- 014: query-only MCP server yüzeyi (ScoutAgent client olarak bağlanır). -->
         <PackageReference Include="ModelContextProtocol.AspNetCore" />
     </ItemGroup>
