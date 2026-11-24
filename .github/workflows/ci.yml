@@ -79,6 +79,17 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
           ssh-keyscan -H 91.132.49.70 >> ~/.ssh/known_hosts 2>/dev/null
+      # ghcr-pull secret eski/expired token'da kalınca TÜM yeni pod ImagePullBackOff → cluster eski
+      # kodu serve eder. Her deploy'da güncel GHCR_PAT ile tazele (idempotent apply) → rollout çeker.
+      - name: ghcr-pull secret tazele
+        run: |
+          ssh -i ~/.ssh/deploy root@91.132.49.70 "
+            kubectl -n ecommerce create secret docker-registry ghcr-pull \
+              --docker-server=ghcr.io --docker-username=hasancagri \
+              --docker-password='${{ secrets.GHCR_PAT }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+          "
+
       - name: Manifest kopyala + uygula + app rollout
         run: |
           # scp -r hedef dizin VARSA icine nest eder (/tmp/.../k8s/...) -> apply -f (non-recursive)
