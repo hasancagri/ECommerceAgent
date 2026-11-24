@@ -22,3 +22,8 @@ public sealed record SimilarBookItem(
 // 026: semantic_search ayna-tipi. Catalog SemanticSearch.Response/BookItem ile AYNI şekil (SimilarBookItem
 // reuse — alanlar birebir; İlke I kopya DTO). case-insensitive deserialize; React aynı kartı render eder.
 public sealed record SemanticSearchResult(IReadOnlyList<SimilarBookItem> Items, long Total);
+
+// 028: taste (Personalization get_my_taste) + recommend_books (Catalog) ayna-tipleri. Taste VEKTÖR OPAK —
+// yalnız feed orkestrasyonunda Catalog'a taşınır, insan/LLM/log'a çıkmaz (İlke VIII). recommend item = kart şekli.
+public sealed record TasteResult(float[] Vector, int SignalCount);
+public sealed record RecommendBooksResult(IReadOnlyList<SimilarBookItem> Items, long Total);

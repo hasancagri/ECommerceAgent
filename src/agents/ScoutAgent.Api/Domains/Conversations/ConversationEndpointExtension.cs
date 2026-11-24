@@ -66,6 +66,15 @@ public static class ConversationEndpointExtension
             return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
         }).RequireRateLimiting("chat");
 
+        // 028: "sana özel" feed (sorgu YOK → kişisel). Login ŞART (anonim 401; feed kişisel). get_my_taste
+        // → recommend_books orkestrasyonu (deterministik, LLM yok → kota sayılmaz). React "sana özel" bunu çağırır.
+        group.MapGet("/feed", async (IMessageBus bus, CancellationToken ct) =>
+        {
+            var result = await bus.InvokeAsync<FeatureObjectResultModel<ChatResponse>>(
+                new Feed.Query(), ct);
+            return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
+        }).RequireAuthorization();
+
         // 020-voice: POST /transcribe — ses → metin. Opsiyonel bearer (anonim serbest, FR-012). Çevirme
         // sohbetten AYRI gün-kotası (önek "tx:"). Guard slice'ta (400); OpenAI hatası → 503 + kota iade.
         group.MapPost("/transcribe", async (

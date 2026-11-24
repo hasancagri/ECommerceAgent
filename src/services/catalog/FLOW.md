@@ -97,6 +97,9 @@ INSERT-ONLY, iki-faz dry-run/confirm). Keşif ekseni kapalı-sözlük taksonomi 
    embedding'ine kNN (`<=>` kosinüs; anlam, ortak etiket şart değil) + hard filtre (dil, çocuk/yetişkin
    seviye grubu, kendi WorkKey baskıları hariç) + WorkKey tekilleştirme (eser başına 1 `DISTINCT ON`) +
    stok-önce sıralama. Çapa embed'i yoksa boş. 021 etiket-BM25 örtüşmesi + boost + fallback SÖKÜLDÜ (027).
+8e. 🟦 Kişisel öneri (028 Dilim-4) — recommend_books MCP tool'u (yalnız ScoutAgent feed): verilen TASTE     `(RecommendBooks.Tool,`
+   vektörüyle `product_embedding` kNN + satılabilir filtre + WorkKey tekil + çeşitlilik → öneri. Taste       ` RecommendQueries)`
+   BOŞ (cold) → küratörlü (popülerlik). ANONİM (taste'i ScoutAgent Personalization'dan alıp arg geçer; vektör opak, İlke VIII).
 
 🟥 Hotspot (closed: 021): `Tagged`→`Enriched` oldu; similar_books varsayılan 5/üst 20 + boost
    katsayıları `SimilarBooksOptions` (config); "stokta" REST+MCP filtresi (`OnlyInStock`) bu dilime girdi.

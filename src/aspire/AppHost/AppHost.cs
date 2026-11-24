@@ -249,6 +249,8 @@ catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 // 025: embedding omurgası — Catalog OpenAI anahtarını ScoutAgent'la AYNI secret'tan alır (ikinci
 // user-secret yok; tek OpenAI anahtarı iki servise). İlke VIII: değer loglanmaz, env'le taşınır.
 catalogApi.WithEnvironment("CatalogEmbeddingOptions__ApiKey", scoutOpenAiKey);
+// 028: Personalization taste-vektör sorgu-embed'i — aynı OpenAI anahtarı (scout-openai-key reuse). İlke VIII.
+personalizationApi.WithEnvironment("PersonalizationEmbeddingOptions__ApiKey", scoutOpenAiKey);
 
 // WebApp (UI) + ChatAgent SÖKÜLDÜ (2026-09-11) — agent-only/BYO-agent yönü: müşteri kendi AI istemcisiyle
 // platform MCP fasadına bağlanır; mağaza kendi ekranını/agent'ını host etmez. Admin de aynı /mcp'de (085).

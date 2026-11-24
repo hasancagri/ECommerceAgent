@@ -34,6 +34,9 @@ sub-agent EMEKLİ — tek yol iki-faz.)
    `Filters.Page+1` ile doğrudan `/search` (niyet-eşleme React'te, ek-çekim toleranslı).
 9. 🟪 **Arama sinyali:** login + dolu-sorguda `search_books` yolu `UserSearched` yayar ⇨ Personalization
    (012/013). Anon → sessiz.
+9b. 🟦 **Sana özel feed (028):** 👤 sorgu-YOK feed (login) → GET `/feed` → ⇦ Personalization `get_my_taste`  `(Feed.Handle)`
+    (taste vektör+signalCount, token-forward) → signalCount<3/boş ise küratörlü değilse ⇨ Catalog
+    `recommend_books(taste)` → kartlar. Deterministik (LLM yok). Vektör opak (loglanmaz, İlke VIII). Anon → 401.
 10. 🟦 **Geçmiş yönetimi (017):** 👤 sohbetini yeniden adlandırır → **RenameConversation**                   `(Conversation.Rename)`
     (PATCH `/conversations/{id}`; boş red, UpdatedTime DOKUNULMAZ) ya da siler → **DeleteConversation**     `(DeleteConversation.Handle)`
     (DELETE, HARD). Sahiplik-korumalı (başkasınınki 404). Anon muadili istemcide.
