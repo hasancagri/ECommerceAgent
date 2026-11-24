@@ -8,56 +8,11 @@ namespace ScoutAgent.Api.Domains.Conversations;
 // /messages opsiyonel bearer (anonim US1); /conversations* giriş şart + sahiplik (US4).
 public static class ConversationEndpointExtension
 {
-    // history: anon istemci-transkript (devamlılık/sayfalama). Login'de yok sayılır.
-    // lastSearch: React'in sakladığı son aramanın filtre+page'i — "devamını getir"de page+1 taşır.
-    public record SendMessageRequest(
-        Guid? ConversationId, string Message, IReadOnlyList<SendMessage.HistoryTurn>? History = null,
-        SendMessage.LastSearch? LastSearch = null);
-
     public static void MapConversationEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/chat/v1").WithTags("ScoutChat");
 
-        // POST /messages — opsiyonel bearer. Token varsa sub → kalıcı sohbet; yoksa anonim oturumluk.
-        group.MapPost("/messages", async (
-            SendMessageRequest request, ICurrentUser currentUser, HttpContext http,
-            IMessageBus bus, ScoutAgent.Api.Options.ScoutOptions options,
-            DailyUsageGuard usageGuard, ILoggerFactory loggerFactory, CancellationToken ct) =>
-        {
-            if (string.IsNullOrWhiteSpace(request.Message))
-                return Results.BadRequest(new { message = "Mesaj boş olamaz." });
-            // 014: kötüye-kullanım guard'ı — aşırı uzun mesaj reddedilir (maliyet/bağlam şişmesi).
-            if (request.Message.Length > options.MaxMessageLength)
-                return Results.BadRequest(new { message = $"Mesaj çok uzun (en fazla {options.MaxMessageLength} karakter)." });
-
-            currentUser.Load(http.User);
-            Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
-
-            // 020-B: gün-başına kalıcı rate cap (LLM çağrısından ÖNCE). anonim IP / login sub partition.
-            var partition = ScoutUsageKey.Partition(userId, http.Connection.RemoteIpAddress?.ToString());
-            var dailyCap = userId is null ? options.AnonPerDay : options.UserPerDay;
-            if (!await usageGuard.TryConsumeAsync(partition, dailyCap, ct))
-                return Results.Json(new { message = ScoutResourceConstants.TOO_MANY_REQUESTS }, statusCode: 429);
-
-            try
-            {
-                var result = await bus.InvokeAsync<FeatureObjectResultModel<SendMessage.Response>>(
-                    new SendMessage.Command(request.ConversationId, request.Message, userId, request.History,
-                        request.LastSearch), ct);
-
-                return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
-            }
-            catch (Exception ex)
-            {
-                // 020-B: hard-fail → günlük slotu iade (kullanıcı cevapsız kaldı, kotası yanmasın).
-                await usageGuard.ReleaseAsync(partition, ct);
-                // Yerel model / MCP ucu erişilemez → 503 anlaşılır hata (FR-008). Exception LOGLANIR (teşhis).
-                loggerFactory.CreateLogger("ScoutChat").LogError(ex,
-                    "SendMessage patladı — msg='{Msg}' userId={UserId}", request.Message, userId);
-                return Results.Problem(statusCode: 503, title: "Kâşif şu an hizmet veremiyor, biraz sonra tekrar dene.");
-            }
-        }).RequireRateLimiting("chat");
-
+        // 023: /messages (router+sub-agent) EMEKLİ — sohbet yalnız kitap keşfi, iki-faz /extract+/search.
         // 022 Tur-1: POST /extract — ham sorgu → TİPLİ niyet (BookSearchFilters). LLM structured output
         // (gün-kotası sayılır). Opsiyonel bearer (anonim serbest). React bunu alıp /search'e relay eder.
         group.MapPost("/extract", async (
@@ -106,7 +61,7 @@ public static class ConversationEndpointExtension
             currentUser.Load(http.User);
             Guid? userId = currentUser.Id == Guid.Empty ? null : currentUser.Id;
 
-            var result = await bus.InvokeAsync<FeatureObjectResultModel<SendMessage.Response>>(
+            var result = await bus.InvokeAsync<FeatureObjectResultModel<ChatResponse>>(
                 new SearchTyped.Command(request.ConversationId, request.Message, request.Filters, userId), ct);
             return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
         }).RequireRateLimiting("chat");
