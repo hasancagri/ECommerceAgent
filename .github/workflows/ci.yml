@@ -91,5 +91,20 @@ jobs:
             kubectl apply -f /tmp/deploy-k8s/
             apps=$(kubectl -n ecommerce get deploy -o name | grep -vE "postgres|rabbitmq|redis")
             kubectl -n ecommerce rollout restart $apps
-            kubectl -n ecommerce rollout status $apps --timeout=300s
+            kubectl -n ecommerce rollout status $apps --timeout=600s
+          '
+
+      # Rollout başarısızsa (tek-node herd / crashloop / kaynak) kök nedeni Actions log'una dök.
+      - name: Teşhis (başarısızlıkta)
+        if: failure()
+        run: |
+          ssh -i ~/.ssh/deploy root@91.132.49.70 '
+            echo "=== PODS ==="
+            kubectl -n ecommerce get pods -o wide
+            echo "=== EVENTS (son 30) ==="
+            kubectl -n ecommerce get events --sort-by=.lastTimestamp | tail -30
+            echo "=== scout-agent log ==="
+            kubectl -n ecommerce logs deploy/scout-agent --tail=50 2>&1 || true
+            echo "=== node kaynak ==="
+            kubectl top nodes 2>&1 || true
           '
