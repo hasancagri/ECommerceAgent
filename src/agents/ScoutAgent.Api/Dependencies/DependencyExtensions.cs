@@ -4,9 +4,9 @@ public static class DependencyExtensions
 {
     public static void AddAllDependencies(this IServiceCollection serviceCollection)
     {
-        // 019 sub-agent'ları SOMUT tip enjekte eder (McpToolSource, ChatClientFactory, ISubAgent'lar) →
-        // AsSelfWithInterfaces: hem somut tip hem arayüzler (ISingletonDependency + ör. ISubAgent) kayıtlı,
-        // TEK örnek paylaşılır. (Yalnız AsImplementedInterfaces somut tipi kaydetmez → ctor çözülemez.)
+        // AsSelfWithInterfaces: hem somut tip hem arayüzler (ör. ISingletonDependency) kayıtlı, TEK örnek
+        // paylaşılır. Ctor somut tip enjekte ettiğinde (ör. ChatClientFactory, McpToolSource) çözülür —
+        // yalnız AsImplementedInterfaces somut tipi kaydetmez → ctor çözülemez (bilinen tuzak).
         serviceCollection.Scan(scan => scan
             .FromApplicationDependencies()
             .AddClasses(classes => classes.AssignableTo<ITransientDependency>())

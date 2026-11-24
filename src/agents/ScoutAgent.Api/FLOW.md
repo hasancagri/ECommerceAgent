@@ -2,112 +2,70 @@
 > 👤 aktör · 🟥 hotspot · ⇦/⇨ BC-arası dikiş (kaynak/hedef BC). Satır sonu backtick `(…)` = koda köprü.
 > Backtick'siz + _(planned)_ = henüz kodu yok. Süreç değişince bu dosya aynı PR'da güncellenir.
 
-# ScoutAgent (Kâşif) — sohbet + niyet-routing süreci
+# ScoutAgent (Kâşif) — iki-faz tipli kitap-keşfi süreci
 
-**BC ne yapar:** Kullanıcının serbest metnini alır, LLM ile niyeti anlar, doğru BC'nin **MCP query
-tool'unu** seçip çağırır, cevabı sohbet kartlarıyla döner. Agent YALNIZ MCP konuşur (first-party,
-agent-içi — dış/BYO yüzey YOK). Yazma YAPMAZ (okuma-only tool'lar); aksiyon REST+UI'da (keşif=sohbet,
-aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon transkript istemcide.
+**BC ne yapar:** Kullanıcının serbest metnini alır, LLM ile TİPLİ niyete (slot objesi) çıkarır, sunucu
+deterministik yorumlayıp Catalog `search_books` MCP tool'uyla arar, kartlarla döner. Sohbet YALNIZ kitap
+keşfi (keşif=sohbet, aksiyon=tık — sepet/sipariş/yorum REST+UI'da). Yazma YOK (query-only MCP). Login
+kullanıcının transkriptini kendi deposunda tutar; anon transkript istemcide. (023: /messages router+
+sub-agent EMEKLİ — tek yol iki-faz.)
 
 ## Süreç
 
-1. 👤 kullanıcı chat'e mesaj yazar → 🟦 **SendMessage** (POST `/api/chat/v1/messages`;        `(SendMessage.Handle)`
-   mesaj-güdümlü, `?q=` URL YOK). **020-voice:** mesaj metni SESLE de gelebilir — 🩷 ses              `(Transcribe.Handle)`
-   OpenAI AudioClient'la metne çevrilir (POST `/api/chat/v1/transcribe`, stateless yardımcı uç,
-   diske yazılmaz), metin composer'a düşer; OTOMATİK GÖNDERME YOK — domain süreci değişmez.
-2. 🟪 Login ise `Conversation` yüklenir, bağlam `[özet]+[son N]` kurulur; anon ise istemci-transkript
-   gövdeden gelir (oturumluk, sunucuda saklanmaz).
-3. 🟪 Araç kutusu auth'a göre süzülür — anon = yalnız açık tool'lar (`search_books`/`get_book`/
-   `get_book_reviews`); login = hepsi. Model 403 görmez (deneyim katmanı).
-4. 🩷 LLM (OpenAI gpt-4o-mini, `UseFunctionInvocation`) niyeti anlar → doğru MCP tool'u seçer; kitap/
-   yazar/konu geçince SORMADAN `search_books` çağırır (netleştirme yok, önce ara).
-5. 🩷 İlgili BC `/mcp` tool'u çağrılır ⇨ Catalog/Basket/Order/Library/Customer/Reviews/Personalization —
-   kişisel tool'da kullanıcı token'ı taşınır (gerçek yetki sınırı uçta). Personalization yalnız
-   `get_search_history` (okuma); arama-geçmişi silme sohbette YOK → agent geçmiş ekranına yönlendirir.
-6. 🟧 Cevap `{text, items}` — `items` tool dönüşünden BİREBİR (fiyat/kapak/künye uydurma YOK).
-   React tool adına göre kart render eder (tek sohbet akışı).
-7. 🟪 Login ise user mesajı + assistant mesajı (`text` + gösterilen `items`'ın opak JSON kopyası      `(Conversation.AddAssistantMessage)`
-   `ItemsJson`) `Conversation`'a eklenir → sohbet tekrar açılınca kartlar AYNEN gelir (017 reload
-   sadakati). Özetleme KAPALI — tam transkript taşınır. Anon = kalıcı kayıt yok (istemci saklar).
-8. 🟪 **Sayfalama:** cevap metni sayfa-izi taşır ("… 1. sayfa"); 👤 "devamını getir" → LLM
-   `search_books page+1` çağırır → sonraki 20 aynı akışa eklenir (anon'da izi istemci-transkript taşır).
-9. 🟪 **Arama sinyali:** login + dolu-sorguda `search_books` yolu `UserSearched` yayar ⇨ Personalization
-   (012/013 aynen; yayın REST ucundan buraya TAŞINDI). Anon → sessiz (kaydolmaz).
-10. 🟦 **Geçmiş yönetimi (017):** 👤 sohbetini elle yeniden adlandırır → **RenameConversation**           `(Conversation.Rename)`
-    (PATCH `/conversations/{id}`; boş red, UpdatedTime DOKUNULMAZ — sidebar sırası sabit) ya da
-    kalıcı siler → **DeleteConversation** (DELETE, HARD). İkisi de sahiplik-korumalı (başkasınınki 404).  `(DeleteConversation.Handle)`
-    Anon muadili istemcide (sessionStorage; sunucu çağrısı yok).
-
-## 022: iki-faz tipli arama (kitap keşfi — chat yolundan AYRI)
-
-Kitap araması, kırılgan "iç LLM JSON param doldurur" adımını bırakıp iki-faza geçti. Sepet/yorum/
-kitaplık gibi diğer niyetler yukarıdaki `/messages` (router+sub-agent) yolunda kalır — bu yol YALNIZ
-kitap keşfi için.
-
-1. 👤 kullanıcı sorgu yazar → 🟦 **ExtractIntent** (POST `/api/chat/v1/extract`) — 🩷 LLM strict         `(ExtractIntent.Handle)`
-   structured output (`GetResponseAsync<BookSearchFilters>`) niyeti TİPLİ NESTED slot objesine çıkarır;
-   model yalnız kullanıcının kelimelerini doğru slota koyar (çeviri/enum/id YOK). Hata → çıplak-query
-   fallback (bloklamaz). Durumsuz.
-2. 🟪 React tipi alır, beklemeden 🟦 **SearchTyped**'e relay eder (oto-relay, ONAY YOK — arama geri        `(SearchTyped.Handle)`
-   dönüşsüz değil). "anladım" filtreleri gösterim amaçlı (gate değil).
-3. 🟪 DETERMİNİSTİK (LLM YOK): `FilterInterpreter` slotları `search_books` argümanlarına düzler            `(FilterInterpreter.ToSearchArgs)`
+1. 👤 kullanıcı sorgu yazar → 🟦 **ExtractIntent** (POST `/api/chat/v1/extract`). **020-voice:** metin     `(ExtractIntent.Handle)`
+   SESLE de gelebilir — 🩷 ses OpenAI AudioClient'la çevrilir (POST `/transcribe`, stateless, diske        `(Transcribe.Handle)`
+   yazmaz), composer'a düşer; OTOMATİK GÖNDERME YOK.
+2. 🩷 LLM (OpenAI gpt-4o-mini) strict **structured output** (`GetResponseAsync<BookSearchFilters>`) niyeti
+   TİPLİ NESTED slot objesine çıkarır: model yalnız kullanıcının kelimelerini doğru slota koyar (çeviri/
+   enum/id YOK; uydurma yasağı — sorguda açıkça yoksa slot null). 🟪 Bağlam: React önceki tipli filtreyi
+   `previous` olarak taşır → LLM daraltma/sıfırlama kararını verir (çok-tur). Hata → çıplak-query fallback.
+3. 🟪 React tipi alır, beklemeden 🟦 **SearchTyped**'e relay eder (POST `/search`; oto-relay, ONAY YOK —     `(SearchTyped.Handle)`
+   arama geri dönüşsüz değil). "anladım" chip'i gösterim amaçlı (gate değil).
+4. 🟪 DETERMİNİSTİK (LLM YOK): `FilterInterpreter` slotları `search_books` argümanlarına düzler            `(FilterInterpreter.ToSearchArgs)`
    (PriceHint/PageHint metin→sayı burada; sort/binding/yazar/yayınevi metni Catalog yorumlar).
-4. 🩷 Catalog `search_books` çağrılır ⇨ Catalog — yazar adı `author` filtresine (jsonb `?|`, kelime-
-   sınırı eşleşme) → "X'in kitapları" YALNIZ X'in eserleri (BM25 token kirliliği biter).
-5. 🟧 Cevap `{text, items}` — `text` şablon ("'X' için N kitap"), `items` tool dönüşünden birebir.
-   Login → `Conversation`'a yazılır (017 reload/sidebar korunur); "devamını getir" = React `Filters.Page+1`.
-
-## Planlanan: 019 router → sub-agent dağıtımı _(planned)_
-
-Bugünkü 3-4-5. adımlar (kör araç kutusu + tek düz "Kasif" agent) şu akışla değişir:
-
-- 🟪 **Niyet dağıtımı:** Router agent (ucuz model) gelen mesajın niyetini anlar → BC-başına
-  sub-agent'lardan birini (veya çok-alanlı istekte birkaçını) seçer. Router sub-agent'ları
-  AsAIFunction ile *tool* olarak görür (agent-as-tool); seçimi LLM yapar — D3'e sadık (kural-
-  sınıflandırıcı DEĞİL). _(planned RouteToSubAgent)_
-- 🟨 **Sub-agent (BC-başına, 7):** Catalog / Reviews / Basket / Order / Library / Customer /
-  Personalization. Her biri YALNIZ kendi `/mcp` ucuna bağlanır → **kör toplama biter** (seçilmeyen
-  uç hiç çağrılmaz); her biri kısa, kendi alanına özel prompt taşır. _(planned)_
-- 🟪 **Agent-başına model:** router ucuz/hızlı, zor sub-agent güçlü model (model-keyed client;
-  sağlayıcı karışabilir). _(planned)_
-- 🟧 **Sub-agent tipli çıktı:** her sub-agent şemaya uyan yapılı cevap üretir; tool sonucu yine
-  CapturingFunction ile yakalanır → `items` birebir (yakalama + token-forward desenleri KORUNUR).
-  _(planned SubAgentReplied)_
+5. 🩷 Catalog `search_books` çağrılır ⇨ Catalog — yazar adı `author` filtresine (jsonb `?|`, KELİME-
+   sınırı eşleşme) → "X'in kitapları" YALNIZ X'in eserleri (BM25 token kirliliği biter). "X hakkında" =
+   konu → query'de kalır.
+6. 🟧 Cevap `{text, items}` — `text` ŞABLON ("'X' için N kitap" / sayfalamada "Sonraki sayfa — a–b"),       `(SearchTyped.Handle → ChatResponse)`
+   `items` tool dönüşünden BİREBİR (fiyat/kapak/künye uydurma YOK). React tool adına göre kart render eder.
+7. 🟪 Login ise user mesajı (ham sorgu) + assistant mesajı (`text` + `items` opak JSON kopyası            `(Conversation.AddAssistantMessage)`
+   `ItemsJson`) `Conversation`'a eklenir → tekrar açılınca kartlar AYNEN (017 reload). Anon = istemci saklar.
+8. 🟪 **Sayfalama:** React son tipli filtreyi tutar; 👤 "devamını getir" → React `/extract` ATLAR,
+   `Filters.Page+1` ile doğrudan `/search` (niyet-eşleme React'te, ek-çekim toleranslı).
+9. 🟪 **Arama sinyali:** login + dolu-sorguda `search_books` yolu `UserSearched` yayar ⇨ Personalization
+   (012/013). Anon → sessiz.
+10. 🟦 **Geçmiş yönetimi (017):** 👤 sohbetini yeniden adlandırır → **RenameConversation**                   `(Conversation.Rename)`
+    (PATCH `/conversations/{id}`; boş red, UpdatedTime DOKUNULMAZ) ya da siler → **DeleteConversation**     `(DeleteConversation.Handle)`
+    (DELETE, HARD). Sahiplik-korumalı (başkasınınki 404). Anon muadili istemcide.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
-- **Yalnız MCP.** Agent BC'lere REST/gRPC ile DEĞİL, yalnız MCP tool'uyla erişir (agent kimliği budur;
-  conventions "MCP yalnız agent tüketir"). Uç listesi config-güdümlü (yeni BC = tek satır).
-- **Okuma-only.** Tüm tool'lar query; yazma (sepete-ekle/sipariş/yorum/adres/arama-geçmişi-silme) MCP'de
-  YOK — REST+UI. Arama geçmişi okunur (`get_search_history`) ama silinmez; agent silmeyi ekrana yönlendirir.
-- **Items birebir.** Tool sonucu değiştirilmeden döner. 017: gösterilen kartlar assistant mesajına
-  `ItemsJson` olarak SAKLANIR (reload sadakati) AMA modele giden **bağlama GİRMEZ** — `BuildContext`
-  yalnız `Text` okur (zehirlenme yok, maliyet sabit). Saklama ≠ bağlam; iki ayrı endişe.
-- **Rename UpdatedTime'a dokunmaz.** Elle yeniden adlandırma "etkinlik" değil → sidebar sırası (son
-  aktivite) korunur. LLM'in ilk-tur akıllı başlığı (`SetTitle`) bundan ayrı (UpdatedTime günceller).
-- **Devamlılık kaynağı.** Login → ScoutAgent'ın kendi kaydı; anon → istemci-transkript. Agent çerçeve
-  state'ine güvenilmez. Kullanıcı yalnız KENDİ sohbetini görür/sürdürür/adlandırır/siler (sahiplik).
-- **Arama kaydı yalnız login.** `UserSearched` yalnız login+dolu-sorguda yayılır; anon arama kaydolmaz
-  (012/013 invariant'ı korunur, toplu/anon log YOK).
-- **022 iki-faz: çıkarma LLM, arama deterministik.** Tur-1 (`/extract`) TEK LLM işi = niyeti tipli slota
-  koymak (uydurma yasağı: sorguda açıkça yoksa slot null). Tur-2 (`/search`) LLM YOK — slot→arg→MCP. Yazar
-  adı metni query'ye GİRMEZ, `author` filtresine gider (token kelime-sınırı eşleşir, substring çarpışması
-  önlenir). "X hakkında" = konu (query'de kalır), "X'in kitapları" = yazarlık (author filtresi) — ayrım slotlamada.
+- **Çıkarma LLM, arama deterministik.** Tur-1 (`/extract`) TEK LLM işi = niyeti tipli slota koymak. Tur-2
+  (`/search`) LLM YOK — slot→arg→MCP. Toplam 1 LLM turu (eski router+sub-agent 2-zar değil).
+- **Yazarlık vs hakkında.** Yazar adı query'ye GİRMEZ, `author` filtresine (token kelime-sınırı, substring
+  çarpışması yok). "X'in kitapları" = yazarlık (author); "X hakkında" = konu (query). Ayrım slotlamada.
+- **Uydurma yasağı.** Sorguda açıkça geçmeyen filtre (sort/fiyat/stok/cilt) slot'a KOYULMAZ (null/false).
+- **Yalnız MCP, okuma-only.** Catalog'a yalnız `search_books` query tool'uyla erişir (REST/gRPC değil).
+  Yazma YOK — aksiyon REST+UI.
+- **Items birebir.** Tool sonucu değişmeden döner. 017: kartlar assistant mesajına `ItemsJson` SAKLANIR
+  (reload) AMA modele giden bağlama GİRMEZ (saklama ≠ bağlam).
+- **Rename UpdatedTime'a dokunmaz.** Elle ad "etkinlik" değil → sidebar sırası korunur.
+- **Devamlılık + sahiplik.** Login → kendi kaydı; anon → istemci-transkript. Kullanıcı yalnız KENDİ
+  sohbetini görür/sürdürür/adlandırır/siler.
+- **Arama kaydı yalnız login.** `UserSearched` yalnız login+dolu-sorguda; anon kaydolmaz.
 
 ## Sınır (bu BC'nin dokunmadığı)
 
 - BC verisini DEĞİŞTİRMEZ (yalnız query-only MCP okur). Kendi tek kalıcı verisi = login sohbeti.
+- Catalog-dışı sohbet niyetleri YOK (sepet/sipariş/yorum = REST+UI; 023'te /messages sub-agent'larıyla söküldü).
 - Dış agent / DCR / consent yüzeyi YOK — yalnız first-party React tüketir.
-- Toplu arama analitiği / sonuçsuz-sorgu paneli YOK (bilinçli dışarıda).
+- Konsept/semantik arama ("Rus klasikleri" anlamla) YOK — BM25 token-eşleşme; semantik ayak ayrı dilim.
 
 ## Hotspot
 
-- 🟥 (closed: "MCP yasağı vs agent kimliği" → first-party agent-içi MCP geri gelir, ADR teardown
-  kuralını gerekçeyle tersine çevirir — dış/BYO yüzey HÂLÂ kapalı).
-- 🟥 (closed: "anon sayfalama login zorlar mı" → HAYIR; anon istemci-transkriptle tam sayfalanır).
-- 🟥 (closed: "sayfa izi nasıl" → cevap metnine iz; ayrı durum tablosu yok).
-- 🟥 (closed: "bulut mu local mi" → bu dilim bulut gpt-4o-mini; local-LLM kuzey-yıldız ayrı dilim).
-- 🟥 (open, 019: "niyet routing tek düz agent mı, router+sub-agent mi" → router+sub-agent;
-  D3'ün LLM-routing kararı KORUNUR — kural-sınıflandırıcı yine reddedilir — ama tek düz agent
-  agent-as-tool router'a evrilir: kör MCP toplama biter, agent-başına model açılır. 019 implement
-  bitince closed'a döner).
+- 🟥 (closed: "niyet routing tek düz agent mı, router+sub-agent mi" → 019 router+sub-agent kuruldu, 022
+  iki-faz tipli çıkarmaya evrildi, 023'te /messages+router+sub-agent EMEKLİ — tek yol /extract+/search).
+- 🟥 (closed: "param kırılganlığı" → tipli structured output + FilterInterpreter; elle-JSON hack söküldü).
+- 🟥 (closed: "bulut mu local mi" → bulut gpt-4o-mini yalnız Tur-1 çıkarmada; local-LLM ayrı dilim).
+- 🟥 (open: "konsept/semantik arama" → 'Rus klasikleri'/'Stoacı felsefe' token-eşleşmeyle bulunmaz;
+  semantik ayak (096 söküldü) yeni spec'le döner — closed olunca bu satır güncellenir).

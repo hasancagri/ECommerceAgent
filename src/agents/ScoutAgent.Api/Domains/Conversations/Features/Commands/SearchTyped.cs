@@ -7,7 +7,7 @@ namespace ScoutAgent.Api.Domains.Conversations.Features.Commands;
 // 022 Tur-2: TİPLİ niyet → kartlar. DETERMİNİSTİK (LLM YOK): FilterInterpreter slotları search_books
 // argümanlarına düzler → Catalog yorumlar (taksonomi/sort/binding/ad→id) + ParadeDB → kartlar. Intro
 // şablon. Message = kullanıcının ham sorgusu (Conversation'a insan-metni olarak yazılır; 017 sidebar/
-// geçmiş korunur). Cevap şekli SendMessage.Response (React aynı parse'ı kullanır). Başlık üretimi YOK
+// geçmiş korunur). Cevap şekli ChatResponse (React aynı parse'ı kullanır). Başlık üretimi YOK
 // (ilk mesaja düşer — Tur-2 LLM'siz kalsın). "devamını getir" = React Filters.Page+1 yollar.
 public static class SearchTyped
 {
@@ -18,7 +18,7 @@ public static class SearchTyped
         private static readonly System.Text.Json.JsonSerializerOptions ItemsJsonOptions =
             new() { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
 
-        public async Task<FeatureObjectResultModel<SendMessage.Response>> Handle(Command command, CancellationToken ct)
+        public async Task<FeatureObjectResultModel<ChatResponse>> Handle(Command command, CancellationToken ct)
         {
             var isAuthenticated = command.UserId is Guid uid && uid != Guid.Empty;
             var collector = new ToolResultCollector();
@@ -36,14 +36,14 @@ public static class SearchTyped
                         conversation = found;
                         var added = conversation.AddUserMessage(command.Message);
                         if (!added.IsSuccess)
-                            return FeatureObjectResultModel<SendMessage.Response>.Error(added.Messages);
+                            return FeatureObjectResultModel<ChatResponse>.Error(added.Messages);
                     }
                 }
                 if (conversation is null)
                 {
                     var started = Conversation.Start(userId, command.Message);
                     if (!started.IsSuccess)
-                        return FeatureObjectResultModel<SendMessage.Response>.Error(started.Messages);
+                        return FeatureObjectResultModel<ChatResponse>.Error(started.Messages);
                     conversation = started.Data!;
                 }
             }
@@ -71,7 +71,7 @@ public static class SearchTyped
             }
             else
                 text = $"'{command.Message}' için {total} kitap buldum; aşağıda kartlarda.";
-            var reply = new SendMessage.Reply { Text = text, Items = BuildItems(collector) };
+            var reply = new ChatReply { Text = text, Items = BuildItems(collector) };
 
             Guid conversationId;
             if (isAuthenticated && conversation is not null)
@@ -89,17 +89,17 @@ public static class SearchTyped
                 conversationId = command.ConversationId ?? Guid.NewGuid();
             }
 
-            return FeatureObjectResultModel<SendMessage.Response>.Ok(new SendMessage.Response
+            return FeatureObjectResultModel<ChatResponse>.Ok(new ChatResponse
             {
                 ConversationId = conversationId,
                 Reply = reply,
             });
         }
 
-        private static IReadOnlyList<SendMessage.ReplyItem> BuildItems(ToolResultCollector collector) =>
+        private static IReadOnlyList<ChatReplyItem> BuildItems(ToolResultCollector collector) =>
             collector.Results
                 .Where(r => r.Result is not null)
-                .Select(r => new SendMessage.ReplyItem(r.Tool, r.Result!, r.Filters))
+                .Select(r => new ChatReplyItem(r.Tool, r.Result!, r.Filters))
                 .ToList();
     }
 }
