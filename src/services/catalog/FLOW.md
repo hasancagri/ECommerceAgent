@@ -133,6 +133,27 @@ E6. 🟧 **Embedding üretildi** — vektör `product_embedding`'e + HNSW'e gire
    **1536 sabit** (MRL kapalı, sonra ölç). Zayıf-açıklama 422 = **yine embed** (başlık+etiketten; hiç
    komşusuzdan iyi — blob boş-açıklamada Başlık+taksonomiden kurulur).
 
+## Semantik arama (026 Dilim-2 — as-built)
+
+> Embedding omurgası (025) hazır → ilk tüketici: anlam-temelli arama. Rol-ayrımı: **semantik=vektör**
+> (betimleyici/kavramsal sorgu), lexical=BM25 (tam eşleşme/yazar/ISBN) AYRI — RRF füzyon YOK. Betimleyici
+> sorgu ("umut veren hafif bir yaz romanı") BM25'te 0 döner; kNN anlamla eşler. Yüzey yalnız ScoutAgent.
+
+SS1. 🟦 **Semantik ara** ⇦ ScoutAgent — betimleyici sorgu → OpenAI embed (`EmbeddingClientFactory`,       `(SemanticSearch.Tool,`
+   025 omurga modeli) → `product_embedding` kNN (`<=>` kosinüs) + eşik (`MaxCosineDistance` 0.68 altı) →   ` SemanticSearchQueries)`
+   mesafe artan sırala → künye (Marten, sıra korunur). Ham-SQL. Eşik dışı boş (alakasız doldurma yok).
+SS2. 🟪 **Yapısal pre-filter kNN'e** — stokta/indirimli/fiyat/sayfa jsonb predicate (`mt_doc_product`        `(SemanticSearchQueries`
+   JOIN; filtre=uygunluk, vektör=yakınlık). Yayınevi/yazar YOK (demir → lexical). BM25 metin KARIŞMAZ.      ` .AppendFilters, SemanticFilter)`
+SS3. 🟦 **Ayrı yüzey** `semantic_search` MCP tool (yalnız ScoutAgent); `search_books`/REST `/products/       `(SemanticSearch.Tool)`
+   search` lexical kalır, DOKUNULMAZ. Query + count + yapısal filtre param'ları.
+SS4. 🟧 **Kullanıcı aradı** ⇨ Personalization — login + dolu-sorguda `UserSearched(mode="semantic")`        `(SemanticSearch.Tool)`
+   yayınlanır (fanout; search_books deseni). Ayrık + hata-yutar; anonim yayınlamaz.
+
+🟥 Hotspot (closed: 026): yüzey = **ayrı `semantic_search` tool** (rol-ayrımı; search_books lexical kalır).
+   Routing = **ScoutAgent `/extract`** betimleyici → `SemanticQuery` (LLM); demir yoksa semantik
+   (`SemanticIntent` guard; Text.Query sızıntısı katlanır). Sıra = **yapısal pre-filter → kNN** (067).
+   Eşik = **0.68** (Options, canlı kalibre). Sorgu-embed cache = **sonra** (backlog; her arama 1 OpenAI çağrısı).
+
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **ISBN = kimlik (095).** Ürün Gtin'iyle doğar ve bulunur (`Gtin` unique-index — DB-seviyesi guard); Sku yok.

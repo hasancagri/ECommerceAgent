@@ -82,7 +82,10 @@ public static class SearchTyped
                 var q = string.Join(" ", new[] { command.Filters.SemanticQuery, command.Filters.Text?.Query }
                     .Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!.Trim()));
                 var count = command.Filters.PageSize is < 1 or > 20 ? 10 : command.Filters.PageSize;
-                var semArgs = new Dictionary<string, object?> { ["query"] = q, ["count"] = count };
+                // US3: yapısal kısıtları (stokta/indirimli/fiyat/sayfa) semantik aramaya taşı (filtre=uygunluk).
+                var semArgs = FilterInterpreter.StructuralArgs(command.Filters);
+                semArgs["query"] = q;
+                semArgs["count"] = count;
                 var semResult = await client.CallToolAsync("semantic_search", semArgs, cancellationToken: ct);
                 var sem = McpToolSource.DeserializeResult<SemanticSearchResult>(semResult);
                 collector.Add("semantic_search", sem, null);

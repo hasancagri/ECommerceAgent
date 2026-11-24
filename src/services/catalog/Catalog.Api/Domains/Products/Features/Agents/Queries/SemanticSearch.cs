@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Catalog.Api.Search;
+using Microsoft.AspNetCore.Http;
 using ModelContextProtocol.Server;
 
 namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
@@ -10,7 +11,7 @@ namespace Catalog.Api.Domains.Products.Features.Agents.Queries;
 // Agent slice — [McpServerToolType] aynı dosyada (conventions VSA).
 public static class SemanticSearch
 {
-    public record Query(string Text, int Count);
+    public record Query(string Text, int Count, SemanticFilter Filter);
 
     public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
         bool InStock, string? CoverUrl, string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods);
@@ -25,7 +26,7 @@ public static class SemanticSearch
     {
         public async Task<FeatureObjectResultModel<Response>> Handle(Query query, CancellationToken ct)
         {
-            var matches = await queries.SearchAsync(query.Text, query.Count, ct);
+            var matches = await queries.SearchAsync(query.Text, query.Count, query.Filter, ct);
             if (matches.Count == 0)
                 return FeatureObjectResultModel<Response>.Ok(new Response());
 
@@ -62,12 +63,35 @@ public static class SemanticSearch
                      "araması için search_books kullan. Anonim.")]
         public static async Task<Response> SemanticSearch(
             IMessageBus bus,
+            ICurrentUser currentUser,
+            IHttpContextAccessor http,
             [Description("Betimleyici/kavramsal sorgu metni")] string query,
             [Description("Kaç sonuç (varsayılan 10, en çok 20)")] int count = 10,
+            [Description("Yalnız stoktakiler")] bool onlyInStock = false,
+            [Description("Yalnız indirimliler")] bool onlyDiscounted = false,
+            [Description("En düşük fiyat (TL)")] decimal? minPrice = null,
+            [Description("En yüksek fiyat (TL)")] decimal? maxPrice = null,
+            [Description("En az sayfa")] int? minPageCount = null,
+            [Description("En çok sayfa")] int? maxPageCount = null,
             CancellationToken cancellationToken = default)
         {
+            var filter = new SemanticFilter(onlyInStock, onlyDiscounted, minPrice, maxPrice, minPageCount, maxPageCount);
             var result = await bus.InvokeAsync<FeatureObjectResultModel<Response>>(
-                new Query(query, count), cancellationToken);
+                new Query(query, count, filter), cancellationToken);
+
+            // 026 (FR-007): login + dolu-sorguda UserSearched (mode="semantic") yayınla (search_books deseni).
+            // Ayrık + hata-yutar — arama sonucunu ETKİLEMEZ. Anonim (Id boş)/boş sorgu → yayınlanmaz.
+            currentUser.Load(http.HttpContext!.User);
+            if (currentUser.Id != Guid.Empty && !string.IsNullOrWhiteSpace(query))
+            {
+                try
+                {
+                    await bus.PublishAsync(new IntegrationEvents.UserSearched(
+                        currentUser.Id, query.Trim(), "semantic", (int)(result.Data?.Total ?? 0), DateTimeOffset.UtcNow));
+                }
+                catch { /* yayın arama sonucunu etkilemez */ }
+            }
+
             return result.Data ?? new Response();
         }
     }

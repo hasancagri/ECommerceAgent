@@ -53,6 +53,25 @@ public static class FilterInterpreter
         return args;
     }
 
+    // 026 US3: semantik aramanın yapısal kısıtları (Flags + fiyat/sayfa aralığı). semantic_search tool
+    // param adlarıyla birebir. Yayınevi/yazar/sort/binding YOK (demir → lexical'e gider; semantik yolda olmaz).
+    public static Dictionary<string, object?> StructuralArgs(BookSearchFilters f)
+    {
+        var args = new Dictionary<string, object?>();
+        if (f.Flags is { } flags)
+        {
+            if (flags.OnlyInStock) args["onlyInStock"] = true;
+            if (flags.OnlyDiscounted) args["onlyDiscounted"] = true;
+        }
+        var (priceMin, priceMax) = ParseRange(f.PriceHint);
+        if (priceMin is { } pmin) args["minPrice"] = (decimal)pmin;
+        if (priceMax is { } pmax) args["maxPrice"] = (decimal)pmax;
+        var (pageMin, pageMax) = ParseRange(f.PageHint);
+        if (pageMin is { } gmin) args["minPageCount"] = gmin;
+        if (pageMax is { } gmax) args["maxPageCount"] = gmax;
+        return args;
+    }
+
     // Serbest metinden sayı aralığı çıkarır. 2+ sayı → (küçük, büyük). 1 sayı + yön kelimesi → min ya da
     // max. 1 sayı + yön yok, ya da 0 sayı → (null, null) (ambiguous/sayısız → filtre düşer; uydurma yok).
     private static (int? Min, int? Max) ParseRange(string? hint)
