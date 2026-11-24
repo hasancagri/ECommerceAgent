@@ -45,7 +45,10 @@ public static class ExtractIntent
             try
             {
                 var response = await client.GetResponseAsync<BookSearchFilters>(messages, cancellationToken: ct);
-                return response.TryGetResult(out var v) && v is not null ? v : Fallback(query.Text);
+                // Page HER ZAMAN 1 — /extract taze aramadır; sayfalama ("devamını getir") extract'ı BYPASS
+                // eder (022). Refinement'ta LLM Previous'tan page=2 kopyalayabilir → zorla sıfırla (yoksa
+                // filtre değişince "sonraki sayfa"ya düşer).
+                return response.TryGetResult(out var v) && v is not null ? v with { Page = 1 } : Fallback(query.Text);
             }
             catch
             {
