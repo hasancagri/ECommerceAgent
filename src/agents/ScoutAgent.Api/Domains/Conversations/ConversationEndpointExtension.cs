@@ -79,7 +79,8 @@ public static class ConversationEndpointExtension
 
             try
             {
-                var filters = await bus.InvokeAsync<BookSearchFilters>(new ExtractIntent.Query(request.Query), ct);
+                var filters = await bus.InvokeAsync<BookSearchFilters>(
+                    new ExtractIntent.Query(request.Query, request.Previous), ct);
                 return Results.Ok(filters);
             }
             catch (Exception ex)
@@ -193,7 +194,7 @@ public static class ConversationEndpointExtension
     public record RenameConversationRequest(string? Title);
 
     // 022 iki-faz: Tur-1 ham sorgu; Tur-2 tipli niyet + ham sorgu (Conversation'a insan-metni).
-    public record ExtractRequest(string Query);
+    public record ExtractRequest(string Query, BookSearchFilters? Previous = null);
     public record SearchRequest(Guid? ConversationId, string Message, BookSearchFilters Filters);
 
     // Sahiplik/yokluk hatası (NotFound) ile doğrulama hatasını (başlık boş/uzun) ayır → 404 vs 400.

@@ -11,10 +11,15 @@ namespace ScoutAgent.Api.Domains.Conversations.Features.Queries;
 // Çıkarma başarısızsa çıplak-query fallback (aramayı bloklamaz; kullanıcı özür görmez). LLM yok Tur-2'de.
 public static class ExtractIntent
 {
-    public record Query(string Text);
+    // Previous: önceki turun tipli filtresi (bağlam). Doluysa LLM daraltma/sıfırlama kararını verir
+    // (çok-turlu refinement: "Dostoyevski kitapları" → "sadece İş Kültür'den" = Dostoyevski ∩ İş Kültür).
+    public record Query(string Text, BookSearchFilters? Previous = null);
 
     public class ExtractIntentHandler(ChatClientFactory clients, ScoutOptions options)
     {
+        private static readonly System.Text.Json.JsonSerializerOptions PrevJsonOptions =
+            new() { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+
         // Çıkarma hep bir obje döndürür (hata/boş → çıplak-query fallback) → Result sarması gereksiz;
         // doğrudan BookSearchFilters. (record new() kısıtını karşılamadığı için FeatureObjectResultModel değil.)
         public async Task<BookSearchFilters> Handle(Query query, CancellationToken ct)
@@ -23,8 +28,19 @@ public static class ExtractIntent
             var messages = new List<MeaiChatMessage>
             {
                 new(MeaiChatRole.System, ExtractPrompt.Instructions),
-                new(MeaiChatRole.User, query.Text),
             };
+            // Bağlam: önceki tipli filtre varsa daraltma/sıfırlama kuralıyla ver.
+            if (query.Previous is not null)
+            {
+                var prevJson = System.Text.Json.JsonSerializer.Serialize(query.Previous, PrevJsonOptions);
+                messages.Add(new(MeaiChatRole.System,
+                    "ÖNCEKİ ARAMA (tipli): " + prevJson + "\n" +
+                    "Yeni kullanıcı mesajı bu aramayı DARALTIYORSA (ör. 'sadece İş Kültür'den', 'ucuz " +
+                    "olanları', 'ciltli olanlar') önceki dolu alanları KORU + yeni kısıtı EKLE. TAMAMEN " +
+                    "YENİ bir arama ise (farklı yazar/konu, ör. 'Mo Yan'ın kitapları') önceki alanları " +
+                    "BIRAK, sıfırdan kur. Kararı sen ver."));
+            }
+            messages.Add(new(MeaiChatRole.User, query.Text));
 
             try
             {

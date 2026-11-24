@@ -56,9 +56,21 @@ public static class SearchTyped
             collector.Add("search_books", typed, args);
 
             var total = typed?.Total ?? 0;
-            var text = total > 0
-                ? $"'{command.Message}' için {total} kitap buldum; aşağıda kartlarda."
-                : $"'{command.Message}' için sonuç bulamadım.";
+            string text;
+            if (total == 0 || typed is null)
+                text = "Aradığın kritere uygun kitap bulamadım.";
+            else if (command.Filters.Page > 1)
+            {
+                // Sayfalama turu: ham mesajı ("devamını getir") tırnaklama — aralık-metni daha temiz.
+                var size = command.Filters.PageSize < 1 ? 10 : command.Filters.PageSize;
+                var start = (typed.Page - 1) * size + 1;
+                var end = start + typed.Items.Count - 1;
+                text = typed.Items.Count > 0
+                    ? $"Sonraki sayfa — {start}–{end}, toplam {total}."
+                    : "Başka sonuç kalmadı.";
+            }
+            else
+                text = $"'{command.Message}' için {total} kitap buldum; aşağıda kartlarda.";
             var reply = new SendMessage.Reply { Text = text, Items = BuildItems(collector) };
 
             Guid conversationId;
