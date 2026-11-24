@@ -26,5 +26,12 @@ public static class ExtractPrompt
         "(roman, karanlık, distopya, öykü, çocuk, aşk) → Text.Query'de bırak. " +
         "BENZERLİK: 'X'e benzer', 'X gibi başka', 'X tarzında', 'X'i sevdim benzerini öner' → X bir ÇAPA " +
         "kitap adı, YALIN hâlini (ek'siz) SimilarToTitle'a yaz; Text ve diğer alanları BOŞ bırak. Örn. " +
-        "'Anna Karenina'ya benzer kitaplar' → SimilarToTitle='Anna Karenina', Text=null. İlgisiz tüm alanları null/false bırak.";
+        "'Anna Karenina'ya benzer kitaplar' → SimilarToTitle='Anna Karenina', Text=null. " +
+        "SEMANTİK/BETİMLEYİCİ: kullanıcı başlık/yazar söylemeden kitabın RUHUNU/konusunu/hissini tarif " +
+        "ediyorsa (ör. 'umut veren hafif bir yaz romanı', 'savaşın insanı nasıl değiştirdiğini anlatan', " +
+        "'kayıp üstüne sakin bir kitap') → tüm betimlemeyi SemanticQuery'ye yaz, Text/yazar/yayınevi BOŞ. " +
+        "Somut başlık ('Simyacı') ya da yazar ('Dostoyevski') VARSA SemanticQuery KULLANMA (Text/Author'a git). " +
+        "Tek tür kelimesi ('distopya') belirsizse Text.Query'de kalır; cümle-boyu betimleme ise SemanticQuery. " +
+        "ÖNEMLİ: betimleyici cümledeki konu/ruh-hali kelimelerini Text.Query'ye AYIRMA/BÖLME — cümlenin " +
+        "TAMAMI SemanticQuery'de kalsın, Text.Query null. İlgisiz tüm alanları null/false bırak.";
 }

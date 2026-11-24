@@ -18,3 +18,7 @@ public sealed record SimilarBookItem(
     Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
     bool InStock, string? CoverUrl, string? Publisher, string? Isbn,
     string Genre, IReadOnlyList<string> Moods);
+
+// 026: semantic_search ayna-tipi. Catalog SemanticSearch.Response/BookItem ile AYNI şekil (SimilarBookItem
+// reuse — alanlar birebir; İlke I kopya DTO). case-insensitive deserialize; React aynı kartı render eder.
+public sealed record SemanticSearchResult(IReadOnlyList<SimilarBookItem> Items, long Total);

@@ -74,6 +74,22 @@ public static class SearchTyped
                         : $"'{anchor.Title}' kitabına benzer {sim!.Total} kitap buldum; aşağıda kartlarda.";
                 }
             }
+            else if (SemanticIntent.IsSemantic(command.Filters))
+            {
+                // 026 SEMANTİK akışı: betimleyici sorgu → semantic_search (anlam kNN). Rakip demir yoksa
+                // (SemanticIntent guard'ı) buraya; filtre geçişi US3'te. BM25 KARIŞMAZ (rol-ayrımı).
+                // LLM konu kelimelerini Text.Query'ye sızdırmışsa katla (anlam kaybı yok).
+                var q = string.Join(" ", new[] { command.Filters.SemanticQuery, command.Filters.Text?.Query }
+                    .Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!.Trim()));
+                var count = command.Filters.PageSize is < 1 or > 20 ? 10 : command.Filters.PageSize;
+                var semArgs = new Dictionary<string, object?> { ["query"] = q, ["count"] = count };
+                var semResult = await client.CallToolAsync("semantic_search", semArgs, cancellationToken: ct);
+                var sem = McpToolSource.DeserializeResult<SemanticSearchResult>(semResult);
+                collector.Add("semantic_search", sem, null);
+                text = (sem?.Total ?? 0) == 0
+                    ? "Betimlemene uygun kitap bulamadım."
+                    : $"'{command.Message}' için {sem!.Total} kitap buldum; aşağıda kartlarda.";
+            }
             else
             {
                 // Deterministik arama: slot → args → search_books (Catalog yorumlar).
