@@ -10,3 +10,11 @@ public sealed record SearchBookItem(
     Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
     string? CoverUrl, string? Publisher, string? Isbn,
     string Genre, IReadOnlyList<string> Moods, bool InStock);
+
+// 024: similar_books ayna-tipi GERİ (benzer akışı iki-faza yeniden kablolandı). Catalog
+// SimilarBooks.Response/BookItem şeklini KOPYALAR (İlke I; sözleşme = AD). case-insensitive deserialize.
+public sealed record SimilarBooksResult(IReadOnlyList<SimilarBookItem> Items, long Total);
+public sealed record SimilarBookItem(
+    Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
+    bool InStock, string? CoverUrl, string? Publisher, string? Isbn,
+    string Genre, IReadOnlyList<string> Moods);

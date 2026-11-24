@@ -23,6 +23,9 @@ public sealed record BookSearchFilters(
     TaxonomySlot? Taxonomy = null,
     [property: Description("Bayraklar: indirimli/stokta/satışta. Konuşulmadıysa null.")]
     FlagsSlot? Flags = null,
+    [property: Description("BENZERLİK: 'şuna benzer/buna benzeyen/gibi başka/X tarzında' ise ÇAPA kitabın adı " +
+        "(ek'siz, yalın: 'Anna Karenina'). Dolduysa diğer alanları boş bırak. Yoksa null.")]
+    string? SimilarToTitle = null,
     [property: Description("Sayfa numarası (1'den).")]
     int Page = 1,
     [property: Description("Sayfa boyutu (en fazla 20).")]
