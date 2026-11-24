@@ -48,29 +48,56 @@ public static class SearchTyped
                 }
             }
 
-            // Deterministik arama: slot → args → search_books (Catalog yorumlar).
-            var args = FilterInterpreter.ToSearchArgs(command.Filters);
             var client = await mcp.GetClientAsync("catalog", ct);
-            var result = await client.CallToolAsync("search_books", args, cancellationToken: ct);
-            var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
-            collector.Add("search_books", typed, args);
-
-            var total = typed?.Total ?? 0;
             string text;
-            if (total == 0 || typed is null)
-                text = "Aradığın kritere uygun kitap bulamadım.";
-            else if (command.Filters.Page > 1)
+
+            if (!string.IsNullOrWhiteSpace(command.Filters.SimilarToTitle))
             {
-                // Sayfalama turu: ham mesajı ("devamını getir") tırnaklama — aralık-metni daha temiz.
-                var size = command.Filters.PageSize < 1 ? 10 : command.Filters.PageSize;
-                var start = (typed.Page - 1) * size + 1;
-                var end = start + typed.Items.Count - 1;
-                text = typed.Items.Count > 0
-                    ? $"Sonraki sayfa — {start}–{end}, toplam {total}."
-                    : "Başka sonuç kalmadı.";
+                // 024 BENZER akışı (iki-adım): önce başlıkla çapa kitabı bul (productId), sonra similar_books.
+                // Catalog'un similar_books tool'u hazır (konu+ton örtüşmesi + hard filtre + WorkKey tekil).
+                var title = command.Filters.SimilarToTitle!.Trim();
+                var findArgs = new Dictionary<string, object?> { ["query"] = title, ["page"] = 1, ["pageSize"] = 1 };
+                var findResult = await client.CallToolAsync("search_books", findArgs, cancellationToken: ct);
+                var anchor = McpToolSource.DeserializeResult<SearchBooksResult>(findResult)?.Items.FirstOrDefault();
+
+                if (anchor is null)
+                    text = $"'{title}' adlı kitabı bulamadım, benzerlerini getiremedim.";
+                else
+                {
+                    var count = command.Filters.PageSize is < 1 or > 20 ? 10 : command.Filters.PageSize;
+                    var simArgs = new Dictionary<string, object?> { ["productId"] = anchor.Id, ["count"] = count };
+                    var simResult = await client.CallToolAsync("similar_books", simArgs, cancellationToken: ct);
+                    var sim = McpToolSource.DeserializeResult<SimilarBooksResult>(simResult);
+                    collector.Add("similar_books", sim, null);
+                    text = (sim?.Total ?? 0) == 0
+                        ? $"'{anchor.Title}' kitabına benzer kitap bulamadım."
+                        : $"'{anchor.Title}' kitabına benzer {sim!.Total} kitap buldum; aşağıda kartlarda.";
+                }
             }
             else
-                text = $"'{command.Message}' için {total} kitap buldum; aşağıda kartlarda.";
+            {
+                // Deterministik arama: slot → args → search_books (Catalog yorumlar).
+                var args = FilterInterpreter.ToSearchArgs(command.Filters);
+                var result = await client.CallToolAsync("search_books", args, cancellationToken: ct);
+                var typed = McpToolSource.DeserializeResult<SearchBooksResult>(result);
+                collector.Add("search_books", typed, args);
+
+                var total = typed?.Total ?? 0;
+                if (total == 0 || typed is null)
+                    text = "Aradığın kritere uygun kitap bulamadım.";
+                else if (command.Filters.Page > 1)
+                {
+                    // Sayfalama turu: ham mesajı ("devamını getir") tırnaklama — aralık-metni daha temiz.
+                    var size = command.Filters.PageSize < 1 ? 10 : command.Filters.PageSize;
+                    var start = (typed.Page - 1) * size + 1;
+                    var end = start + typed.Items.Count - 1;
+                    text = typed.Items.Count > 0
+                        ? $"Sonraki sayfa — {start}–{end}, toplam {total}."
+                        : "Başka sonuç kalmadı.";
+                }
+                else
+                    text = $"'{command.Message}' için {total} kitap buldum; aşağıda kartlarda.";
+            }
             var reply = new ChatReply { Text = text, Items = BuildItems(collector) };
 
             Guid conversationId;

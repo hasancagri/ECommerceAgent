@@ -23,5 +23,8 @@ public static class ExtractPrompt
         "DİĞER (metin aynen, çevirme): fiyat ifadesi ('ucuz','100-300 TL','300 altı') → PriceHint; " +
         "sıralama ('ucuzdan pahalıya','en çok satan','yeni') → SortHint; cilt ('ciltli'/'karton') → " +
         "BindingHint; sayfa ('kalın','kısa','300 sayfadan fazla') → PageHint. Tür/ruh-hali/konu kelimeleri " +
-        "(roman, karanlık, distopya, öykü, çocuk, aşk) → Text.Query'de bırak. İlgisiz tüm alanları null/false bırak.";
+        "(roman, karanlık, distopya, öykü, çocuk, aşk) → Text.Query'de bırak. " +
+        "BENZERLİK: 'X'e benzer', 'X gibi başka', 'X tarzında', 'X'i sevdim benzerini öner' → X bir ÇAPA " +
+        "kitap adı, YALIN hâlini (ek'siz) SimilarToTitle'a yaz; Text ve diğer alanları BOŞ bırak. Örn. " +
+        "'Anna Karenina'ya benzer kitaplar' → SimilarToTitle='Anna Karenina', Text=null. İlgisiz tüm alanları null/false bırak.";
 }
