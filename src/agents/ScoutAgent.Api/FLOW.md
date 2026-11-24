@@ -38,6 +38,25 @@ aksiyon=tık). Login kullanıcının transkriptini kendi deposunda tutar; anon t
     kalıcı siler → **DeleteConversation** (DELETE, HARD). İkisi de sahiplik-korumalı (başkasınınki 404).  `(DeleteConversation.Handle)`
     Anon muadili istemcide (sessionStorage; sunucu çağrısı yok).
 
+## 022: iki-faz tipli arama (kitap keşfi — chat yolundan AYRI)
+
+Kitap araması, kırılgan "iç LLM JSON param doldurur" adımını bırakıp iki-faza geçti. Sepet/yorum/
+kitaplık gibi diğer niyetler yukarıdaki `/messages` (router+sub-agent) yolunda kalır — bu yol YALNIZ
+kitap keşfi için.
+
+1. 👤 kullanıcı sorgu yazar → 🟦 **ExtractIntent** (POST `/api/chat/v1/extract`) — 🩷 LLM strict         `(ExtractIntent.Handle)`
+   structured output (`GetResponseAsync<BookSearchFilters>`) niyeti TİPLİ NESTED slot objesine çıkarır;
+   model yalnız kullanıcının kelimelerini doğru slota koyar (çeviri/enum/id YOK). Hata → çıplak-query
+   fallback (bloklamaz). Durumsuz.
+2. 🟪 React tipi alır, beklemeden 🟦 **SearchTyped**'e relay eder (oto-relay, ONAY YOK — arama geri        `(SearchTyped.Handle)`
+   dönüşsüz değil). "anladım" filtreleri gösterim amaçlı (gate değil).
+3. 🟪 DETERMİNİSTİK (LLM YOK): `FilterInterpreter` slotları `search_books` argümanlarına düzler            `(FilterInterpreter.ToSearchArgs)`
+   (PriceHint/PageHint metin→sayı burada; sort/binding/yazar/yayınevi metni Catalog yorumlar).
+4. 🩷 Catalog `search_books` çağrılır ⇨ Catalog — yazar adı `author` filtresine (jsonb `?|`, kelime-
+   sınırı eşleşme) → "X'in kitapları" YALNIZ X'in eserleri (BM25 token kirliliği biter).
+5. 🟧 Cevap `{text, items}` — `text` şablon ("'X' için N kitap"), `items` tool dönüşünden birebir.
+   Login → `Conversation`'a yazılır (017 reload/sidebar korunur); "devamını getir" = React `Filters.Page+1`.
+
 ## Planlanan: 019 router → sub-agent dağıtımı _(planned)_
 
 Bugünkü 3-4-5. adımlar (kör araç kutusu + tek düz "Kasif" agent) şu akışla değişir:
@@ -70,6 +89,10 @@ Bugünkü 3-4-5. adımlar (kör araç kutusu + tek düz "Kasif" agent) şu akı�
   state'ine güvenilmez. Kullanıcı yalnız KENDİ sohbetini görür/sürdürür/adlandırır/siler (sahiplik).
 - **Arama kaydı yalnız login.** `UserSearched` yalnız login+dolu-sorguda yayılır; anon arama kaydolmaz
   (012/013 invariant'ı korunur, toplu/anon log YOK).
+- **022 iki-faz: çıkarma LLM, arama deterministik.** Tur-1 (`/extract`) TEK LLM işi = niyeti tipli slota
+  koymak (uydurma yasağı: sorguda açıkça yoksa slot null). Tur-2 (`/search`) LLM YOK — slot→arg→MCP. Yazar
+  adı metni query'ye GİRMEZ, `author` filtresine gider (token kelime-sınırı eşleşir, substring çarpışması
+  önlenir). "X hakkında" = konu (query'de kalır), "X'in kitapları" = yazarlık (author filtresi) — ayrım slotlamada.
 
 ## Sınır (bu BC'nin dokunmadığı)
 
