@@ -17,6 +17,9 @@
         <PackageReference Include="WolverineFx.Postgresql" />
         <!-- 014: query-only MCP server yüzeyi (ScoutAgent client olarak bağlanır). -->
         <PackageReference Include="ModelContextProtocol.AspNetCore" />
+        <!-- 028: taste-vektör — sorgu metinlerini OpenAI'la embed (Catalog 025 ile AYNI model/uzay). -->
+        <PackageReference Include="Microsoft.Extensions.AI" />
+        <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     </ItemGroup>
 
     <ItemGroup>

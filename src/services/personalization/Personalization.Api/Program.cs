@@ -30,8 +30,16 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ICurrentUser, CurrentUser>();
 
-// 014: query-only MCP ucu (ADR adr-mcp-inward-agent — first-party ScoutAgent tüketir). get_search_history.
+// 014: query-only MCP ucu (ADR adr-mcp-inward-agent — first-party ScoutAgent tüketir). get_search_history + 028 get_my_taste.
 builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+
+// 028: taste-vektör embedding config (ApiKey AppHost scout-openai-key env'inden). Tüketici düz T.
+builder.Services.AddOptions<Personalization.Api.Options.PersonalizationEmbeddingOptions>()
+    .BindConfiguration(nameof(Personalization.Api.Options.PersonalizationEmbeddingOptions))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Personalization.Api.Options.PersonalizationEmbeddingOptions>>().Value);
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
