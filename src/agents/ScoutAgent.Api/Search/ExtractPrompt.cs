@@ -32,6 +32,10 @@ public static class ExtractPrompt
         "'kayıp üstüne sakin bir kitap') → tüm betimlemeyi SemanticQuery'ye yaz, Text/yazar/yayınevi BOŞ. " +
         "Somut başlık ('Simyacı') ya da yazar ('Dostoyevski') VARSA SemanticQuery KULLANMA (Text/Author'a git). " +
         "Tek tür kelimesi ('distopya') belirsizse Text.Query'de kalır; cümle-boyu betimleme ise SemanticQuery. " +
+        "KAVRAM/GELENEK: bir edebiyat geleneği/akımı/ülke-edebiyatı ya da geniş konu-kavramı ('Rus edebiyatı', " +
+        "'Latin Amerika romanı', 'bilimkurgu klasikleri', 'stoacı felsefe', 'varoluşçu roman', 'Japon öyküsü') " +
+        "→ bu KAVRAMI SemanticQuery'ye yaz (literal kelime eşleşmesi değil, ANLAM; başlıkta geçmeyen eserler de " +
+        "gelsin), Text.Query'ye KOYMA. Somut yazar/başlık varsa yine Text/Author (kavram değil). " +
         "ÖNEMLİ: betimleyici cümledeki konu/ruh-hali kelimelerini Text.Query'ye AYIRMA/BÖLME — cümlenin " +
         "TAMAMI SemanticQuery'de kalsın, Text.Query null. İlgisiz tüm alanları null/false bırak.";
 }
