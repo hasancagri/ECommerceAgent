@@ -20,7 +20,9 @@ public static class ExtractPrompt
         "İş Bankası, İş Kültür, Yapı Kredi/YKY, İletişim, Everest, İthaki, Doğan) → Publisher.Include. " +
         "'X hariç/dışında/olmayan' → Publisher.Exclude. Yayınevini Text.Query'ye KOYMA. Örn. 'Tolstoy'un " +
         "İş Kültür kitapları' → Author='Tolstoy', Publisher.Include='İş Kültür'. " +
-        "DİĞER (metin aynen, çevirme): fiyat ifadesi ('ucuz','100-300 TL','300 altı') → PriceHint; " +
+        "DİĞER (metin aynen, çevirme): fiyat ifadesi → PriceHint, YÖN kelimesini KORU — 'en fazla 200 TL'/" +
+        "'200 TL'ye kadar'/'200 altı' → PriceHint='200 altı'; 'en az 200'/'200 üstü' → '200 üstü'; " +
+        "'100-300 TL' → '100-300 TL'. ÇIPLAK '200 TL' YAZMA (yön kaybolur, filtre düşer). " +
         "sıralama ('ucuzdan pahalıya','en çok satan','yeni') → SortHint; cilt ('ciltli'/'karton') → " +
         "BindingHint; sayfa ('kalın','kısa','300 sayfadan fazla') → PageHint. Tür/ruh-hali/konu kelimeleri " +
         "(roman, karanlık, distopya, öykü, çocuk, aşk) → Text.Query'de bırak. " +
