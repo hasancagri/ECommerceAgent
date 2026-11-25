@@ -14,7 +14,8 @@ public static class SemanticSearch
     public record Query(string Text, int Count, SemanticFilter Filter);
 
     public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
-        bool InStock, string? CoverUrl, string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods);
+        bool InStock, string? CoverUrl, string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods,
+        int? PageCount, decimal? DiscountRate);   // kart gösterimi (indirimli = Price*(1-rate))
 
     public class Response
     {
@@ -47,7 +48,7 @@ public static class SemanticSearch
                 string.Join(", ", p.AuthorIds.Select(id => authorNameById.GetValueOrDefault(id)).Where(n => n is not null)),
                 p.Price?.Amount, p.IsSalable, p.InStock, p.ImageUrl,
                 publisherNameById.GetValueOrDefault(p.PublisherId), p.Gtin,
-                p.Genre, p.Moods.ToList())).ToList();
+                p.Genre, p.Moods.ToList(), p.PageCount, p.DiscountRate)).ToList();
 
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = items.Count });
         }
