@@ -9,7 +9,8 @@ public sealed record SearchBooksResult(IReadOnlyList<SearchBookItem> Items, long
 public sealed record SearchBookItem(
     Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
     string? CoverUrl, string? Publisher, string? Isbn,
-    string Genre, IReadOnlyList<string> Moods, bool InStock);
+    string Genre, IReadOnlyList<string> Moods, bool InStock,
+    int? PageCount, decimal? DiscountRate);   // kart gösterimi — Catalog BookItem ile birebir
 
 // 024: similar_books ayna-tipi GERİ (benzer akışı iki-faza yeniden kablolandı). Catalog
 // SimilarBooks.Response/BookItem şeklini KOPYALAR (İlke I; sözleşme = AD). case-insensitive deserialize.
@@ -17,7 +18,8 @@ public sealed record SimilarBooksResult(IReadOnlyList<SimilarBookItem> Items, lo
 public sealed record SimilarBookItem(
     Guid Id, string Title, string Authors, decimal? Price, bool IsSalable,
     bool InStock, string? CoverUrl, string? Publisher, string? Isbn,
-    string Genre, IReadOnlyList<string> Moods);
+    string Genre, IReadOnlyList<string> Moods,
+    int? PageCount, decimal? DiscountRate);   // kart gösterimi — similar/semantic/recommend ortak
 
 // 026: semantic_search ayna-tipi. Catalog SemanticSearch.Response/BookItem ile AYNI şekil (SimilarBookItem
 // reuse — alanlar birebir; İlke I kopya DTO). case-insensitive deserialize; React aynı kartı render eder.
