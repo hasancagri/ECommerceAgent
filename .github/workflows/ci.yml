@@ -102,7 +102,15 @@ jobs:
             kubectl apply -f /tmp/deploy-k8s/
             apps=$(kubectl -n ecommerce get deploy -o name | grep -vE "postgres|rabbitmq|redis")
             kubectl -n ecommerce rollout restart $apps
-            kubectl -n ecommerce rollout status $apps --timeout=600s
+            # App BASINA bekle + per-app timeout: coklu resource tek komutta --timeout etkisizdi
+            # (takilan app sonsuz bekler, 2sa SSH timeout). Takilan app 300s de FAIL -> job kirmizi,
+            # failure teshis adimi event doker (sessiz asma yok).
+            for app in $apps; do
+              if ! kubectl -n ecommerce rollout status $app --timeout=300s; then
+                echo "ROLLOUT FAILED: $app"
+                exit 1
+              fi
+            done
           '
 
       # Rollout başarısızsa (tek-node herd / crashloop / kaynak) kök nedeni Actions log'una dök.
