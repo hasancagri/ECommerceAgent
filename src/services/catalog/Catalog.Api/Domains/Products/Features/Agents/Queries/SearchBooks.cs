@@ -19,7 +19,8 @@ public static class SearchBooks
         int? MinPageCount = null, int? MaxPageCount = null, bool OnlyInStock = false);
 
     public record BookItem(Guid Id, string Title, string Authors, decimal? Price, bool IsSalable, string? CoverUrl,
-        string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods, bool InStock);
+        string? Publisher, string? Isbn, string Genre, IReadOnlyList<string> Moods, bool InStock,
+        int? PageCount, decimal? DiscountRate);   // PageCount/DiscountRate: kart gösterimi (indirimli = Price*(1-rate))
 
     public class Response
     {
@@ -87,7 +88,9 @@ public static class SearchBooks
                 p.Gtin,               // 015: ISBN → kart SEO-link'i /kitap/{slug}-{isbn} kurar
                 p.Genre,
                 p.Moods.ToList(),
-                p.InStock)).ToList(); // 021: türetilmiş (StockCount>0)
+                p.InStock,            // 021: türetilmiş (StockCount>0)
+                p.PageCount,
+                p.DiscountRate)).ToList();
 
             return FeatureObjectResultModel<Response>.Ok(new Response { Items = items, Total = result.Total, Page = page });
         }
