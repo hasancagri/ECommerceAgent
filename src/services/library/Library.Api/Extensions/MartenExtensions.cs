@@ -23,6 +23,10 @@ public static class MartenExtensions
                 // 086: kişisel satın-alma birikimi (Storefront'tan taşındı). Id = "{userId}:{productId}"
                 // (idempotent upsert); erişim yolu UserId → index onun için.
                 opts.Schema.For<Library.Api.Domains.UserPurchase.UserPurchase>().Index(x => x.UserId);
+
+                // Son Gezdiğim Kitaplar (2026-11-26): kişisel gezme kaydı. Id = "{userId}:{productId}"
+                // (idempotent upsert); erişim yolu UserId (en yeni 20) → index onun için.
+                opts.Schema.For<Library.Api.Domains.UserBookView.UserBookView>().Index(x => x.UserId);
             })
             .IntegrateWithWolverine()
             .ApplyAllDatabaseChangesOnStartup();
