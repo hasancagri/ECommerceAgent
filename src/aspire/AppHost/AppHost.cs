@@ -238,12 +238,14 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(catalogApi)
     .WithReference(fileApi)
     .WithReference(personalizationApi)   // 013: /api/personalization/** → arama geçmişi
+    .WithReference(libraryApi)           // Son Gezdiğim Kitaplar: /api/library/** → gezme kaydı
     // 014: React sohbeti → gateway /api/chat/** → scout-agent (service discovery).
     .WithReference(scoutAgentApi)
     .WithEnvironment("GatewayAuthOptions__AdminApiKey", adminApiKey)
     .WaitFor(catalogApi)
     .WaitFor(fileApi)
     .WaitFor(personalizationApi)
+    .WaitFor(libraryApi)
     .WaitFor(scoutAgentApi);
 catalogApi.WithEnvironment("AdminApiKeyOptions__AdminApiKey", adminApiKey);
 // 025: embedding omurgası — Catalog OpenAI anahtarını ScoutAgent'la AYNI secret'tan alır (ikinci
